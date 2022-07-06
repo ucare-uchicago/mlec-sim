@@ -26,7 +26,7 @@ def factorial(n):
 def tick_raid(state_):
     np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
     state: SysState = copy.deepcopy(state_)
-    state.gen_drives()
+    state.drives = state.gen_failure_times_jiajun(state.total_drives)
     
     if debug: print("Number of failures {}".format(len(state.drives[state.drives < YEAR])))
     # Filtering out failure time for each stripe, we are only interested in < 1 year
@@ -35,7 +35,7 @@ def tick_raid(state_):
         failure_times = stripe[stripe < YEAR]
         failure_idxs = np.where(stripe < YEAR)[0]
         # If this stripe does not has more than parity amount of failure, it will not fail
-        if len(failure_times) <= state.dirve_args.parity_shards:
+        if len(failure_times) <= state.drive_args.parity_shards:
             continue
         
         failures = list(zip(failure_times, failure_idxs))
@@ -66,7 +66,7 @@ def tick_raid(state_):
             rec_queue.push((failed_time + repair_time, repair_time, failed_disk))
 
             # If we have more than parity in rec_queue, we fail
-            if rec_queue.size() > state.dirve_args.parity_shards:
+            if rec_queue.size() > state.drive_args.parity_shards:
                 return 1
             
             if debug: print('------------')
@@ -80,8 +80,8 @@ def tick_dp(state_):
     np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
     sysstate: SysState = copy.deepcopy(state_)
     sysstate.gen_drives()
-    sim = Simulate(YEAR, 1, 1, 50, 50, 
-                    8, 2, 1, 1, "", sysstate.dirve_args.drive_cap * 1024 * 1024, sysstate.dirve_args.rec_speed, 1, 0.1)
+    sim = Simulate(YEAR, 1, 1, sysstate.total_drives, sysstate.total_drives,  
+                    sysstate.drive_args.data_shards, sysstate.drive_args.parity_shards, 1, 1, "", sysstate.drive_args.drive_cap * 1024 * 1024, sysstate.drive_args.rec_speed, 1, 0.1)
     return sim.run_simulation(sysstate)
 
 def tick_raid_huan(state_):
@@ -90,8 +90,8 @@ def tick_raid_huan(state_):
     np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
     sysstate: SysState = copy.deepcopy(state_)
     sysstate.gen_drives()
-    sim = Simulate(YEAR, 1, 1, 50, 50, 
-                    8, 2, 1, 0, "", sysstate.dirve_args.drive_cap * 1024 * 1024, sysstate.dirve_args.rec_speed, 1, 0.1)
+    sim = Simulate(YEAR, 1, 1, sysstate.total_drives, sysstate.total_drives, 
+                    sysstate.drive_args.data_shards, sysstate.drive_args.parity_shards, 1, 0, "", sysstate.drive_args.drive_cap * 1024 * 1024, sysstate.drive_args.rec_speed, 1, 0.1)
     return sim.run_simulation(sysstate)
 
 def iter(state: SysState, iters):
@@ -122,7 +122,7 @@ def simulate(state, iters, epochs, concur=10):
     executor.shutdown()
     failed_instances += np.sum(res)
         
-    return (failed_instances, epochs * iters)
+    return [failed_instances, epochs * iters]
 
 if __name__ == "__main__":
     logger = logging.getLogger()
@@ -134,7 +134,12 @@ if __name__ == "__main__":
         l1sys = SysState(total_drives=50, drive_args=l1args, placement='RAID')
 
         # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
-        res = simulate(l1sys, iters=300000, epochs=80, concur=80)
+        res = simulate(l1sys, iters=50000, epochs=80, concur=80)
+        while res[0] < 20:
+            print(res)
+            temp = simulate(l1sys, iters=50000, epochs=80, concur=80)
+            res[0] += temp[0]
+            res[1] += temp[1]
         # res = simulate(l1sys, iters=1, epochs=1, concur=1)
         print('++++++++++++++++++++++++++++++++')
         print('Total Fails: ' + str(res[0]))
@@ -143,7 +148,8 @@ if __name__ == "__main__":
         if res[0] == 0:
             print("NO FAILURE!")
         else:
-            nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+            # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+            nn = str(round(-math.log10(res[0]/res[1]),2))
             print("Num of Nine: " + nn)
 
             output = open("s-result-{}.log".format(l1sys.mode), "a")

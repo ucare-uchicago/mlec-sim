@@ -5,7 +5,7 @@ import numpy as np
 class SysState:
     
     def __init__(self, total_drives, drive_args: DriveArgs, placement='DP'):
-        self.dirve_args = drive_args
+        self.drive_args = drive_args
         self.mode = placement
 
         # for the sake of simulation, we are going to round the total_drives
@@ -24,7 +24,17 @@ class SysState:
     def gen_failure_times(self, n):
         failure_rate = -365.25/log(1-self.drive_args.afr_in_pct/100)
         temp = np.random.exponential(failure_rate, n)
+        return temp
 
+
+        # This generate a system of failure times
+    def gen_failure_times_jiajun(self, n):
+        failure_rate = -365.25/log(1-self.drive_args.afr_in_pct/100)
+        temp = np.random.exponential(failure_rate, n)
+
+        # If it is RAID, we reshape it so that its a list of stripes
+        if self.mode == 'RAID':
+            temp = np.reshape(temp, (-1, self.drive_args.total_shards))
         
         return temp
 
