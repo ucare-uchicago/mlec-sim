@@ -25,9 +25,6 @@ class SysState:
         failure_rate = -365.25/log(1-self.drive_args.afr_in_pct/100)
         temp = np.random.exponential(failure_rate, n)
 
-        # If it is RAID, we reshape it so that its a list of stripes
-        if self.mode == 'RAID':
-            temp = np.reshape(temp, (-1, self.drive_args.total_shards))
         
         return temp
 

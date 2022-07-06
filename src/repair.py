@@ -5,10 +5,77 @@ from constants import debug, YEAR
 import heapq
 import math
 import numpy as np
+from collections import OrderedDict
+from trinity import Trinity
+from disk import Disk
+import operator as op
+from heapq import *
+import logging
 
-def gen_new_failures(failures: list, repaired: list, state: SysState):
+class Repair:
+    def __init__(self, sys, place_type):
+        #---------------------------------------
+        # Initialize Trinity Storage System
+        #---------------------------------------
+        self.sys = sys
+        self.place_type = place_type
+        #---------------------------------------
+
+            
+
+    #-------------------------------------------
+    # repair based on no data loss situation
+    #-------------------------------------------
+    def calculate_repair_time(self):
+        if self.place_type == 1:
+            self.decluster_priority_reconstruct()
+        if self.place_type == 2:
+            self.stripeset_priority_reconstruct()
+
+
+    
+    def generate_repair_event(self, diskset, state, curr_time, events_queue):
+        logging.debug("generate repair",diskset)
+        for diskId in diskset:
+            if self.place_type == 1 or self.place_type == 2 or self.place_type == 3:
+                #-----------------------------------------------------
+                # priority reconstruct, p is larger, schedule it faster
+                #------------------------------------------------------
+                sorted_time = sorted(state.disks[diskId].repair_time.items(),reverse=True,key=lambda x: x[0])
+                logging.debug("sorted", sorted_time)
+                estimate_time = curr_time
+                for (priority, repair_time) in sorted_time:
+                    estimate_time  += repair_time
+                    if priority > 1:
+                        heappush(events_queue, (estimate_time, Disk.EVENT_FASTREBUILD, diskId))
+                        # logging.info(priority,"--------> push ", repair_time, estimate_time, Disk.EVENT_FASTREBUILD, "D-",diskId,"-", "S-", diskId/84, "R-",diskId/504)
+                        logging.info("--->repair_time" + "(" + str(diskId) + ")" + ":" + str(repair_time) +  " estimated_time: " + str(estimate_time) + " type: FASTERBUILD")
+                    if priority == 1:
+                        heappush(events_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+                        # logging.info(priority,"--------> push ", repair_time, estimate_time, DiskEVENT_REPAIR, "D-",diskId,"-", "S-",diskId/84, "R-",diskId/504)
+                        logging.info("--->repair_time" + "(" + str(diskId) + ")" + ":" + str(repair_time) +  " estimated_time: " + str(estimate_time) + " type: REPAIR")
+                    #print "diskId",diskId, "> priority", priority, "repair", repair_time, "> ",estimate_time, "curr-time", curr_time
+                    #print "    >>>> priority", priority
+                    #------------------------------
+                    # remove from the time dict
+                    #------------------------------
+                    del state.disks[diskId].repair_time[priority]
+            if self.place_type == 0:
+                #-----------------------------------------------------
+                # FIFO reconstruct, utilize the hot spares
+                #-----------------------------------------------------
+                repair_time = state.disks[diskId].repair_time[0]
+                #-----------------------------------------------------
+                estimate_time = curr_time
+                estimate_time  += repair_time
+                heappush(events_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+                logging.debug("--------> push ", repair_time, estimate_time, Disk.EVENT_REPAIR, "D-",diskId,"-", "S-",diskId/84, "R-",diskId/504)
+
+
+
+def gen_new_failures(failures: list, repaired: list, sysstate: SysState):
     new_failure_added = 0
-    failure_rate= -365.25/math.log(1-state.drive_args.afr_in_pct/100)
+    failure_rate= -365.25/math.log(1-sysstate.drive_args.afr_in_pct/100)
     new_repair_times = np.random.exponential(failure_rate, len(repaired))
     new_failure_times = new_repair_times + np.array([r[0] for r in repaired])
     
@@ -20,6 +87,18 @@ def gen_new_failures(failures: list, repaired: list, state: SysState):
             new_failure_added += 1
 
     return new_failure_added
+
+
+def dp_gen_new_failures(failures: list, repaired: list, curr_time, sysstate: SysState):
+    new_failure_added = 0
+    failure_rate= -365.25/math.log(1-sysstate.drive_args.afr_in_pct/100)
+    new_repair_times = np.random.exponential(failure_rate, len(repaired))
+    new_failure_times = new_repair_times + curr_time
+    
+    new_failures = list(zip(new_failure_times, repaired))
+
+    return new_failures
+
 
 # this is repairing each definitive stripe
 def calc_raid_repair_time(stripe_failed_count, state: SysState):

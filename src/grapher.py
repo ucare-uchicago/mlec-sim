@@ -14,7 +14,9 @@ def plot(path='s-result-RAID.log', color=[1]):
 
     for row in f:
         groups = re.search("^(.*)-(.*)-(.*): (.*)", row)
-        
+        print(row)
+        print(groups)
+
         data_shards = int(groups.group(1))
         parity_shards = int(groups.group(2))
         afr = int(groups.group(3))
@@ -39,7 +41,7 @@ def plot_title(path='s-result-RAID.log'):
         data_shards = int(groups.group(1))
         parity_shards = int(groups.group(2))
     
-        plt.title("({}+{}) EC Config between RAID and DP".format(data_shards, parity_shards))
+        plt.title("({}+{}) EC Config between RAID and DP (NEW)".format(data_shards, parity_shards))
 
 def plot_axis_name():
     plt.xlabel("Disk AFR in Percentage")
