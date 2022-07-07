@@ -98,6 +98,7 @@ def iter(state: SysState, iters):
     try:
         res = 0
         for iter in range(0, iters):
+            # print("\nnew iter")
             if state.mode == 'RAID':
                 res += tick_raid_huan(state)
             else:
@@ -129,7 +130,7 @@ if __name__ == "__main__":
     # logging.basicConfig(level=logging.INFO)
 
 
-    for afr in range(5, 6):
+    for afr in range(2, 12):
         l1args = DriveArgs(d_shards=8, p_shards=2, afr=afr, drive_cap=20, rec_speed=100)
         l1sys = SysState(total_drives=50, drive_args=l1args, placement='DP')
 
@@ -140,7 +141,7 @@ if __name__ == "__main__":
             temp = simulate(l1sys, iters=100000, epochs=80, concur=80)
             res[0] += temp[0]
             res[1] += temp[1]
-        # res = simulate(l1sys, iters=100, epochs=1, concur=1)
+        # res = simulate(l1sys, iters=1000, epochs=1, concur=1)
         print('++++++++++++++++++++++++++++++++')
         print('Total Fails: ' + str(res[0]))
         print('Total Iters: ' + str(res[1]))

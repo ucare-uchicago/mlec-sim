@@ -54,6 +54,8 @@ class Disk:
         #-------------------------------
         self.repair_start_time = 0
         self.curr_repair_data_remaining = 0
+        self.good_num = 0
+        self.fail_num = 0
 
 
 

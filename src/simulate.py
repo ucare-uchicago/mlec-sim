@@ -174,12 +174,10 @@ class Simulate:
                         logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
                         # print(self.events_queue)
                     logging.info(">>REPAIR " + str(disk))
-                continue
 
             if event_type == Disk.EVENT_FASTREBUILD:
                 for disk in diskset:
                     logging.info(">>FASTER_REBUILD " + str(disk))
-                continue
                 #self.generate_fail_event(diskset, curr_time)
             #---------------------------
             # failure event, check PDL
@@ -189,18 +187,16 @@ class Simulate:
                 if self.placement.check_data_loss_prob(self.state):
                     prob = 1
                     logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+                    # print("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     loss_events = self.placement.check_data_loss_events(self.state)
                     return prob
                     #------------------------------------------
                 else:
                     prob = 0
                     #print "  >>>>>>> no data loss >>>>>>>  ", curr_failures
-                    
-                    if self.repair.place_type == 1:
-                        self.repair.generate_repair_event(diskset, self.state, curr_time, self.events_queue)
+                
                     #------------------------------------------
-            if self.repair.place_type == 0:
-                        self.repair.update_repair_event(diskset, self.state, curr_time, self.repair_queue)
+            self.repair.update_repair_event(diskset, self.state, curr_time, self.repair_queue)
         return prob
 
 
