@@ -21,16 +21,6 @@ class Repair:
         self.place_type = place_type
         #---------------------------------------
 
-            
-
-    #-------------------------------------------
-    # repair based on no data loss situation
-    #-------------------------------------------
-    def calculate_repair_time(self):
-        if self.place_type == 1:
-            self.decluster_priority_reconstruct()
-        if self.place_type == 2:
-            self.stripeset_priority_reconstruct()
 
 
     
@@ -70,6 +60,25 @@ class Repair:
                 estimate_time  += repair_time
                 heappush(events_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
                 logging.debug("--------> push ", repair_time, estimate_time, Disk.EVENT_REPAIR, "D-",diskId,"-", "S-",diskId/84, "R-",diskId/504)
+
+
+    def update_repair_event(self, diskset, state, curr_time, repair_queue):
+        logging.debug("updating repair",diskset)
+        failed_disks = state.get_failed_disks()
+        repair_queue.clear()
+        for diskId in failed_disks:
+            if self.place_type == 0:
+                #-----------------------------------------------------
+                # FIFO reconstruct, utilize the hot spares
+                #-----------------------------------------------------
+                repair_time = state.disks[diskId].repair_time[0]
+                #-----------------------------------------------------
+                estimate_time = curr_time
+                estimate_time  += repair_time
+                heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+                logging.debug("--------> push ", repair_time, estimate_time, Disk.EVENT_REPAIR, "D-",diskId,"-", "S-",diskId/84, "R-",diskId/504)
+
+
 
 
 

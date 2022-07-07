@@ -129,18 +129,18 @@ if __name__ == "__main__":
     # logging.basicConfig(level=logging.INFO)
 
 
-    for afr in range(2, 3):
+    for afr in range(5, 6):
         l1args = DriveArgs(d_shards=8, p_shards=2, afr=afr, drive_cap=20, rec_speed=100)
-        l1sys = SysState(total_drives=50, drive_args=l1args, placement='RAID')
+        l1sys = SysState(total_drives=50, drive_args=l1args, placement='DP')
 
-        # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
-        res = simulate(l1sys, iters=50000, epochs=80, concur=80)
+        # # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
+        res = simulate(l1sys, iters=100000, epochs=80, concur=80)
         while res[0] < 20:
             print(res)
-            temp = simulate(l1sys, iters=50000, epochs=80, concur=80)
+            temp = simulate(l1sys, iters=100000, epochs=80, concur=80)
             res[0] += temp[0]
             res[1] += temp[1]
-        # res = simulate(l1sys, iters=1, epochs=1, concur=1)
+        # res = simulate(l1sys, iters=100, epochs=1, concur=1)
         print('++++++++++++++++++++++++++++++++')
         print('Total Fails: ' + str(res[0]))
         print('Total Iters: ' + str(res[1]))

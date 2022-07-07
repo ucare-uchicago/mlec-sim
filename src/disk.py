@@ -52,6 +52,8 @@ class Disk:
         self.stripeset_sets = 0
         self.draid_sets = 0
         #-------------------------------
+        self.repair_start_time = 0
+        self.curr_repair_data_remaining = 0
 
 
 

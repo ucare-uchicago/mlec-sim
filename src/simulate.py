@@ -38,6 +38,7 @@ class Simulate:
     #------------------------------------------
     def reset(self, sysstate):
         self.events_queue = []
+        self.repair_queue = []
         self.state = State(self.sys)
         #-----------------------------------------------------
         # initialize the stripesets inside each disk
@@ -70,11 +71,29 @@ class Simulate:
 
 
 
+    def get_next_event(self):
+        if self.events_queue or self.repair_queue:
+            if len(self.repair_queue) == 0:
+                next_event = heappop(self.events_queue)
+            elif len(self.events_queue) == 0:
+                next_event = heappop(self.repair_queue)
+            else:
+                first_event_time = self.events_queue[0][0]
+                first_repair_time = self.repair_queue[0][0]
+                if first_event_time < first_repair_time:
+                    next_event = heappop(self.events_queue)
+                else:
+                    next_event = heappop(self.repair_queue)
+            return next_event
+        return None
+        
 
-    def get_next_event(self, curr_time):
-        if self.events_queue:
-            diskset = []
-            next_event = heappop(self.events_queue)
+
+
+    def get_next_eventset(self, curr_time):
+        diskset = []
+        if self.events_queue or self.repair_queue:
+            next_event = self.get_next_event()
             #--------------------------------------
             next_event_time = next_event[0]
             next_event_type = next_event[1]
@@ -82,9 +101,14 @@ class Simulate:
             #--------------------------------------------------------------
             # gather the events with the same occurring time and event type
             #--------------------------------------------------------------
-            while self.events_queue and self.events_queue[0][0] == next_event_time and self.events_queue[0][1] == next_event_type:
-                simultaneous_event = heappop(self.events_queue)
-                diskset.append(simultaneous_event[2])
+            if next_event[1] == Disk.EVENT_FAIL:
+                while self.events_queue and self.events_queue[0][0] == next_event_time and self.events_queue[0][1] == next_event_type:
+                    simultaneous_event = heappop(self.events_queue)
+                    diskset.append(simultaneous_event[2])
+            else:
+                while self.repair_queue and self.repair_queue[0][0] == next_event_time and self.repair_queue[0][1] == next_event_type:
+                    simultaneous_event = heappop(self.repair_queue)
+                    diskset.append(simultaneous_event[2])
             logging.debug("++++++++++ pop ", next_event_time, next_event_type, diskset, "curr-time", curr_time)
             return (next_event_time, next_event_type, diskset)
         else:
@@ -106,7 +130,7 @@ class Simulate:
             #---------------------------
             # extract the next event
             #---------------------------
-            (event_time, event_type, diskset) = self.get_next_event(curr_time)
+            (event_time, event_type, diskset) = self.get_next_eventset(curr_time)
             logging.info("----record----")
             logging.info(event_time)
             logging.info(event_type)
@@ -171,8 +195,12 @@ class Simulate:
                 else:
                     prob = 0
                     #print "  >>>>>>> no data loss >>>>>>>  ", curr_failures
-                    self.repair.generate_repair_event(diskset, self.state, curr_time, self.events_queue)
+                    
+                    if self.repair.place_type == 1:
+                        self.repair.generate_repair_event(diskset, self.state, curr_time, self.events_queue)
                     #------------------------------------------
+            if self.repair.place_type == 0:
+                        self.repair.update_repair_event(diskset, self.state, curr_time, self.repair_queue)
         return prob
 
 

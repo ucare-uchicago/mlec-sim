@@ -55,6 +55,12 @@ class State:
                         self.disks[diskId].percent[self.initial_priority] = 1.0
                     del self.disks[diskId].percent[curr_priority]
                     self.disks[diskId].priority -= 1
+            for serverId in self.sys.servers:
+                fail_per_server = self.get_failed_disks_per_server(serverId)
+                if len(fail_per_server) > 0:
+                    if self.sys.place_type == 0:
+                        for diskId in fail_per_server:
+                            self.update_cluster_repair_time(diskId, len(fail_per_server))
         if event_type == Disk.EVENT_FAIL:
             for serverId in self.sys.servers:
                 fail_per_server = self.get_failed_disks_per_server(serverId)
@@ -67,7 +73,9 @@ class State:
                     if self.sys.place_type == 0:
                         if len(new_failures) > 0:
                             for diskId in new_failures:
-                                self.calculate_cluster_repair_time(diskId, fail_per_server)
+                                self.disks[diskId].repair_start_time = self.disks[diskId].clock
+                            for diskId in fail_per_server:
+                                self.update_cluster_repair_time(diskId, len(fail_per_server))
                     #-----------------------------------------------------
                     # calculate repairT and update priority for decluster
                     #-----------------------------------------------------
@@ -97,12 +105,31 @@ class State:
                                 self.disks[diskId].priority = max_priority
                                 
 
+    def update_cluster_repair_time(self, diskId, fail_per_server):
+        disk = self.disks[diskId]
+        repaired_time = disk.clock - disk.repair_start_time
+        if repaired_time == 0:
+            repaired_percent = 0
+            disk.curr_repair_data_remaining = disk.repair_data
+        else:
+            repaired_percent = repaired_time / disk.repair_time[0]
+            disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
+        repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_server)
+        # if repaired_percent > 0 and (fail_per_server > 1  or 
+        #     disk.repair_time[0] != float(disk.curr_repair_data_remaining)/self.sys.diskIO):
+        #     print("fail_per_server {}  old repair time: {}  old repair time:{}  new repair time: {} new finish time {}".format(
+        #         fail_per_server, disk.repair_time[0], disk.repair_time[0] + disk.repair_start_time, repair_time / 3600 / 24,
+        #         repair_time / 3600 / 24 + disk.clock
+        #     ))
+        disk.repair_time[0] = repair_time / 3600 / 24
+        disk.repair_start_time = disk.clock
+
                      
 
 
     def calculate_cluster_repair_time(self, diskId, fail_per_server):
         repair_data = self.disks[diskId].repair_data
-        repair_time = float(repair_data)/(self.sys.diskIO)
+        repair_time = float(repair_data)/(self.sys.diskIO/fail_per_server)
         #---------------------------------------------
         # no priority reconstruct, use key 0 in default
         #---------------------------------------------
