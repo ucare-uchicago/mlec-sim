@@ -129,10 +129,9 @@ if __name__ == "__main__":
     logger = logging.getLogger()
     # logging.basicConfig(level=logging.INFO)
 
-
-    for afr in range(2, 12):
-        l1args = DriveArgs(d_shards=8, p_shards=2, afr=afr, drive_cap=20, rec_speed=100)
-        l1sys = SysState(total_drives=50, drive_args=l1args, placement='DP')
+    for afr in range(13, 14):
+        l1args = DriveArgs(d_shards=16, p_shards=3, afr=afr, drive_cap=20, rec_speed=40)
+        l1sys = SysState(total_drives=57, drive_args=l1args, placement='DP')
 
         # # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
         res = simulate(l1sys, iters=100000, epochs=80, concur=80)
@@ -150,11 +149,12 @@ if __name__ == "__main__":
             print("NO FAILURE!")
         else:
             # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
-            nn = str(round(-math.log10(res[0]/res[1]),2))
+            nn = str(round(-math.log10(res[0]/res[1]),3))
+            sigma = str(round(1/(math.log(10) * (res[0]**0.5)),3))
             print("Num of Nine: " + nn)
 
             output = open("s-result-{}.log".format(l1sys.mode), "a")
-            output.write("{}-{}-{}: {}\n".format(l1args.data_shards, l1args.parity_shards, l1args.afr_in_pct, nn))
+            output.write("{}-{}-{}-{} {} {} {} {}\n".format(l1args.data_shards, l1args.parity_shards, l1args.afr_in_pct, l1sys.total_drives, nn, sigma, res[0], res[1]))
             output.close()
 
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_afr=50&d_cap=20&dr_rw_speed=50&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&spares=0&rec_wr_spd_alloc=100
