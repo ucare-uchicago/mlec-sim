@@ -20,13 +20,14 @@ from repair import dp_gen_new_failures
 
 class Simulate:
     def __init__(self, mission_time, iterations_per_worker, traces_per_worker, 
-                num_disks, num_disks_per_server, k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio):
+                num_disks, num_disks_per_server, k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio,
+                top_k = 1, top_m = 0):
         self.mission_time = mission_time
         self.use_trace = use_trace
         self.disk_fail_distr = 0 #add it later
         self.traceDir = traceDir
         #---------------------------------------
-        self.sys = Trinity(num_disks, num_disks_per_server, k, m, place_type, diskCap, rebuildRate, utilizeRatio)
+        self.sys = Trinity(num_disks, num_disks_per_server, k, m, place_type, diskCap, rebuildRate, utilizeRatio, top_k, top_m)
         self.repair = Repair(self.sys, place_type)
         self.placement = Placement(self.sys, place_type)
         #---------------------------------------
@@ -46,6 +47,12 @@ class Simulate:
         for diskId in range(self.sys.num_disks):
             self.state.disks[diskId].percent[self.state.initial_priority] = 1.0 #100% stripes are good
             self.state.disks[diskId].repair_data = self.sys.diskSize * self.sys.utilizeRatio
+        #-----------------------------------------------------
+        # initialize the stripesets inside each server
+        #-----------------------------------------------------
+        for serverId in self.sys.servers:
+            self.state.servers[serverId].percent[self.state.initial_priority] = 1.0 #100% stripes are good
+            self.state.servers[serverId].repair_data = self.sys.diskSize * self.sys.utilizeRatio * self.sys.num_disks_per_server
         
         failure_times = sysstate.drives[sysstate.drives < YEAR]
         failure_idxs = np.where(sysstate.drives < YEAR)[0]
@@ -143,7 +150,7 @@ class Simulate:
                 logging.debug(str(event_type))
                 logging.debug(self.state.disks)
                 if event_type == Disk.EVENT_FAIL and self.state.disks[diskId].state == Disk.STATE_FAILED:
-                    print("XXXXXXXXXXXX failed again but how can this happen??".format(diskId))
+                    print("XXXXXXXXXXXX Disk {} failed again but how can this happen??".format(diskId))
                     rerun = True
                     break
             if rerun is True:
@@ -154,7 +161,10 @@ class Simulate:
             curr_time = event_time
             self.state.update_clock(curr_time)
             self.state.update_state(event_type, diskset)
+            new_server_failures = self.state.update_server_state(event_type, diskset)
             self.state.update_priority(event_type, diskset)
+            if len(new_server_failures) > 0:
+                self.state.update_server_priority(event_type, new_server_failures, diskset)
             #---------------------------
             # exceed mission-time, exit
             #---------------------------
@@ -188,7 +198,7 @@ class Simulate:
                     prob = 1
                     logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     # print("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
-                    loss_events = self.placement.check_data_loss_events(self.state)
+                    # loss_events = self.placement.check_data_loss_events(self.state)
                     return prob
                     #------------------------------------------
                 else:

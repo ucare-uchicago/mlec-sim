@@ -3,6 +3,7 @@ import operator as op
 import numpy as np
 import logging
 from functools import reduce
+from server import Server
 
 class State:
     #--------------------------------------
@@ -19,8 +20,11 @@ class State:
         self.sys = sys
         self.n = sys.k + sys.m
         self.disks = {}
+        self.servers = {}
         for diskId in range(sys.num_disks):
             self.disks[diskId] = Disk(diskId, None, None)#disk-fail-distr, trace-fail-times
+        for serverId in self.sys.servers:
+            self.servers[serverId] = Server(serverId)
         self.initial_priority = 0 #means no failure in stripesets
         #----------------------------------
 
@@ -28,6 +32,8 @@ class State:
     def update_clock(self, curr_time):
         for diskId in range(self.sys.num_disks):
             self.disks[diskId].update_clock(curr_time)
+        for serverId in self.sys.servers:
+            self.servers[serverId].update_clock(curr_time)
 
 
     #----------------------------------------------
@@ -40,6 +46,34 @@ class State:
             if event_type == Disk.EVENT_FAIL:
                 self.disks[diskId].state = Disk.STATE_FAILED
 
+
+#----------------------------------------------
+    # update server state
+    #----------------------------------------------
+    def update_server_state(self, event_type, diskset):
+        new_server_failures = []
+        if event_type == Disk.EVENT_FAIL:
+            for serverId in self.sys.servers:
+                # if server already fails, we don't need to fail it again.
+                if self.servers[serverId].state == Server.STATE_FAILED:
+                    continue
+                # otherwise, we need to check if a new server fails
+                fail_per_server = self.get_failed_disks_per_server(serverId)
+                stripesets_per_server = self.sys.flat_cluster_server_layout[serverId]
+                for stripeset in stripesets_per_server:
+                    fail_per_set = set(stripeset).intersection(set(fail_per_server))
+                    if len(fail_per_set) > self.sys.m:
+                        new_server_failures.append(serverId)
+                        self.servers[serverId].state = Server.STATE_FAILED
+                        break
+        if event_type == Server.EVENT_REPAIR:
+            serverset = diskset
+            for serverId in serverset:
+                self.servers[serverId].state = Server.STATE_NORMAL
+                for diskId in self.sys.disks_per_server[serverId]:
+                    self.disks[diskId].state = Disk.STATE_NORMAL 
+
+        return new_server_failures
 
 
     #----------------------------------------------
@@ -63,6 +97,9 @@ class State:
                     self.disks[diskId].repair_start_time = self.disks[diskId].clock
 
             for serverId in self.sys.servers:
+                if self.servers[serverId].state == Server.STATE_FAILED:
+                    logging.info("update_priority(): server {} is failed. Event type: {}".format(serverId, event_type))
+                    continue
                 fail_per_server = self.get_failed_disks_per_server(serverId)
                 #  what if there are multiple servers
                 if len(fail_per_server) > 0:
@@ -72,8 +109,14 @@ class State:
                     if self.sys.place_type == 1:
                         for diskId in fail_per_server:
                             self.update_decluster_repair_time(diskId, self.disks[diskId].priority, len(fail_per_server))
+                    if self.sys.place_type == 2:
+                        for diskId in fail_per_server:
+                            self.update_cluster_repair_time(diskId, len(fail_per_server))
         if event_type == Disk.EVENT_FAIL:
             for serverId in self.sys.servers:
+                if self.servers[serverId].state == Server.STATE_FAILED:
+                    logging.info("update_priority(): server {} is failed".format(serverId))
+                    continue
                 fail_per_server = self.get_failed_disks_per_server(serverId)
                 new_failures = set(fail_per_server).intersection(set(diskset))
                 if len(new_failures) > 0:
@@ -119,8 +162,38 @@ class State:
                             for diskId in fail_per_server:
                                 self.update_decluster_repair_time(diskId, self.disks[diskId].priority, len(fail_per_server))
                                 #--------------------------------------------
+                    #--------------------------------------------
+                    # calculate repair time for mlec cluster placement
+                    #--------------------------------------------
+                    if self.sys.place_type == 2:
+                        if len(new_failures) > 0:
+                            for diskId in new_failures:
+                                self.disks[diskId].repair_start_time = self.disks[diskId].clock
+                            for diskId in fail_per_server:
+                                self.update_mlec_cluster_repair_time(diskId, len(fail_per_server))
                                 
-                                
+    
+    #----------------------------------------------
+    # update network-level priority
+    #----------------------------------------------
+    def update_server_priority(self, event_type, new_failed_servers, serverset):
+        failed_servers = self.get_failed_servers()
+        if event_type == Disk.EVENT_FAIL:
+            if self.sys.place_type == 2:
+                for serverId in new_failed_servers:
+                    logging.info("resetting repair_start_time of server {}  repair_start_time {}".format(
+                                serverId, self.servers[serverId].repair_start_time))
+                    self.servers[serverId].repair_start_time = self.servers[serverId].clock
+                    logging.info("reset done for repair_start_time of server {}  repair_start_time {}".format(
+                                serverId, self.servers[serverId].repair_start_time))
+                for serverId in failed_servers:
+                    self.update_mlec_cluster_server_repair_time(serverId, len(failed_servers))
+        if event_type == Server.EVENT_REPAIR:
+            if self.sys.place_type == 2:
+                for serverId in failed_servers:
+                    self.update_mlec_cluster_server_repair_time(serverId, len(failed_servers))
+
+
 
     def update_cluster_repair_time(self, diskId, fail_per_server):
         disk = self.disks[diskId]
@@ -144,38 +217,46 @@ class State:
                      
 
 
-    def calculate_cluster_repair_time(self, diskId, fail_per_server):
-        repair_data = self.disks[diskId].repair_data
-        repair_time = float(repair_data)/(self.sys.diskIO/fail_per_server)
-        #---------------------------------------------
-        # no priority reconstruct, use key 0 in default
-        #---------------------------------------------
-        # self.disks[diskId].repair_time[0] = repair_time/3600
-        self.disks[diskId].repair_time[0] = repair_time / 3600 / 24
-        logging.debug(diskId, "repair_time", self.disks[diskId].repair_time[0])
+    def update_mlec_cluster_repair_time(self, diskId, fail_per_server):
+        disk = self.disks[diskId]
+        repaired_time = disk.clock - disk.repair_start_time
+        if repaired_time == 0:
+            repaired_percent = 0
+            disk.curr_repair_data_remaining = disk.repair_data
+        else:
+            repaired_percent = repaired_time / disk.repair_time[0]
+            disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
+        repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_server)
+        # if repaired_percent > 0 and (fail_per_server > 1  or 
+        #     disk.repair_time[0] != float(disk.curr_repair_data_remaining)/self.sys.diskIO):
+        #     print("fail_per_server {}  old repair time: {}  old repair time:{}  new repair time: {} new finish time {}".format(
+        #         fail_per_server, disk.repair_time[0], disk.repair_time[0] + disk.repair_start_time, repair_time / 3600 / 24,
+        #         repair_time / 3600 / 24 + disk.clock
+        #     ))
+        disk.repair_time[0] = repair_time / 3600 / 24
+        disk.repair_start_time = disk.clock
 
 
-
-
-    def calculate_decluster_repair_time(self, diskId, priority, good_num, fail_num):
-        #----------------------------------------------------
-        priority_sets = self.ncr(good_num, self.n-priority)*self.ncr(fail_num-1, priority-1)
-        total_sets = self.ncr((good_num+fail_num-1), (self.n-1)) 
-        priority_percent = float(priority_sets)/total_sets
-        self.disks[diskId].percent[priority] = priority_percent
-        #----------------------------------------------------
-        #print priority, "priority percent ", priority_percent
-        parallelism = good_num
-        #print "decluster parallelism", diskId, parallelism
-        #----------------------------------------------------
-        amplification = self.sys.k + priority
-        repair_data = self.disks[diskId].repair_data
-        repair_time = priority_percent*repair_data*amplification/(self.sys.diskIO*parallelism)
-        #print "-----", self.sys.diskSize, amplification, self.sys.diskIO, parallelism
-        #----------------------------------------------------
-        # self.disks[diskId].repair_time[priority] = repair_time/3600
-        self.disks[diskId].repair_time[priority] = repair_time / 3600 / 24
-        #----------------------------------------------------
+    def update_mlec_cluster_server_repair_time(self, serverId, failed_servers):
+        server = self.servers[serverId]
+        repaired_time = server.clock - server.repair_start_time
+        if repaired_time == 0:
+            repaired_percent = 0
+            server.curr_repair_data_remaining = server.repair_data
+        else:
+            logging.info("calculate repair time for server {}  repaired time: {}  repair_start_time: {}".format(
+                        serverId, repaired_time, server.repair_start_time))
+            repaired_percent = repaired_time / server.repair_time[0]
+            server.curr_repair_data_remaining = server.curr_repair_data_remaining * (1 - repaired_percent)
+        repair_time = float(server.curr_repair_data_remaining)/(self.sys.diskIO * self.sys.num_disks_per_server)
+        # if repaired_percent > 0 and (fail_per_server > 1  or 
+        #     disk.repair_time[0] != float(disk.curr_repair_data_remaining)/self.sys.diskIO):
+        #     print("fail_per_server {}  old repair time: {}  old repair time:{}  new repair time: {} new finish time {}".format(
+        #         fail_per_server, disk.repair_time[0], disk.repair_time[0] + disk.repair_start_time, repair_time / 3600 / 24,
+        #         repair_time / 3600 / 24 + disk.clock
+        #     ))
+        server.repair_time[0] = repair_time / 3600 / 24
+        server.repair_start_time = server.clock
 
 
     def update_decluster_repair_time(self, diskId, priority, fail_per_server):
@@ -238,3 +319,10 @@ class State:
             if self.disks[diskId].state == Disk.STATE_FAILED:
                 failed_disks.append(diskId)
         return failed_disks
+
+    def get_failed_servers(self):
+        failed_servers = []
+        for serverId in self.servers:
+            if self.servers[serverId].state == Server.STATE_FAILED:
+                failed_servers.append(serverId)
+        return failed_servers

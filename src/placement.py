@@ -1,6 +1,7 @@
 from trinity import Trinity
 from disk import Disk
 import logging
+from server import Server
 
 class Placement:
     def __init__(self, sys, place_type):
@@ -16,17 +17,14 @@ class Placement:
         switcher = {
                 0: 'flat_cluster',
                 1: 'flat_decluster',
-                2: 'flat_stripeset',
-                3: 'flat_draid'}
+                2: 'mlec_cluster'}
         #------------------------------------------------
         if self.place_type == 0:
             return self.flat_cluster_simulate(state)
         if self.place_type == 1:
             return self.flat_decluster_simulate(state)
         if self.place_type == 2:
-            return self.flat_stripeset_simulate(state)
-        if self.place_type == 3:
-            return self.flat_draid_simulate(state)
+            return self.mlec_cluster_simulate(state)
             
 
 
@@ -45,7 +43,7 @@ class Placement:
                 if prob == 1:
                     loss_events += 1
             return loss_events
-        if self.place_type == 1 or self.place_type == 2 or self.place_type == 3:
+        if self.place_type == 1:
             for serverId in self.sys.servers:
                 prob = 0
                 for diskId in self.sys.disks_per_server[serverId]:
@@ -54,7 +52,21 @@ class Placement:
                         break
                 if prob == 1:
                     loss_events += 1
-            return loss_events 
+            return loss_events
+        # mlec raid
+        if self.place_type == 2:
+            for serverId in self.sys.servers:
+                prob = 0
+                fail_per_server = state.get_failed_disks_per_server(serverId)
+                stripesets_per_server = self.sys.flat_cluster_server_layout[serverId]
+                for stripeset in stripesets_per_server:
+                    fail_per_set = set(stripeset).intersection(set(fail_per_server))
+                    if len(fail_per_set) > self.sys.m:
+                        prob = 1
+                        break
+                if prob == 1:
+                    loss_events += 1
+            return loss_events
 
 
     def flat_cluster_simulate(self, state):
@@ -68,6 +80,18 @@ class Placement:
                     prob = 1
                     return prob
         return prob
+
+
+    def mlec_cluster_simulate(self, state):
+        prob = 0
+        failed_servers = 0
+        for serverId in self.sys.servers:
+            if state.servers[serverId].state == Server.STATE_FAILED:
+                failed_servers += 1
+        if failed_servers > self.sys.top_m:
+            prob = 1
+        return prob
+
 
 
 

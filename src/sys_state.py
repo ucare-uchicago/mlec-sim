@@ -4,7 +4,7 @@ import numpy as np
 
 class SysState:
     
-    def __init__(self, total_drives, drive_args: DriveArgs, placement='DP'):
+    def __init__(self, total_drives, drive_args, placement, drives_per_server, top_d_shards = 1, top_p_shards = 0):
         self.drive_args = drive_args
         self.mode = placement
 
@@ -12,6 +12,9 @@ class SysState:
         self.total_drives = (total_drives // drive_args.total_shards) * drive_args.total_shards
         self.good_cnt = self.total_drives
         self.fail_cnt = 0
+        self.drives_per_server = drives_per_server
+        self.top_d_shards = top_d_shards
+        self.top_p_shards = top_p_shards
 
         self.drive_args = drive_args
 

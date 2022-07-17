@@ -11,7 +11,7 @@ logger.setLevel('DEBUG')
 logger.addHandler(logging.StreamHandler())
 
 class System:
-    def __init__(self, num_disks, num_disks_per_server, k, m, place_type, diskCap, rebuildRate, utilizeRatio):
+    def __init__(self, num_disks, num_disks_per_server, k, m, place_type, diskCap, rebuildRate, utilizeRatio, top_k = 1, top_m = 0):
         #--------------------------------------------
         # Set up the system parameters
         self.num_disks_per_server = num_disks_per_server
@@ -46,6 +46,8 @@ class System:
         #--------------------------------------------
         self.k = k
         self.m = m
+        self.top_k = top_k
+        self.top_m = top_m
         #--------------------------------------------
         self.place_type = place_type
         if place_type == constants.RAID:

@@ -94,6 +94,17 @@ def tick_raid_huan(state_):
                     sysstate.drive_args.data_shards, sysstate.drive_args.parity_shards, 1, 0, "", sysstate.drive_args.drive_cap * 1024 * 1024, sysstate.drive_args.rec_speed, 1, 0.1)
     return sim.run_simulation(sysstate)
 
+def tick_mlec_raid(state_):
+    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
+    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
+    np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
+    sysstate: SysState = copy.deepcopy(state_)
+    sysstate.gen_drives()
+    sim = Simulate(YEAR, 1, 1, sysstate.total_drives, sysstate.drives_per_server, 
+                    sysstate.drive_args.data_shards, sysstate.drive_args.parity_shards, 1, 2, "", sysstate.drive_args.drive_cap * 1024 * 1024, sysstate.drive_args.rec_speed, 1, 0.1,
+                    sysstate.top_d_shards, sysstate.top_p_shards)
+    return sim.run_simulation(sysstate)
+
 def iter(state: SysState, iters):
     try:
         res = 0
@@ -101,8 +112,10 @@ def iter(state: SysState, iters):
             # print("\nnew iter")
             if state.mode == 'RAID':
                 res += tick_raid_huan(state)
-            else:
+            elif state.mode == 'DP':
                 res += tick_dp(state)
+            elif state.mode == 'MLEC':
+                res += tick_mlec_raid(state)
         return res
     except Exception as e:
         print(traceback.format_exc())
@@ -129,15 +142,18 @@ if __name__ == "__main__":
     logger = logging.getLogger()
     # logging.basicConfig(level=logging.INFO)
 
-    for afr in range(13, 14):
-        l1args = DriveArgs(d_shards=16, p_shards=3, afr=afr, drive_cap=20, rec_speed=40)
-        l1sys = SysState(total_drives=57, drive_args=l1args, placement='DP')
+    for afr in range(2, 12):
+        l1args = DriveArgs(d_shards=7, p_shards=1, afr=afr, drive_cap=20, rec_speed=30)
+        l1sys = SysState(total_drives=64, drive_args=l1args, placement='MLEC', drives_per_server=8, 
+                        top_d_shards=7, top_p_shards=1)
 
-        # # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
-        res = simulate(l1sys, iters=100000, epochs=80, concur=80)
+        # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
+        # res = simulate(l1sys, iters=100, epochs=1, concur=1)
+        # break
+        res = simulate(l1sys, iters=50000, epochs=80, concur=80)
         while res[0] < 20:
             print(res)
-            temp = simulate(l1sys, iters=100000, epochs=80, concur=80)
+            temp = simulate(l1sys, iters=50000, epochs=80, concur=80)
             res[0] += temp[0]
             res[1] += temp[1]
         # res = simulate(l1sys, iters=1000, epochs=1, concur=1)
@@ -152,9 +168,11 @@ if __name__ == "__main__":
             nn = str(round(-math.log10(res[0]/res[1]),3))
             sigma = str(round(1/(math.log(10) * (res[0]**0.5)),3))
             print("Num of Nine: " + nn)
+            print("error sigma: " + sigma)
 
             output = open("s-result-{}.log".format(l1sys.mode), "a")
             output.write("{}-{}-{}-{} {} {} {} {}\n".format(l1args.data_shards, l1args.parity_shards, l1args.afr_in_pct, l1sys.total_drives, nn, sigma, res[0], res[1]))
             output.close()
 
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_afr=50&d_cap=20&dr_rw_speed=50&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&spares=0&rec_wr_spd_alloc=100
+    # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&ec_mode=3&d_afr=2&d_cap=20&dr_rw_speed=30&ndatashards=7&nredundancy=1&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&tnhost_per_chass=8&tndrv_per_dg=8&ph_nspares=0&tnchassis=1&tnrack=1&rec_wr_spd_alloc=100

@@ -3,12 +3,13 @@ import random
 from newposition import Position
 import logging
 from stripeset import Stripeset
+from server import Server
 #----------------------------
 # Logging Settings
 #----------------------------
 
 class Trinity:
-    def __init__(self, num_disks, num_disks_per_server, k, m, place_type, diskCap, rebuildRate, utilizeRatio):
+    def __init__(self, num_disks, num_disks_per_server, k, m, place_type, diskCap, rebuildRate, utilizeRatio, top_k = 1, top_m = 0):
         #--------------------------------------------
         # Set up the Campaign system parameters
         #--------------------------------------------
@@ -55,6 +56,8 @@ class Trinity:
         #--------------------------------------------
         self.k = k
         self.m = m
+        self.top_k = top_k
+        self.top_m = top_m
         #--------------------------------------------
         self.place_type = place_type
         if place_type == 0:
@@ -62,9 +65,7 @@ class Trinity:
         if place_type == 1:
             self.flat_decluster_layout()
         if place_type == 2:
-            self.flat_stripeset_layout()
-        if place_type == 3:
-            self.flat_draid_layout()
+            self.mlec_cluster_layout()
             #self.flat_greedy_layout()
         #--------------------------------------------
         self.diskSize = diskCap
@@ -83,6 +84,7 @@ class Trinity:
                 stripeset  = disks_per_server[i*(self.k+self.m) :(i+1)*(self.k+self.m)]
                 sets.append(stripeset)
             self.flat_cluster_server_layout[serverId] = sets
+            self.server_states[serverId] = Server.STATE_NORMAL
             logging.info("* server {} has {} stripesets".format(serverId, num_stripesets))
         #for serverId in self.servers:
         #    print "serverId", serverId, len(self.flat_cluster_server_layout[serverId])
@@ -95,65 +97,26 @@ class Trinity:
         for serverId in self.servers:
             disks_per_server = self.disks_per_server[serverId]
             self.flat_decluster_server_layout[serverId] = disks_per_server
+            self.server_states[serverId] = Server.STATE_NORMAL
 
 
-    def flat_draid_layout(self):
-        logging.debug("* flat dRAID generation *")
-        self.flat_draid_server_layout = {}
-        self.stripesets_per_disk = {}
+
+
+
+
+    # same as flat_cluster_layout
+    def mlec_cluster_layout(self):
+        logging.debug("* flat cluster generation")
+        self.flat_cluster_server_layout = {}
         for serverId in self.servers:
             disks_per_server = self.disks_per_server[serverId]
+            num_stripesets = len(disks_per_server) // (self.k+self.m)
             sets = []
-            max_groups = 128
-            for i in range(max_groups):
-                basePermu = random.sample(disks_per_server, self.k+self.m)
-                for j in range(self.num_disks_per_server):
-                    stripeset = [(x+j)%self.num_disks_per_server+self.num_disks_per_server*serverId for x in basePermu]
-                    sets.append(stripeset)
-                    for diskId in stripeset:
-                        if diskId not in self.stripesets_per_disk:
-                            self.stripesets_per_disk[diskId] = [stripeset]
-                        else:
-                            self.stripesets_per_disk[diskId].append(stripeset)
-            self.flat_draid_server_layout[serverId] = sets
-
-
-
-
-    def flat_stripeset_layout(self):
-        logging.debug("* flat stripeset generation *")
-        self.flat_stripeset_server_layout = {}
-        self.stripesets_per_disk = {}
-        #-----------------------------------
-        # generate single-overlap stripesets
-        #-----------------------------------
-        pos = Position(self.num_disks_per_server, self.k+self.m)
-        pos.generate_position_matrix()
-        pos.generate_row_based_stripesets()
-        pos.generate_column_based_stripesets()
-        pos.generate_row_column_stripesets()
-        #---------------------------------------------------------------------
-        for serverId in self.servers:
-            sets =[]
-            #------------------------------------
-            # create stripesets for each server
-            #------------------------------------
-            for each in pos.all_stripesets:
-                stripeset = [i+self.num_disks_per_server*serverId for i in each]
+            for i in range(num_stripesets):
+                stripeset  = disks_per_server[i*(self.k+self.m) :(i+1)*(self.k+self.m)]
                 sets.append(stripeset)
-                for diskId in stripeset:
-                    #---------------------------------------
-                    # collect stripesets for each disk
-                    #---------------------------------------
-                    if diskId not in self.stripesets_per_disk:
-                        self.stripesets_per_disk[diskId] = [stripeset]
-                    else:
-                        self.stripesets_per_disk[diskId].append(stripeset)
-                    #---------------------------------------
-            self.flat_stripeset_server_layout[serverId] = sets
-            #print serverId,"-------------Display-----------------------"
-            #for setx in sets:
-            #    print "-->",setx
+            self.flat_cluster_server_layout[serverId] = sets
+            logging.info("* server {} has {} stripesets".format(serverId, num_stripesets))
 
 
 

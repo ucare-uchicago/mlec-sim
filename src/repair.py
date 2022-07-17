@@ -11,6 +11,7 @@ from disk import Disk
 import operator as op
 from heapq import *
 import logging
+from server import Server
 
 class Repair:
     def __init__(self, sys, place_type):
@@ -64,30 +65,56 @@ class Repair:
 
     def update_repair_event(self, diskset, state, curr_time, repair_queue):
         logging.debug("updating repair",diskset)
-        failed_disks = state.get_failed_disks()
         repair_queue.clear()
-        for diskId in failed_disks:
-            if self.place_type == 0:
-                #-----------------------------------------------------
-                # FIFO reconstruct, utilize the hot spares
-                #-----------------------------------------------------
-                repair_time = state.disks[diskId].repair_time[0]
-                #-----------------------------------------------------
-                estimate_time = curr_time
-                estimate_time  += repair_time
-                heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
-                logging.debug("--------> push ", repair_time, estimate_time, Disk.EVENT_REPAIR, "D-",diskId,"-", "S-",diskId/84, "R-",diskId/504)
-            if self.place_type == 1:
-                disk = state.disks[diskId]
-                estimate_time = disk.repair_start_time
-                priority = disk.priority
-                estimate_time  += disk.repair_time[priority]
-                if priority > 1:
-                    heappush(repair_queue, (estimate_time, Disk.EVENT_FASTREBUILD, diskId))
-                    # print("push to repair queue  finish time{} {} {}".format(estimate_time, Disk.EVENT_FASTREBUILD, diskId))
-                if priority == 1:
-                    heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
-                    # print("push to repair queue  finish time{} {} {}".format(estimate_time, Disk.EVENT_REPAIR, diskId))
+        for serverId in self.sys.servers:
+            if state.servers[serverId].state == Server.STATE_FAILED:
+                if self.place_type == 2:
+                    repair_time = state.servers[serverId].repair_time[0]
+                    #-----------------------------------------------------
+                    estimate_time = state.servers[serverId].repair_start_time
+                    estimate_time  += repair_time
+                    heappush(repair_queue, (estimate_time, Server.EVENT_REPAIR, serverId))
+                    logging.debug("--------> push ", repair_time, estimate_time, Server.EVENT_REPAIR, 
+                                "S-",serverId)
+            else:
+                failed_disks = state.get_failed_disks_per_server(serverId)
+                for diskId in failed_disks:
+                    if self.place_type == 0:
+                        #-----------------------------------------------------
+                        # FIFO reconstruct, utilize the hot spares
+                        #-----------------------------------------------------
+                        repair_time = state.disks[diskId].repair_time[0]
+                        #-----------------------------------------------------
+                        estimate_time = state.disks[diskId].repair_start_time
+                        estimate_time  += repair_time
+                        heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+                        logging.debug("--------> push ", repair_time, estimate_time, Disk.EVENT_REPAIR, 
+                                    "D-",diskId,"-", "S-",diskId/84, "R-",diskId/504)
+                    if self.place_type == 1:
+                        disk = state.disks[diskId]
+                        estimate_time = disk.repair_start_time
+                        priority = disk.priority
+                        estimate_time  += disk.repair_time[priority]
+                        if priority > 1:
+                            heappush(repair_queue, (estimate_time, Disk.EVENT_FASTREBUILD, diskId))
+                            # print("push to repair queue  finish time{} {} {}".format(estimate_time, 
+                            #           Disk.EVENT_FASTREBUILD, diskId))
+                        if priority == 1:
+                            heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+                            # print("push to repair queue  finish time{} {} {}".format(estimate_time, 
+                            #           Disk.EVENT_REPAIR, diskId))
+                    if self.place_type == 2:
+                        #-----------------------------------------------------
+                        # FIFO reconstruct, utilize the hot spares
+                        #-----------------------------------------------------
+                        logging.info("update_repair_event(): trying to get repair time of disk {} in server {}".format(diskId, serverId))
+                        repair_time = state.disks[diskId].repair_time[0]
+                        #-----------------------------------------------------
+                        estimate_time = curr_time
+                        estimate_time  += repair_time
+                        heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+                        logging.debug("--------> push ", repair_time, estimate_time, Disk.EVENT_REPAIR, 
+                                    "D-",diskId,"-", "S-",diskId/84, "R-",diskId/504)
 
 
 
