@@ -1,10 +1,8 @@
 from inspect import trace
 from multiprocessing.pool import ThreadPool
-from generator import Generator
 from placement import Placement
 from trinity import Trinity
 from repair import Repair
-from parser import Parser
 from state import State
 from disk import Disk
 from heapq import *
@@ -150,7 +148,7 @@ class Simulate:
                 logging.debug(str(event_type))
                 logging.debug(self.state.disks)
                 if event_type == Disk.EVENT_FAIL and self.state.disks[diskId].state == Disk.STATE_FAILED:
-                    print("XXXXXXXXXXXX Disk {} failed again but how can this happen??".format(diskId))
+                    logging.info("XXXXXXXXXXXX Disk {} failed again but how can this happen??".format(diskId))
                     rerun = True
                     break
             if rerun is True:

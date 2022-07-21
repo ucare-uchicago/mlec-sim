@@ -2,7 +2,6 @@ import numpy as np
 import random
 from newposition import Position
 import logging
-from stripeset import Stripeset
 from server import Server
 #----------------------------
 # Logging Settings
@@ -84,7 +83,6 @@ class Trinity:
                 stripeset  = disks_per_server[i*(self.k+self.m) :(i+1)*(self.k+self.m)]
                 sets.append(stripeset)
             self.flat_cluster_server_layout[serverId] = sets
-            self.server_states[serverId] = Server.STATE_NORMAL
             logging.info("* server {} has {} stripesets".format(serverId, num_stripesets))
         #for serverId in self.servers:
         #    print "serverId", serverId, len(self.flat_cluster_server_layout[serverId])
@@ -97,7 +95,6 @@ class Trinity:
         for serverId in self.servers:
             disks_per_server = self.disks_per_server[serverId]
             self.flat_decluster_server_layout[serverId] = disks_per_server
-            self.server_states[serverId] = Server.STATE_NORMAL
 
 
 
@@ -120,26 +117,7 @@ class Trinity:
 
 
 
-    def flat_greedy_layout(self):
-        logger.info("* flat greedy generation *")
-        self.flat_draid_server_layout = {}
-        self.stripesets_per_disk = {}
-        basePermu = [[0,13,15,20,28,39,51,57,60,61]]
-        #basePermu = [[0,2,7,15,26,32,35,36]]
-        #6basePermu = [[0,2,7,13,16,17],[0,19,37,49,69,77]]
-        #4basePermu = [[0,2,5,6],[0,9,17,24],[0,12,23,33],[0,16,30,43],[0,20,39,57],[0,25,47,75],[0,34,66,92],[0,36,65,105]]
-        for serverId in self.servers:
-            sets = []
-            for base in basePermu:
-                for j in range(self.num_disks_per_server):
-                    stripeset = [(x+j)%self.num_disks_per_server + self.num_disks_per_server*serverId for x in base]
-                    sets.append(stripeset)
-                    for diskId in stripeset:
-                        if diskId not in self.stripesets_per_disk:
-                            self.stripesets_per_disk[diskId] = [stripeset]
-                        else:
-                            self.stripesets_per_disk[diskId].append(stripeset)
-            self.flat_draid_server_layout[serverId] = sets
+
 
 
 

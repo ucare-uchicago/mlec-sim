@@ -107,14 +107,13 @@ class Repair:
                         #-----------------------------------------------------
                         # FIFO reconstruct, utilize the hot spares
                         #-----------------------------------------------------
-                        logging.info("update_repair_event(): trying to get repair time of disk {} in server {}".format(diskId, serverId))
                         repair_time = state.disks[diskId].repair_time[0]
                         #-----------------------------------------------------
-                        estimate_time = curr_time
+                        estimate_time = state.disks[diskId].repair_start_time
                         estimate_time  += repair_time
                         heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
-                        logging.debug("--------> push ", repair_time, estimate_time, Disk.EVENT_REPAIR, 
-                                    "D-",diskId,"-", "S-",diskId/84, "R-",diskId/504)
+                        logging.info("--------> push ", repair_time, estimate_time, Disk.EVENT_REPAIR, 
+                                    "D-",diskId,"-", "S-",serverId)
 
 
 

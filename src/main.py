@@ -9,7 +9,6 @@ import logging
 
 # Custom stuff
 from drive_args import DriveArgs
-from repair_queue import RepairQueue
 from sys_state import SysState
 from util import wait_futures
 from repair import calc_dp_repair_time_serkay, calc_raid_repair_time, calc_dp_repair_time, gen_new_failures
@@ -109,7 +108,7 @@ def iter(state: SysState, iters):
     try:
         res = 0
         for iter in range(0, iters):
-            # print("\nnew iter")
+            logging.info("")
             if state.mode == 'RAID':
                 res += tick_raid_huan(state)
             elif state.mode == 'DP':
@@ -142,9 +141,9 @@ if __name__ == "__main__":
     logger = logging.getLogger()
     # logging.basicConfig(level=logging.INFO)
 
-    for afr in range(2, 12):
-        l1args = DriveArgs(d_shards=7, p_shards=1, afr=afr, drive_cap=20, rec_speed=30)
-        l1sys = SysState(total_drives=64, drive_args=l1args, placement='MLEC', drives_per_server=8, 
+    for afr in range(9, 13):
+        l1args = DriveArgs(d_shards=8, p_shards=2, afr=afr, drive_cap=60, rec_speed=20)
+        l1sys = SysState(total_drives=80, drive_args=l1args, placement='MLEC', drives_per_server=10, 
                         top_d_shards=7, top_p_shards=1)
 
         # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
@@ -176,3 +175,4 @@ if __name__ == "__main__":
 
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_afr=50&d_cap=20&dr_rw_speed=50&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&spares=0&rec_wr_spd_alloc=100
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&ec_mode=3&d_afr=2&d_cap=20&dr_rw_speed=30&ndatashards=7&nredundancy=1&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&tnhost_per_chass=8&tndrv_per_dg=8&ph_nspares=0&tnchassis=1&tnrack=1&rec_wr_spd_alloc=100
+    # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_cap=20&dr_rw_speed=30&ndatashards=7&nredundancy=1&nhost_per_chass=1&ndrv_per_dg=50&spares=0&woa_nhost_per_chass=1&rec_wr_spd_alloc=100

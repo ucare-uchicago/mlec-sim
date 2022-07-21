@@ -170,7 +170,7 @@ class State:
                             for diskId in new_failures:
                                 self.disks[diskId].repair_start_time = self.disks[diskId].clock
                             for diskId in fail_per_server:
-                                self.update_mlec_cluster_repair_time(diskId, len(fail_per_server))
+                                self.update_mlec_cluster_disk_repair_time(diskId, len(fail_per_server))
                                 
     
     #----------------------------------------------
@@ -217,7 +217,7 @@ class State:
                      
 
 
-    def update_mlec_cluster_repair_time(self, diskId, fail_per_server):
+    def update_mlec_cluster_disk_repair_time(self, diskId, fail_per_server):
         disk = self.disks[diskId]
         repaired_time = disk.clock - disk.repair_start_time
         if repaired_time == 0:
@@ -235,6 +235,8 @@ class State:
         #     ))
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = disk.clock
+        logging.info("calculate repair time for disk {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
+                        diskId, repaired_time, disk.repair_time[0], disk.repair_start_time))
 
 
     def update_mlec_cluster_server_repair_time(self, serverId, failed_servers):
@@ -244,19 +246,14 @@ class State:
             repaired_percent = 0
             server.curr_repair_data_remaining = server.repair_data
         else:
-            logging.info("calculate repair time for server {}  repaired time: {}  repair_start_time: {}".format(
-                        serverId, repaired_time, server.repair_start_time))
+            
             repaired_percent = repaired_time / server.repair_time[0]
             server.curr_repair_data_remaining = server.curr_repair_data_remaining * (1 - repaired_percent)
-        repair_time = float(server.curr_repair_data_remaining)/(self.sys.diskIO * self.sys.num_disks_per_server)
-        # if repaired_percent > 0 and (fail_per_server > 1  or 
-        #     disk.repair_time[0] != float(disk.curr_repair_data_remaining)/self.sys.diskIO):
-        #     print("fail_per_server {}  old repair time: {}  old repair time:{}  new repair time: {} new finish time {}".format(
-        #         fail_per_server, disk.repair_time[0], disk.repair_time[0] + disk.repair_start_time, repair_time / 3600 / 24,
-        #         repair_time / 3600 / 24 + disk.clock
-        #     ))
+        repair_time = float(server.curr_repair_data_remaining)/(self.sys.diskIO * self.sys.num_disks_per_server / failed_servers)
         server.repair_time[0] = repair_time / 3600 / 24
         server.repair_start_time = server.clock
+        logging.info("calculate repair time for server {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
+                        serverId, repaired_time, server.repair_time[0], server.repair_start_time))
 
 
     def update_decluster_repair_time(self, diskId, priority, fail_per_server):
