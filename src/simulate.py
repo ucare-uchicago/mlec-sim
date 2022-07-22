@@ -142,17 +142,18 @@ class Simulate:
             logging.info(diskset)
             if event_time == None:
                 break
-            rerun = False
+            # rerun = False
             for diskId in diskset:
                 logging.debug(str(diskId) + " disk ID" + ", diskset len: " + str(len(diskset)))
                 logging.debug(str(event_type))
                 logging.debug(self.state.disks)
                 if event_type == Disk.EVENT_FAIL and self.state.disks[diskId].state == Disk.STATE_FAILED:
-                    logging.info("XXXXXXXXXXXX Disk {} failed again but how can this happen??".format(diskId))
-                    rerun = True
-                    break
-            if rerun is True:
-                continue
+                    logging.info("XXXXXXXXXXXX Disk {} failed again ok it happened".format(diskId))
+                    # print(("XXXXXXXXXXXX Disk {} failed again ok it happened??".format(diskId)))
+            #         rerun = True
+            #         break
+            # if rerun is True:
+            #     continue
             #--------------------------------------
             # update all disks clock/state/priority
             #--------------------------------------
@@ -171,17 +172,17 @@ class Simulate:
             #---------------------------
             # repair event, continue
             #---------------------------
-            if event_type == Disk.EVENT_REPAIR:
+            if event_type == Disk.EVENT_FAIL:
                 # print("EVENT_REPAIR")
                 #self.generate_fail_event(diskset, curr_time)
                 for disk in diskset:
                     new_failure_added = dp_gen_new_failures({}, diskset, curr_time, sysstate)
                     # print(new_failure_added)
                     for disk_fail_time, diskId in new_failure_added:
-                        heappush(self.events_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
-                        logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
+                        if disk_fail_time < YEAR:
+                            heappush(self.events_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
+                            logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
                         # print(self.events_queue)
-                    logging.info(">>REPAIR " + str(disk))
 
             if event_type == Disk.EVENT_FASTREBUILD:
                 for disk in diskset:

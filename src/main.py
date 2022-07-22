@@ -141,13 +141,13 @@ if __name__ == "__main__":
     logger = logging.getLogger()
     # logging.basicConfig(level=logging.INFO)
 
-    for afr in range(9, 13):
-        l1args = DriveArgs(d_shards=8, p_shards=2, afr=afr, drive_cap=60, rec_speed=20)
-        l1sys = SysState(total_drives=80, drive_args=l1args, placement='MLEC', drives_per_server=10, 
-                        top_d_shards=7, top_p_shards=1)
+    for afr in range(10, 11):
+        l1args = DriveArgs(d_shards=8, p_shards=2, afr=afr, drive_cap=30, rec_speed=10)
+        l1sys = SysState(total_drives=100, drive_args=l1args, placement='MLEC', drives_per_server=10, 
+                        top_d_shards=8, top_p_shards=2)
 
         # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
-        # res = simulate(l1sys, iters=100, epochs=1, concur=1)
+        # res = simulate(l1sys, iters=1000, epochs=1, concur=1)
         # break
         res = simulate(l1sys, iters=50000, epochs=80, concur=80)
         while res[0] < 20:
