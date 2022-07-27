@@ -1,6 +1,7 @@
 from math import log
 from drive_args import DriveArgs
 import numpy as np
+from heapq import *
 
 class SysState:
     
@@ -17,6 +18,17 @@ class SysState:
         self.top_p_shards = top_p_shards
 
         self.drive_args = drive_args
+        self.failure_rate = -365.25/log(1-drive_args.afr_in_pct/100)
+        self.failures_store = []
+        self.failures_store_len = 100
+        self.failures_store_idx = self.failures_store_len
+
+        if placement == 'RAID':
+            self.place_type = 0
+        elif placement == 'DP':
+            self.place_type = 1
+        elif placement == 'MLEC':
+            self.place_type = 2
 
     def gen_drives(self):
         # Initialize simulated drives
@@ -25,21 +37,20 @@ class SysState:
         
     # This generate a system of failure times
     def gen_failure_times(self, n):
-        failure_rate = -365.25/log(1-self.drive_args.afr_in_pct/100)
-        temp = np.random.exponential(failure_rate, n)
+        temp = np.random.exponential(self.failure_rate, n)
         return temp
+    
+    
+    def dp_gen_new_failures(self, n):
+        if n > self.failures_store_len - self.failures_store_idx:
+            self.failures_store = np.random.exponential(self.failure_rate, self.failures_store_len)
+            self.failures_store_idx = 0
 
+        store_end = self.failures_store_idx + n
+        new_failures = self.failures_store[self.failures_store_idx: store_end]
+        self.failures_store_idx = store_end
 
-        # This generate a system of failure times
-    def gen_failure_times_jiajun(self, n):
-        failure_rate = -365.25/log(1-self.drive_args.afr_in_pct/100)
-        temp = np.random.exponential(failure_rate, n)
-
-        # If it is RAID, we reshape it so that its a list of stripes
-        if self.mode == 'RAID':
-            temp = np.reshape(temp, (-1, self.drive_args.total_shards))
-        
-        return temp
+        return new_failures
 
     def fail(self, n):
         self.good_cnt -= n

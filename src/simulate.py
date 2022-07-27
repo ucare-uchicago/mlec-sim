@@ -11,50 +11,41 @@ import time
 import sys
 from constants import debug, YEAR
 import numpy as np
-from repair import dp_gen_new_failures
+import time
+import os
+from mytimer import Mytimer
 #----------------------------
 # Logging Settings
 #----------------------------
 
 class Simulate:
-    def __init__(self, mission_time, iterations_per_worker, traces_per_worker, 
-                num_disks, num_disks_per_server, k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio,
-                top_k = 1, top_m = 0):
+    def __init__(self, mission_time, num_disks, sys = None, repair = None, placement = None):
         self.mission_time = mission_time
-        self.use_trace = use_trace
-        self.disk_fail_distr = 0 #add it later
-        self.traceDir = traceDir
         #---------------------------------------
-        self.sys = Trinity(num_disks, num_disks_per_server, k, m, place_type, diskCap, rebuildRate, utilizeRatio, top_k, top_m)
-        self.repair = Repair(self.sys, place_type)
-        self.placement = Placement(self.sys, place_type)
+        self.sys = sys
+        self.repair = repair
+        self.placement = placement
         #---------------------------------------
         self.num_disks = num_disks
-        self.failRatio = failRatio
 
 
     #------------------------------------------
     #------------------------------------------
-    def reset(self, sysstate):
+    def reset(self, initialFailures, mytimer):
         self.events_queue = []
         self.repair_queue = []
+
+        # temp = time.time()
         self.state = State(self.sys)
-        #-----------------------------------------------------
-        # initialize the stripesets inside each disk
-        #-----------------------------------------------------
-        for diskId in range(self.sys.num_disks):
-            self.state.disks[diskId].percent[self.state.initial_priority] = 1.0 #100% stripes are good
-            self.state.disks[diskId].repair_data = self.sys.diskSize * self.sys.utilizeRatio
-        #-----------------------------------------------------
-        # initialize the stripesets inside each server
-        #-----------------------------------------------------
-        for serverId in self.sys.servers:
-            self.state.servers[serverId].percent[self.state.initial_priority] = 1.0 #100% stripes are good
-            self.state.servers[serverId].repair_data = self.sys.diskSize * self.sys.utilizeRatio * self.sys.num_disks_per_server
-        
-        failure_times = sysstate.drives[sysstate.drives < YEAR]
-        failure_idxs = np.where(sysstate.drives < YEAR)[0]
+        # resetStateEndTime = time.time()
+        # mytimer.resetStateInitTime += resetStateEndTime - temp
+
+        # temp = time.time()
+        failure_times = initialFailures[initialFailures < YEAR]
+        failure_idxs = np.where(initialFailures < YEAR)[0]
         failures = list(zip(failure_times, failure_idxs))
+        # resetGenFailEndTime = time.time()
+        # mytimer.resetGenFailTime += resetGenFailEndTime - temp
         #-----------------------------------------------------
         # generate disks failures events from failure traces
         #-----------------------------------------------------
@@ -62,16 +53,11 @@ class Simulate:
         for disk_fail_time, diskId in failures:
             heappush(self.events_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
             logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
+        
+        # heapEndTime = time.time()
+        # mytimer.resetHeapTime += heapEndTime - resetGenFailEndTime
         #-----------------------------------------------------
         self.sys.priority_per_set = {}
-        # if self.sys.place_type == 2:
-        #     for serverId in self.sys.servers:
-        #         for stripeset in self.sys.flat_stripeset_server_layout[serverId]:
-        #             self.sys.priority_per_set[tuple(stripeset)] = 0
-        # if self.sys.place_type == 3:
-        #     for serverId in self.sys.servers:
-        #         for stripeset in self.sys.flat_draid_server_layout[serverId]:
-        #             self.sys.priority_per_set[tuple(stripeset)] = 0
 
 
 
@@ -125,45 +111,67 @@ class Simulate:
     #----------------------------------------------------------------
     # run simulation based on statistical model or production traces
     #----------------------------------------------------------------
-    def run_simulation(self, sysstate):
+    def run_simulation(self, sysstate, mytimer):
         logging.debug(" * begin running simulation")
-        self.reset(sysstate)
+
+        # start = time.time()
+        np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
+        # seedEndTime = time.time()
+        
+        initialFailures = sysstate.gen_failure_times(sysstate.total_drives)
+        # genEndTime = time.time()
+        # mytimer.seedtime += seedEndTime - start
+        # mytimer.genfailtime += genEndTime - seedEndTime
+
+        # start = time.time()
+        self.reset(initialFailures, mytimer)
+        # mytimer.resettime += (time.time() - start)
+
         curr_time = 0
         prob = 0
         loss_events = 0
         while True:
+            # iterStartTime = time.time()
             #---------------------------
             # extract the next event
             #---------------------------
             (event_time, event_type, diskset) = self.get_next_eventset(curr_time)
-            logging.info("----record----")
-            logging.info(event_time)
-            logging.info(event_type)
-            logging.info(diskset)
+            # getEventEndTime = time.time()
+            # mytimer.getEventTime += getEventEndTime - iterStartTime
+
+            # logging.info("----record----")
+            # logging.info(event_time)
+            # logging.info(event_type)
+            # logging.info(diskset)
             if event_time == None:
                 break
             # rerun = False
             for diskId in diskset:
-                logging.debug(str(diskId) + " disk ID" + ", diskset len: " + str(len(diskset)))
-                logging.debug(str(event_type))
-                logging.debug(self.state.disks)
                 if event_type == Disk.EVENT_FAIL and self.state.disks[diskId].state == Disk.STATE_FAILED:
                     logging.info("XXXXXXXXXXXX Disk {} failed again ok it happened".format(diskId))
-                    # print(("XXXXXXXXXXXX Disk {} failed again ok it happened??".format(diskId)))
-            #         rerun = True
-            #         break
-            # if rerun is True:
-            #     continue
             #--------------------------------------
-            # update all disks clock/state/priority
+            # update all disks state/priority
             #--------------------------------------
             curr_time = event_time
-            self.state.update_clock(curr_time)
+            self.state.curr_time = curr_time
+
             self.state.update_state(event_type, diskset)
+            # updateStateEndTime = time.time()
+            # mytimer.updateStateTime += updateStateEndTime - getEventEndTime
+
             new_server_failures = self.state.update_server_state(event_type, diskset)
+            # updateServerStateEndTime = time.time()
+            # mytimer.updateServerStateTime += updateServerStateEndTime - updateStateEndTime
+
             self.state.update_priority(event_type, diskset)
+            # updatePriorityEndTime = time.time()
+            # mytimer.updatePriorityTime += updatePriorityEndTime - updateServerStateEndTime
+
             if len(new_server_failures) > 0:
                 self.state.update_server_priority(event_type, new_server_failures, diskset)
+            # updateServerPriorityEndTime = time.time()
+            # mytimer.updateServerPriorityTime += updateServerPriorityEndTime - updatePriorityEndTime
+
             #---------------------------
             # exceed mission-time, exit
             #---------------------------
@@ -175,19 +183,22 @@ class Simulate:
             if event_type == Disk.EVENT_FAIL:
                 # print("EVENT_REPAIR")
                 #self.generate_fail_event(diskset, curr_time)
-                for disk in diskset:
-                    new_failure_added = dp_gen_new_failures({}, diskset, curr_time, sysstate)
-                    # print(new_failure_added)
-                    for disk_fail_time, diskId in new_failure_added:
-                        if disk_fail_time < YEAR:
-                            heappush(self.events_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
-                            logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
-                        # print(self.events_queue)
+                new_failure_intervals = sysstate.dp_gen_new_failures(len(diskset))
+                # print(new_failure_added)
+                for i in range(len(diskset)):
+                    disk_fail_time = new_failure_intervals[i] + curr_time
+                    if disk_fail_time < YEAR:
+                        heappush(self.events_queue, (disk_fail_time, Disk.EVENT_FAIL, diskset[i]))
+                        # logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
+                        continue
+                    # print(self.events_queue)
+            # newFailEndTime = time.time()
+            # mytimer.newFailTime += newFailEndTime - updateServerPriorityEndTime
 
-            if event_type == Disk.EVENT_FASTREBUILD:
-                for disk in diskset:
-                    logging.info(">>FASTER_REBUILD " + str(disk))
-                #self.generate_fail_event(diskset, curr_time)
+
+            # if event_type == Disk.EVENT_FASTREBUILD:
+            #     for disk in diskset:
+            #         logging.info(">>FASTER_REBUILD " + str(disk))
             #---------------------------
             # failure event, check PDL
             #---------------------------
@@ -195,8 +206,7 @@ class Simulate:
                 #curr_failures = self.state.get_failed_disks()
                 if self.placement.check_data_loss_prob(self.state):
                     prob = 1
-                    logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
-                    # print("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+                    # logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     # loss_events = self.placement.check_data_loss_events(self.state)
                     return prob
                     #------------------------------------------
@@ -205,7 +215,12 @@ class Simulate:
                     #print "  >>>>>>> no data loss >>>>>>>  ", curr_failures
                 
                     #------------------------------------------
+            # checkLossEndTime = time.time()
+            # mytimer.checkLossTime += checkLossEndTime - newFailEndTime
+
             self.repair.update_repair_event(diskset, self.state, curr_time, self.repair_queue)
+            # updateRepairEndTime = time.time()
+            # mytimer.updateRepairTime += updateRepairEndTime - checkLossEndTime
         return prob
 
 

@@ -16,7 +16,7 @@ class Disk:
     #----------------------------------
     # Initialize the disk
     #----------------------------------
-    def __init__(self, diskId, disk_fail_distr, trace_fail_times):
+    def __init__(self, diskId, repair_data):
         #-------------------------------
         # initialize the state be normal
         #-------------------------------
@@ -26,43 +26,19 @@ class Disk:
         #-------------------------------
         self.state = self.STATE_NORMAL
         #-------------------------------
-        # disk's local clock
-        #-------------------------------
-        self.clock = mpf(0)
-        #-------------------------------
-        # failure distribution
-        #-------------------------------
-        self.disk_fail_distr = disk_fail_distr
-        #-------------------------------
-        # failure events from trace
-        #-------------------------------
-        self.trace_fail_times = trace_fail_times
-        #-------------------------------
         # initialize the repair priority
         #-------------------------------
         self.priority = 0
         #-------------------------------
         # initialize priority percent
         #-------------------------------
-        self.percent = {} 
         self.repair_time = {}
-        self.repair_data = 0
+        self.repair_data = repair_data
         #-------------------------------
-        self.decluster_sets = 0
-        self.stripeset_sets = 0
-        self.draid_sets = 0
-        #-------------------------------
-        self.repair_start_time = 0
-        self.curr_repair_data_remaining = 0
-        self.good_num = 0
-        self.fail_num = 0
-
-
-
-
-
-    def update_clock(self, curr_time):
-        self.clock = curr_time
+        # self.repair_start_time = 0
+        # self.curr_repair_data_remaining = 0
+        # self.good_num = 0
+        # self.fail_num = 0
 
 
     def update_state(self, state):

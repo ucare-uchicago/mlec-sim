@@ -11,10 +11,15 @@ import logging
 from drive_args import DriveArgs
 from sys_state import SysState
 from util import wait_futures
-from repair import calc_dp_repair_time_serkay, calc_raid_repair_time, calc_dp_repair_time, gen_new_failures
 from constants import debug, YEAR
 
+from placement import Placement
+from trinity import Trinity
+from repair import Repair
+
 from simulate import Simulate
+from mytimer import Mytimer
+import time
 
 def factorial(n):
     if n == 0:
@@ -22,100 +27,54 @@ def factorial(n):
     else:
         return n * factorial(n - 1)
 
-def tick_raid(state_):
+def tick_dp(state_, mytimer: Mytimer, sys, repair, placement):
+    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
+    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
     np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
-    state: SysState = copy.deepcopy(state_)
-    state.drives = state.gen_failure_times_jiajun(state.total_drives)
+    sysstate: SysState = copy.deepcopy(state_)
+    sysstate.gen_drives()
+    sim = Simulate(YEAR, sysstate.total_drives, sys, repair, placement)
+    return sim.run_simulation(sysstate)
+
+def tick_raid_huan(state_, mytimer: Mytimer, sys, repair, placement):
+    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
+    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
+    np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
+    sysstate: SysState = copy.deepcopy(state_)
+    sysstate.gen_drives()
+    sim = Simulate(YEAR, sysstate.total_drives, sys, repair, placement)
+    return sim.run_simulation(sysstate)
+
+def tick_mlec_raid(sysstate, mytimer: Mytimer, sys, repair, placement):
+    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
+    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
+    sim = Simulate(YEAR, sysstate.total_drives, sys, repair, placement)
+    return sim.run_simulation(sysstate, mytimer)
+
+def iter(state_: SysState, iters):
     
-    if debug: print("Number of failures {}".format(len(state.drives[state.drives < YEAR])))
-    # Filtering out failure time for each stripe, we are only interested in < 1 year
-    stripe_idx = 0
-    for stripe in state.drives:
-        failure_times = stripe[stripe < YEAR]
-        failure_idxs = np.where(stripe < YEAR)[0]
-        # If this stripe does not has more than parity amount of failure, it will not fail
-        if len(failure_times) <= state.drive_args.parity_shards:
-            continue
-        
-        failures = list(zip(failure_times, failure_idxs))
-        if debug: print("Stripe {} has {} failures".format(stripe_idx, len(failures)))
-        if debug: print(failures)
-        
-        heapq.heapify(failures)
-        rec_queue = RepairQueue()
-
-        while len(failures) != 0:
-            if debug: print("{} failures remaining".format(len(failures)))
-            # we calculate the repair time
-            head = heapq.heappop(failures)
-            failed_time = head[0]
-            failed_disk = head[1] # this idx is relative to stripe, not the while system
-            
-            if debug: print("Repairing disk {} failed at {}".format(failed_disk, failed_time))
-            # Remove already repaired disks
-            repaired = rec_queue.filter(failed_time)
-            if debug: print("{} disk repaired, {} still repairing".format(len(repaired), rec_queue.size()))
-            if len(repaired) != 0:
-                new_failure_added = gen_new_failures(failures, repaired, state)
-                if debug: print("{} new failures are added".format(new_failure_added))
-
-            # Repair the disks
-            repair_time = calc_raid_repair_time(len(failures) + rec_queue.size(), state)
-            if debug: print("Repairing disk {} will take {} days and be fixed at day {}".format(failed_disk, round(repair_time, 2), round(failed_time + repair_time, 2)))
-            rec_queue.push((failed_time + repair_time, repair_time, failed_disk))
-
-            # If we have more than parity in rec_queue, we fail
-            if rec_queue.size() > state.drive_args.parity_shards:
-                return 1
-            
-            if debug: print('------------')
-        stripe_idx += 1
-
-    return 0
-
-def tick_dp(state_):
-    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
-    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
-    np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
-    sysstate: SysState = copy.deepcopy(state_)
-    sysstate.gen_drives()
-    sim = Simulate(YEAR, 1, 1, sysstate.total_drives, sysstate.total_drives,  
-                    sysstate.drive_args.data_shards, sysstate.drive_args.parity_shards, 1, 1, "", sysstate.drive_args.drive_cap * 1024 * 1024, sysstate.drive_args.rec_speed, 1, 0.1)
-    return sim.run_simulation(sysstate)
-
-def tick_raid_huan(state_):
-    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
-    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
-    np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
-    sysstate: SysState = copy.deepcopy(state_)
-    sysstate.gen_drives()
-    sim = Simulate(YEAR, 1, 1, sysstate.total_drives, sysstate.total_drives, 
-                    sysstate.drive_args.data_shards, sysstate.drive_args.parity_shards, 1, 0, "", sysstate.drive_args.drive_cap * 1024 * 1024, sysstate.drive_args.rec_speed, 1, 0.1)
-    return sim.run_simulation(sysstate)
-
-def tick_mlec_raid(state_):
-    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
-    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
-    np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
-    sysstate: SysState = copy.deepcopy(state_)
-    sysstate.gen_drives()
-    sim = Simulate(YEAR, 1, 1, sysstate.total_drives, sysstate.drives_per_server, 
-                    sysstate.drive_args.data_shards, sysstate.drive_args.parity_shards, 1, 2, "", sysstate.drive_args.drive_cap * 1024 * 1024, sysstate.drive_args.rec_speed, 1, 0.1,
-                    sysstate.top_d_shards, sysstate.top_p_shards)
-    return sim.run_simulation(sysstate)
-
-def iter(state: SysState, iters):
     try:
         res = 0
+        sysstate = copy.deepcopy(state_)
+        mytimer = Mytimer()
+        sys = Trinity(sysstate.total_drives, sysstate.drives_per_server, sysstate.drive_args.data_shards,
+                sysstate.drive_args.parity_shards, sysstate.place_type, sysstate.drive_args.drive_cap * 1024 * 1024,
+                sysstate.drive_args.rec_speed, 1, sysstate.top_d_shards, sysstate.top_p_shards)
+        repair = Repair(sys, sysstate.place_type)
+        placement = Placement(sys, sysstate.place_type)
+
+        start = time.time()
         for iter in range(0, iters):
             logging.info("")
-            if state.mode == 'RAID':
-                res += tick_raid_huan(state)
-            elif state.mode == 'DP':
-                res += tick_dp(state)
-            elif state.mode == 'MLEC':
-                res += tick_mlec_raid(state)
-        return res
+            if sysstate.mode == 'RAID':
+                res += tick_raid_huan(sysstate, mytimer, sys, repair, placement)
+            elif sysstate.mode == 'DP':
+                res += tick_dp(sysstate, mytimer, sys, repair, placement)
+            elif sysstate.mode == 'MLEC':
+                res += tick_mlec_raid(sysstate, mytimer, sys, repair, placement)
+        end = time.time()
+        print("totaltime: {}".format(end - start))
+        return (res, mytimer)
     except Exception as e:
         print(traceback.format_exc())
         return None
@@ -129,11 +88,12 @@ def simulate(state, iters, epochs, concur=10):
     futures = []
     for epoch in range(0, epochs):
         futures.append(executor.submit(iter, state, iters))
-    res = wait_futures(futures)
+    ress = wait_futures(futures)
     
-    print(res)
     executor.shutdown()
-    failed_instances += np.sum(res)
+    for res in ress:
+        failed_instances += res[0]
+        print(res[1])
         
     return [failed_instances, epochs * iters]
 
@@ -141,14 +101,14 @@ if __name__ == "__main__":
     logger = logging.getLogger()
     # logging.basicConfig(level=logging.INFO)
 
-    for afr in range(10, 11):
-        l1args = DriveArgs(d_shards=8, p_shards=2, afr=afr, drive_cap=30, rec_speed=10)
+    for afr in range(5, 6):
+        l1args = DriveArgs(d_shards=8, p_shards=2, afr=afr, drive_cap=100, rec_speed=10)
         l1sys = SysState(total_drives=100, drive_args=l1args, placement='MLEC', drives_per_server=10, 
                         top_d_shards=8, top_p_shards=2)
 
         # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
-        # res = simulate(l1sys, iters=1000, epochs=1, concur=1)
-        # break
+        res = simulate(l1sys, iters=1000, epochs=1, concur=1)
+        break
         res = simulate(l1sys, iters=50000, epochs=80, concur=80)
         while res[0] < 20:
             print(res)

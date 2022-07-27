@@ -84,11 +84,8 @@ class Placement:
 
     def mlec_cluster_simulate(self, state):
         prob = 0
-        failed_servers = 0
-        for serverId in self.sys.servers:
-            if state.servers[serverId].state == Server.STATE_FAILED:
-                failed_servers += 1
-        if failed_servers > self.sys.top_m:
+        failed_servers = state.get_failed_servers()
+        if len(failed_servers) > self.sys.top_m:
             prob = 1
         return prob
 
@@ -108,15 +105,6 @@ class Placement:
         prob = 0
         for diskId in state.disks:
             #print "diskId", diskId, "priority",state.disks[diskId].priority
-            if state.disks[diskId].priority > self.sys.m:
-                prob = 1
-                return prob
-        return prob
-
-
-    def flat_stripeset_simulate(self, state):
-        prob = 0
-        for diskId in state.disks:
             if state.disks[diskId].priority > self.sys.m:
                 prob = 1
                 return prob

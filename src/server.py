@@ -16,13 +16,9 @@ class Server:
     #----------------------------------
     # Initialize the server
     #----------------------------------
-    def __init__(self, serverId):
+    def __init__(self, serverId, repair_data):
         self.serverId = serverId
         self.state = self.STATE_NORMAL
-        #-------------------------------
-        # server's local clock
-        #-------------------------------
-        self.clock = mpf(0)
         #-------------------------------
         # initialize the repair priority
         #-------------------------------
@@ -32,11 +28,8 @@ class Server:
         #-------------------------------
         self.percent = {} 
         self.repair_time = {}
-        self.repair_data = 0
+        self.repair_data = repair_data
         #-------------------------------
-        self.repair_start_time = 0
-        self.curr_repair_data_remaining = 0
-
-    
-    def update_clock(self, curr_time):
-        self.clock = curr_time
+        # self.repair_start_time = 0
+        # self.curr_repair_data_remaining = 0
+        self.failed_disks = {}
