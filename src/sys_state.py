@@ -5,7 +5,7 @@ from heapq import *
 
 class SysState:
     
-    def __init__(self, total_drives, drive_args, placement, drives_per_server, top_d_shards = 1, top_p_shards = 0):
+    def __init__(self, total_drives, drive_args, placement, drives_per_server, top_d_shards = 1, top_p_shards = 0, adapt = False):
         self.drive_args = drive_args
         self.mode = placement
 
@@ -22,6 +22,8 @@ class SysState:
         self.failures_store = []
         self.failures_store_len = 100
         self.failures_store_idx = self.failures_store_len
+
+        self.adapt = adapt
 
         if placement == 'RAID':
             self.place_type = 0

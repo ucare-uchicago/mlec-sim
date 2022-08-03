@@ -139,10 +139,10 @@ class Simulate:
             # getEventEndTime = time.time()
             # mytimer.getEventTime += getEventEndTime - iterStartTime
 
-            # logging.info("----record----")
-            # logging.info(event_time)
-            # logging.info(event_type)
-            # logging.info(diskset)
+            logging.info("----record----")
+            logging.info(event_time)
+            logging.info(event_type)
+            logging.info(diskset)
             if event_time == None:
                 break
             # rerun = False
@@ -159,18 +159,20 @@ class Simulate:
             # updateStateEndTime = time.time()
             # mytimer.updateStateTime += updateStateEndTime - getEventEndTime
 
-            new_server_failures = self.state.update_server_state(event_type, diskset)
-            # updateServerStateEndTime = time.time()
-            # mytimer.updateServerStateTime += updateServerStateEndTime - updateStateEndTime
+            if self.sys.place_type == 2:
+                new_server_failures = self.state.update_server_state(event_type, diskset)
+                # updateServerStateEndTime = time.time()
+                # mytimer.updateServerStateTime += updateServerStateEndTime - updateStateEndTime
 
             self.state.update_priority(event_type, diskset)
             # updatePriorityEndTime = time.time()
             # mytimer.updatePriorityTime += updatePriorityEndTime - updateServerStateEndTime
 
-            if len(new_server_failures) > 0:
-                self.state.update_server_priority(event_type, new_server_failures, diskset)
-            # updateServerPriorityEndTime = time.time()
-            # mytimer.updateServerPriorityTime += updateServerPriorityEndTime - updatePriorityEndTime
+            if self.sys.place_type == 2:
+                if len(new_server_failures) > 0:
+                    self.state.update_server_priority(event_type, new_server_failures, diskset)
+                    # updateServerPriorityEndTime = time.time()
+                    # mytimer.updateServerPriorityTime += updateServerPriorityEndTime - updatePriorityEndTime
 
             #---------------------------
             # exceed mission-time, exit
@@ -206,7 +208,7 @@ class Simulate:
                 #curr_failures = self.state.get_failed_disks()
                 if self.placement.check_data_loss_prob(self.state):
                     prob = 1
-                    # logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+                    logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     # loss_events = self.placement.check_data_loss_events(self.state)
                     return prob
                     #------------------------------------------

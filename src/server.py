@@ -16,7 +16,7 @@ class Server:
     #----------------------------------
     # Initialize the server
     #----------------------------------
-    def __init__(self, serverId, repair_data):
+    def __init__(self, serverId, repair_data, stripeset_num):
         self.serverId = serverId
         self.state = self.STATE_NORMAL
         #-------------------------------
@@ -33,3 +33,6 @@ class Server:
         # self.repair_start_time = 0
         # self.curr_repair_data_remaining = 0
         self.failed_disks = {}
+        self.stripesets_repair_finish = []
+        for i in range(stripeset_num):
+            self.stripesets_repair_finish.append(0)

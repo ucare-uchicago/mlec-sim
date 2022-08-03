@@ -25,7 +25,7 @@ class State:
             self.disks[diskId] = Disk(diskId, sys.diskSize)
         server_repair_data = sys.diskSize * sys.num_disks_per_server
         for serverId in self.sys.servers:
-            self.servers[serverId] = Server(serverId, server_repair_data)
+            self.servers[serverId] = Server(serverId, server_repair_data, sys.num_disks_per_server // self.n)
         self.initial_priority = 0 #means no failure in stripesets
         self.curr_time = 0
         self.failed_disks = {}
@@ -117,11 +117,21 @@ class State:
                 #  what if there are multiple servers
                 if len(fail_per_server) > 0:
                     if self.sys.place_type == 0:
-                        for diskId in fail_per_server:
-                            self.update_cluster_repair_time(diskId, len(fail_per_server))
+                        if not self.sys.adapt:
+                            for diskId in fail_per_server:
+                                self.update_cluster_repair_time(diskId, len(fail_per_server))
                     if self.sys.place_type == 1:
-                        for diskId in fail_per_server:
-                            self.update_decluster_repair_time(diskId, self.disks[diskId].priority, len(fail_per_server))
+                        if self.sys.adapt:
+                            priorities = []
+                            for diskId in fail_per_server:
+                                priorities.append(self.disks[diskId].priority)
+                            max_priority = max(priorities)
+                            for diskId in fail_per_server:
+                                self.update_decluster_repair_time_adapt(diskId, 
+                                    self.disks[diskId].priority, len(fail_per_server), max_priority)
+                        else:
+                            for diskId in fail_per_server:
+                                self.update_decluster_repair_time(diskId, self.disks[diskId].priority, len(fail_per_server))
                     if self.sys.place_type == 2:
                         for diskId in fail_per_server:
                             self.update_cluster_repair_time(diskId, len(fail_per_server))
@@ -145,8 +155,12 @@ class State:
                         if len(new_failures) > 0:
                             for diskId in new_failures:
                                 self.disks[diskId].repair_start_time = self.curr_time
-                            for diskId in fail_per_server:
-                                self.update_cluster_repair_time(diskId, len(fail_per_server))
+                            if self.sys.adapt:
+                                for diskId in new_failures:
+                                    self.update_cluster_repair_time_adapt(diskId, len(fail_per_server))
+                            else:
+                                for diskId in fail_per_server:
+                                    self.update_cluster_repair_time(diskId, len(fail_per_server))
                     #-----------------------------------------------------
                     # calculate repairT and update priority for decluster
                     #-----------------------------------------------------
@@ -175,8 +189,14 @@ class State:
                                 self.disks[diskId].repair_start_time = self.curr_time
                                 self.disks[diskId].good_num = good_num
                                 self.disks[diskId].fail_num = fail_num
-                            for diskId in fail_per_server:
-                                self.update_decluster_repair_time(diskId, self.disks[diskId].priority, len(fail_per_server))
+                            if self.sys.adapt:
+                                for diskId in fail_per_server:
+                                    self.update_decluster_repair_time_adapt(diskId, self.disks[diskId].priority, 
+                                        len(fail_per_server), max_priority)
+                            else:
+                                for diskId in fail_per_server:
+                                    self.update_decluster_repair_time(diskId, self.disks[diskId].priority, 
+                                        len(fail_per_server))
                                 #--------------------------------------------
                     #--------------------------------------------
                     # calculate repair time for mlec cluster placement
@@ -227,7 +247,24 @@ class State:
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
 
-                     
+    
+    def update_cluster_repair_time_adapt(self, diskId, fail_per_server):
+        disk = self.disks[diskId]
+        serverId = diskId // self.sys.num_disks_per_server
+        server = self.servers[serverId]
+        stripesetId = (diskId % self.sys.num_disks_per_server) // self.n
+        repair_time = float(disk.repair_data)/(self.sys.diskIO)
+        # if repaired_percent > 0 and (fail_per_server > 1  or 
+        #     disk.repair_time[0] != float(disk.curr_repair_data_remaining)/self.sys.diskIO):
+        #     print("fail_per_server {}  old repair time: {}  old repair time:{}  new repair time: {} new finish time {}".format(
+        #         fail_per_server, disk.repair_time[0], disk.repair_time[0] + disk.repair_start_time, repair_time / 3600 / 24,
+        #         repair_time / 3600 / 24 + self.curr_time
+        #     ))
+        disk.repair_time[0] = repair_time / 3600 / 24
+        disk.repair_start_time = max(self.curr_time, server.stripesets_repair_finish[stripesetId])
+        disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
+        server.stripesets_repair_finish[stripesetId] = disk.estimate_repair_time
+
 
 
     def update_mlec_cluster_disk_repair_time(self, diskId, fail_per_server):
@@ -306,6 +343,53 @@ class State:
         disk.estimate_repair_time = self.curr_time + disk.repair_time[priority]
         # print("{}  disk {}  priority {}  repair time {}".format(self.curr_time, diskId, priority, disk.repair_time))
         #----------------------------------------------------
+
+    def update_decluster_repair_time_adapt(self, diskId, priority, fail_per_server, max_priority):
+        disk = self.disks[diskId]
+        good_num = disk.good_num
+        fail_num = disk.fail_num
+        #----------------------------
+        repaired_time = self.curr_time - disk.repair_start_time
+        # print("disk {}  priority {}  repair time {}".format(diskId, priority, disk.repair_time))
+        if repaired_time == 0:
+            priority_sets = self.ncr(good_num, self.n-priority)*self.ncr(fail_num-1, priority-1)
+            total_sets = self.ncr((good_num+fail_num-1), (self.n-1)) 
+            priority_percent = float(priority_sets)/total_sets
+            repaired_percent = 0
+            disk.curr_repair_data_remaining = disk.repair_data * priority_percent
+        else:
+            # print("disk {}  priority {}  repair time {}".format(diskId, priority, disk.repair_time))
+            repaired_percent = repaired_time / disk.repair_time[priority]
+            disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
+        #----------------------------------------------------
+        #print priority, "priority percent ", priority_percent
+        parallelism = good_num
+        #print "decluster parallelism", diskId, parallelism
+        #----------------------------------------------------
+        amplification = self.sys.k + priority
+        if priority < fail_per_server:
+            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_server)
+        else:
+            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism)
+        #print "-----", self.sys.diskSize, amplification, self.sys.diskIO, parallelism
+        #----------------------------------------------------
+        # self.disks[diskId].repair_time[priority] = repair_time/3600
+        self.disks[diskId].repair_time[priority] = repair_time / 3600 / 24
+        disk.repair_start_time = self.curr_time
+        disk.estimate_repair_time = self.curr_time + disk.repair_time[priority]
+        # print("{}  disk {}  priority {}  repair time {}".format(self.curr_time, diskId, priority, disk.repair_time))
+        #----------------------------------------------------
+        if max_priority == fail_per_server and disk.priority < max_priority:
+            # the disk repair will be delayed because other disk is doing critical rebuild
+            max_priority_sets = self.ncr(good_num, self.n-max_priority)*self.ncr(fail_num-1, max_priority-1)
+            total_sets = self.ncr((good_num+fail_num-1), (self.n-1)) 
+            max_priority_percent = float(max_priority_sets)/total_sets
+            critical_data = disk.repair_data * max_priority_percent
+            critical_repair_time = critical_data*amplification/(self.sys.diskIO*parallelism) / 3600 / 24
+            disk.repair_start_time += critical_repair_time
+            disk.estimate_repair_time += critical_repair_time
+            logging.info("disk ID {}  disk priority {}  fail_per_server {} critical time {}  estimate finish time {}".format(
+                            diskId, disk.priority, fail_per_server, critical_repair_time, disk.estimate_repair_time))
 
 
     def ncr(self, n, r):

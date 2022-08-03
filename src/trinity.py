@@ -8,7 +8,8 @@ from server import Server
 #----------------------------
 
 class Trinity:
-    def __init__(self, num_disks, num_disks_per_server, k, m, place_type, diskCap, rebuildRate, utilizeRatio, top_k = 1, top_m = 0):
+    def __init__(self, num_disks, num_disks_per_server, k, m, place_type, diskCap, rebuildRate,
+                    utilizeRatio, top_k = 1, top_m = 0, adapt = False):
         #--------------------------------------------
         # Set up the Campaign system parameters
         #--------------------------------------------
@@ -70,6 +71,7 @@ class Trinity:
         self.diskSize = diskCap
         self.diskIO = rebuildRate
         self.utilizeRatio = utilizeRatio
+        self.adapt = adapt
 
 
     def flat_cluster_layout(self):
