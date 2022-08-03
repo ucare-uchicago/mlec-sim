@@ -30,9 +30,13 @@ class Simulate:
 
 
     #------------------------------------------
+    # initiate failure queue and repair queue
+    # failure queue: the queue of failure events (including server failure and disk failure)
+    # repair queue: the queue of repair events (including server repair and disk repair)
+    # element in the queue follows this format: (event_time, event_type, disk/server ID)
     #------------------------------------------
     def reset(self, initialFailures, mytimer):
-        self.events_queue = []
+        self.failure_queue = []
         self.repair_queue = []
 
         # temp = time.time()
@@ -51,7 +55,7 @@ class Simulate:
         #-----------------------------------------------------
         # if self.use_trace:
         for disk_fail_time, diskId in failures:
-            heappush(self.events_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
+            heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
             logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
         
         # heapEndTime = time.time()
@@ -61,18 +65,20 @@ class Simulate:
 
 
 
-
+    #------------------------------------------
+    
+    #------------------------------------------
     def get_next_event(self):
-        if self.events_queue or self.repair_queue:
+        if self.failure_queue or self.repair_queue:
             if len(self.repair_queue) == 0:
-                next_event = heappop(self.events_queue)
-            elif len(self.events_queue) == 0:
+                next_event = heappop(self.failure_queue)
+            elif len(self.failure_queue) == 0:
                 next_event = heappop(self.repair_queue)
             else:
-                first_event_time = self.events_queue[0][0]
+                first_event_time = self.failure_queue[0][0]
                 first_repair_time = self.repair_queue[0][0]
                 if first_event_time < first_repair_time:
-                    next_event = heappop(self.events_queue)
+                    next_event = heappop(self.failure_queue)
                 else:
                     next_event = heappop(self.repair_queue)
             return next_event
@@ -83,7 +89,7 @@ class Simulate:
 
     def get_next_eventset(self, curr_time):
         diskset = []
-        if self.events_queue or self.repair_queue:
+        if self.failure_queue or self.repair_queue:
             next_event = self.get_next_event()
             #--------------------------------------
             next_event_time = next_event[0]
@@ -93,8 +99,8 @@ class Simulate:
             # gather the events with the same occurring time and event type
             #--------------------------------------------------------------
             if next_event[1] == Disk.EVENT_FAIL:
-                while self.events_queue and self.events_queue[0][0] == next_event_time and self.events_queue[0][1] == next_event_type:
-                    simultaneous_event = heappop(self.events_queue)
+                while self.failure_queue and self.failure_queue[0][0] == next_event_time and self.failure_queue[0][1] == next_event_type:
+                    simultaneous_event = heappop(self.failure_queue)
                     diskset.append(simultaneous_event[2])
             else:
                 while self.repair_queue and self.repair_queue[0][0] == next_event_time and self.repair_queue[0][1] == next_event_type:
@@ -190,10 +196,10 @@ class Simulate:
                 for i in range(len(diskset)):
                     disk_fail_time = new_failure_intervals[i] + curr_time
                     if disk_fail_time < YEAR:
-                        heappush(self.events_queue, (disk_fail_time, Disk.EVENT_FAIL, diskset[i]))
+                        heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskset[i]))
                         # logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
                         continue
-                    # print(self.events_queue)
+                    # print(self.failure_queue)
             # newFailEndTime = time.time()
             # mytimer.newFailTime += newFailEndTime - updateServerPriorityEndTime
 

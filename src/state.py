@@ -35,7 +35,7 @@ class State:
 
 
     #----------------------------------------------
-    # update decluster: diskset state
+    # update diskset state
     #----------------------------------------------
     def update_state(self, event_type, diskset):
         for diskId in diskset:
@@ -52,7 +52,7 @@ class State:
                 # logging.info("server {} after add: {}".format(serverId, self.servers[serverId].failed_disks))
 
 
-#----------------------------------------------
+    #----------------------------------------------
     # update server state
     #----------------------------------------------
     def update_server_state(self, event_type, diskset):
