@@ -74,6 +74,14 @@ class State:
                         self.servers[serverId].state = Server.STATE_FAILED
                         self.failed_servers[serverId] = 1
                         break
+        
+        if event_type == Server.EVENT_FAIL:
+            serverset = diskset
+            for serverId in serverset:
+                self.servers[serverId].state = Server.STATE_FAILED
+                new_server_failures.append(serverId)
+                self.failed_servers[serverId] = 1
+
         if event_type == Server.EVENT_REPAIR:
             serverset = diskset
             for serverId in serverset:
@@ -85,6 +93,7 @@ class State:
                 
                 for diskId in self.sys.disks_per_server[serverId]:
                     self.disks[diskId].state = Disk.STATE_NORMAL 
+
 
         return new_server_failures
 
@@ -220,6 +229,14 @@ class State:
                     self.servers[serverId].repair_start_time = self.curr_time
                 for serverId in failed_servers:
                     self.update_mlec_cluster_server_repair_time(serverId, len(failed_servers))
+
+        if event_type == Server.EVENT_FAIL:
+            if self.sys.place_type == 2:
+                for serverId in new_failed_servers:
+                    self.servers[serverId].repair_start_time = self.curr_time
+                for serverId in failed_servers:
+                    self.update_mlec_cluster_server_repair_time(serverId, len(failed_servers))
+
         if event_type == Server.EVENT_REPAIR:
             if self.sys.place_type == 2:
                 for serverId in failed_servers:
@@ -321,6 +338,8 @@ class State:
             priority_percent = float(priority_sets)/total_sets
             repaired_percent = 0
             disk.curr_repair_data_remaining = disk.repair_data * priority_percent
+            if priority == 2:
+                self.sys.metrics.total_net_traffic_per_year -= disk.curr_repair_data_remaining
         else:
             # print("disk {}  priority {}  repair time {}".format(diskId, priority, disk.repair_time))
             repaired_percent = repaired_time / disk.repair_time[priority]
@@ -330,7 +349,7 @@ class State:
         parallelism = good_num
         #print "decluster parallelism", diskId, parallelism
         #----------------------------------------------------
-        amplification = self.sys.k + priority
+        amplification = self.sys.k + 1
         if priority < fail_per_server:
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_server)
         else:

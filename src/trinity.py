@@ -3,13 +3,14 @@ import random
 from newposition import Position
 import logging
 from server import Server
+from metrics import Metrics
 #----------------------------
 # Logging Settings
 #----------------------------
 
 class Trinity:
     def __init__(self, num_disks, num_disks_per_server, k, m, place_type, diskCap, rebuildRate,
-                    utilizeRatio, top_k = 1, top_m = 0, adapt = False):
+                    utilizeRatio, top_k = 1, top_m = 0, adapt = False, server_fail = False):
         #--------------------------------------------
         # Set up the Campaign system parameters
         #--------------------------------------------
@@ -72,6 +73,8 @@ class Trinity:
         self.diskIO = rebuildRate
         self.utilizeRatio = utilizeRatio
         self.adapt = adapt
+        self.server_fail = server_fail
+        self.metrics = Metrics()
 
 
     def flat_cluster_layout(self):

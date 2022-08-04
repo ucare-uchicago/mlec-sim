@@ -19,7 +19,9 @@ from repair import Repair
 
 from simulate import Simulate
 from mytimer import Mytimer
+from metrics import Metrics
 import time
+
 
 def factorial(n):
     if n == 0:
@@ -59,7 +61,8 @@ def iter(state_: SysState, iters):
         mytimer = Mytimer()
         sys = Trinity(sysstate.total_drives, sysstate.drives_per_server, sysstate.drive_args.data_shards,
                 sysstate.drive_args.parity_shards, sysstate.place_type, sysstate.drive_args.drive_cap * 1024 * 1024,
-                sysstate.drive_args.rec_speed, 1, sysstate.top_d_shards, sysstate.top_p_shards, sysstate.adapt)
+                sysstate.drive_args.rec_speed, 1, sysstate.top_d_shards, sysstate.top_p_shards,
+                sysstate.adapt, sysstate.server_fail)
         repair = Repair(sys, sysstate.place_type)
         placement = Placement(sys, sysstate.place_type)
 
@@ -74,7 +77,7 @@ def iter(state_: SysState, iters):
                 res += tick_mlec_raid(sysstate, mytimer, sys, repair, placement)
         # end = time.time()
         # print("totaltime: {}".format(end - start))
-        return (res, mytimer)
+        return (res, mytimer, sys.metrics)
     except Exception as e:
         print(traceback.format_exc())
         return None
@@ -86,6 +89,8 @@ def simulate(state, iters, epochs, concur=10):
     
     failed_instances = 0
     futures = []
+    metrics = Metrics()
+
     for epoch in range(0, epochs):
         futures.append(executor.submit(iter, state, iters))
     ress = wait_futures(futures)
@@ -93,24 +98,23 @@ def simulate(state, iters, epochs, concur=10):
     executor.shutdown()
     for res in ress:
         failed_instances += res[0]
+        metrics += res[2]
         
-    return [failed_instances, epochs * iters]
+    return [failed_instances, epochs * iters, metrics]
 
-if __name__ == "__main__":
-    logger = logging.getLogger()
-    # logging.basicConfig(level=logging.INFO)
 
-    for io_speed in range(10, 20, 10):
-        cap = 100
-        afr = 3
+def normal_sim():
+    for afr in range(3, 4, 1):
+        io_speed = 50
+        cap = 20
         adapt = False
         l1args = DriveArgs(d_shards=8, p_shards=2, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        l1sys = SysState(total_drives=100, drive_args=l1args, placement='MLEC', drives_per_server=10, 
-                        top_d_shards=8, top_p_shards=2, adapt=adapt)
+        l1sys = SysState(total_drives=50, drive_args=l1args, placement='DP', drives_per_server=50, 
+                        top_d_shards=7, top_p_shards=0, adapt=adapt, server_fail = False)
 
         # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
-        # res = simulate(l1sys, iters=10000, epochs=1, concur=1)
-        # break
+        res = simulate(l1sys, iters=100, epochs=1, concur=1)
+        break
         res = [0, 0]
         while res[0] < 20:
             start  = time.time()
@@ -139,6 +143,188 @@ if __name__ == "__main__":
                     l1args.parity_shards, l1sys.total_drives,
                     afr, cap, io_speed, nn, sigma, res[0], res[1], "adapt" if adapt else "notadapt"))
             output.close()
+
+
+def approx_1_sim():
+    for cap in range(20, 30, 10):
+        afr = 5
+        io_speed = 20
+        # cap = 20
+        adapt = False
+        N_local = 8
+        k_local = 2
+        N_net = 8
+        k_net = 2
+        total_drives = (N_local+k_local) * (N_net+k_net)
+        drives_per_server=N_local+k_local
+        placement = 'MLEC'
+        drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
+        sys_state1 = SysState(total_drives=drives_per_server, drive_args=drive_args1, placement='RAID', drives_per_server=drives_per_server, 
+                        top_d_shards=N_net, top_p_shards=0, adapt=adapt, server_fail = 0)
+
+        print('')
+        # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
+        # res = simulate(l1sys, iters=100, epochs=1, concur=1)
+        # break
+        res = [0, 0]
+        while res[0] < 20:
+            start  = time.time()
+            temp = simulate(sys_state1, iters=50000, epochs=200, concur=200)
+            res[0] += temp[0]
+            res[1] += temp[1]
+            simulationTime = time.time() - start
+            print("simulation time: {}".format(simulationTime))
+            print(res)
+        # res = simulate(l1sys, iters=1000, epochs=1, concur=1)
+        server_one_fail_prob = res[0] / res[1]
+        print('++++++++++++++++++++')
+        print('Total Fails: ' + str(res[0]))
+        print('Total Iters: ' + str(res[1]))
+        print('Probability that server one fails: {}'.format(server_one_fail_prob))
+
+        pro_sys_fail_contain_s1 = 1 - math.comb(N_net + k_net - 1, k_net + 1) / math.comb(N_net + k_net, k_net + 1)
+        print('------------')
+        print('Probability that system failure contains server one: {}'.format(pro_sys_fail_contain_s1))
+
+
+        drive_args2 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
+        sys_state2 = SysState(total_drives=total_drives, drive_args=drive_args2, placement=placement, drives_per_server=drives_per_server, 
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 1)
+
+        res = [0, 0]
+        while res[0] < 20:
+            start  = time.time()
+            temp = simulate(sys_state2, iters=50000, epochs=200, concur=200)
+            res[0] += temp[0]
+            res[1] += temp[1]
+            simulationTime = time.time() - start
+            print("simulation time: {}".format(simulationTime))
+            print(res)
+        # res = simulate(l1sys, iters=1000, epochs=1, concur=1)
+        conditional_prob = res[0] / res[1]
+        print('------------')
+        print('Total Fails: ' + str(res[0]))
+        print('Total Iters: ' + str(res[1]))
+        print('Probability that the system fails when server one fails: {}'.format(conditional_prob))
+
+        print('------------')
+        res[0] = res[0] * server_one_fail_prob / pro_sys_fail_contain_s1
+        aggr_prob = conditional_prob * server_one_fail_prob / pro_sys_fail_contain_s1
+        print('Total Fails: ' + str(res[0]))
+        print('Total Iters: ' + str(res[1]))
+        print('Probability that the system fails: {}'.format(aggr_prob))
+
+        # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+        nn = str(round(-math.log10(res[0]/res[1]),3))
+        sigma = str(round(1/(math.log(10) * (res[0]**0.5)),3))
+        print("Num of Nine: " + nn)
+        print("error sigma: " + sigma)
+
+        output = open("s-result-{}.log".format(placement), "a")
+        output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
+                N_local, k_local, N_net, k_net, total_drives,
+                afr, cap, io_speed, nn, sigma, res[0], res[1], "adapt" if adapt else "notadapt"))
+        output.close()
+
+
+def approx_2_sim():
+    for cap in range(100, 110, 10):
+        afr = 5
+        io_speed = 50
+        # cap = 20
+        adapt = False
+        N_local = 8
+        k_local = 2
+        N_net = 8
+        k_net = 2
+        total_drives = (N_local+k_local) * (N_net+k_net)
+        drives_per_server=N_local+k_local
+        placement = 'MLEC'
+        drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
+        sys_state1 = SysState(total_drives=drives_per_server, drive_args=drive_args1, placement='RAID', drives_per_server=drives_per_server, 
+                        top_d_shards=N_net, top_p_shards=0, adapt=adapt, server_fail = 0)
+
+        print('')
+        # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
+        # res = simulate(l1sys, iters=100, epochs=1, concur=1)
+        # break
+        res = [0, 0]
+        while res[0] < 20:
+            start  = time.time()
+            temp = simulate(sys_state1, iters=50000, epochs=200, concur=200)
+            res[0] += temp[0]
+            res[1] += temp[1]
+            simulationTime = time.time() - start
+            print("simulation time: {}".format(simulationTime))
+            print(res)
+        # res = simulate(l1sys, iters=1000, epochs=1, concur=1)
+        server_one_fail_prob = res[0] / res[1]
+        server_one_and_two_fail_prob = server_one_fail_prob ** 2
+        print('++++++++++++++++++++')
+        print('Total Fails: ' + str(res[0]))
+        print('Total Iters: ' + str(res[1]))
+        print('Probability that server one fails: {}'.format(server_one_fail_prob))
+        print('Probability that server one and two fails: {}'.format(server_one_and_two_fail_prob))
+
+        pro_sys_fail_contain_s1_s2 = math.comb(N_net + k_net - 2, k_net + 1 - 2) / math.comb(N_net + k_net, k_net + 1)
+        print('------------')
+        print('Probability that system failure contains server one: {}'.format(pro_sys_fail_contain_s1_s2))
+
+
+        drive_args2 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
+        sys_state2 = SysState(total_drives=total_drives, drive_args=drive_args2, placement=placement, drives_per_server=drives_per_server, 
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 2)
+
+        res = [0, 0]
+        while res[0] < 20:
+            start  = time.time()
+            temp = simulate(sys_state2, iters=50000, epochs=200, concur=200)
+            res[0] += temp[0]
+            res[1] += temp[1]
+            simulationTime = time.time() - start
+            print("simulation time: {}".format(simulationTime))
+            print(res)
+        # res = simulate(l1sys, iters=1000, epochs=1, concur=1)
+        conditional_prob = res[0] / res[1]
+        print('------------')
+        print('Total Fails: ' + str(res[0]))
+        print('Total Iters: ' + str(res[1]))
+        print('Probability that the system fails when server one fails: {}'.format(conditional_prob))
+
+        print('------------')
+        res[0] = res[0] * server_one_and_two_fail_prob / pro_sys_fail_contain_s1_s2
+        aggr_prob = conditional_prob * server_one_and_two_fail_prob / pro_sys_fail_contain_s1_s2
+        print('Total Fails: ' + str(res[0]))
+        print('Total Iters: ' + str(res[1]))
+        print('Probability that the system fails: {}'.format(aggr_prob))
+
+        # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+        nn = str(round(-math.log10(res[0]/res[1]),3))
+        sigma = str(round(1/(math.log(10) * (res[0]**0.5)),3))
+        print("Num of Nine: " + nn)
+        print("error sigma: " + sigma)
+
+        output = open("s-result-{}.log".format(placement), "a")
+        output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
+                N_local, k_local, N_net, k_net, total_drives,
+                afr, cap, io_speed, nn, sigma, res[0], res[1], "adapt" if adapt else "notadapt"))
+        output.close()
+
+
+
+if __name__ == "__main__":
+    logger = logging.getLogger()
+    # logging.basicConfig(level=logging.INFO)
+
+    sim_mode = 0
+
+    if sim_mode == 0:
+        normal_sim()
+    elif sim_mode == 1:
+        approx_1_sim()
+    elif sim_mode == 2:
+        approx_2_sim()
+
 
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_afr=50&d_cap=20&dr_rw_speed=50&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&spares=0&rec_wr_spd_alloc=100
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&ec_mode=3&d_afr=2&d_cap=20&dr_rw_speed=30&ndatashards=7&nredundancy=1&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&tnhost_per_chass=8&tndrv_per_dg=8&ph_nspares=0&tnchassis=1&tnrack=1&rec_wr_spd_alloc=100

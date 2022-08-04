@@ -5,6 +5,7 @@ from trinity import Trinity
 from repair import Repair
 from state import State
 from disk import Disk
+from server import Server
 from heapq import *
 import logging
 import time
@@ -14,6 +15,7 @@ import numpy as np
 import time
 import os
 from mytimer import Mytimer
+import random
 #----------------------------
 # Logging Settings
 #----------------------------
@@ -56,13 +58,19 @@ class Simulate:
         # if self.use_trace:
         for disk_fail_time, diskId in failures:
             heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
-            logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
+            logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Disk.EVENT_FAIL, diskId))
         
+        if self.sys.server_fail > 0:
+            for diskId in range(self.sys.server_fail):
+                disk_fail_time = random.random() * YEAR
+                heappush(self.failure_queue, (disk_fail_time, Server.EVENT_FAIL, diskId))
+                logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Server.EVENT_FAIL, diskId))
+
+
         # heapEndTime = time.time()
         # mytimer.resetHeapTime += heapEndTime - resetGenFailEndTime
         #-----------------------------------------------------
         self.sys.priority_per_set = {}
-
 
 
     #------------------------------------------
@@ -210,7 +218,7 @@ class Simulate:
             #---------------------------
             # failure event, check PDL
             #---------------------------
-            if event_type == Disk.EVENT_FAIL:
+            if event_type == Disk.EVENT_FAIL or event_type == Server.EVENT_FAIL:
                 #curr_failures = self.state.get_failed_disks()
                 if self.placement.check_data_loss_prob(self.state):
                     prob = 1
