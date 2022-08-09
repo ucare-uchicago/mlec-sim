@@ -23,9 +23,6 @@
 
 # Configuring the simulator
 All the simulator configs are located after line 178 of `main.py`. There are the following things to configure for
-- **for loop on line 178**: this is just a helper for generating dots with incrementing AFR
-- **DriveArgs()**: this is the immutable configuration for stripe
-- **SysState()**: this is the state machine that keeps track of the current system's simulation progress
 - **simulate()**: the parallelization wrapper for simulating. Modify this to adjust to your computer
    - **iter**: how many independent simulations(from system generation to system failure or 1 year) are ran by a single thread
    - **epoch**: how many sequential threads we spawn to parallelize simulation. We aggregate the simulations ran and number of failures at the end so total simulations ran would be iter*epoch
@@ -33,9 +30,7 @@ All the simulator configs are located after line 178 of `main.py`. There are the
 Also, the debug printing toggle is in `constants.py`. Please make sure to disable debug print when running actual simulation. Otherwise you might get a log file of dozen gigabytes.
 
 # Running the simulator
-- `cd` into `sim-dp` folder
-- Configure the simulator according to the section above (check debug print!)
-- Run `python main.py`
-   - If you want to pipe the debug print to a log file do `python main.py > result.log`
+- python main.py -h
+- python main.py -n_local=8 -k_local=2 -total_drives=50 -drives_per_server=50 -io_speed=100 -placement=RAID
 - The simulation result would be in the file `s-result-<mode>.log` file with the following format
    - <data_shard>-<parity_shard>-<afr_in_percent>: <number_of_nines>

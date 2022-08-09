@@ -22,6 +22,8 @@ from mytimer import Mytimer
 from metrics import Metrics
 import time
 
+import argparse
+
 
 def factorial(n):
     if n == 0:
@@ -42,7 +44,7 @@ def tick_raid(state_, mytimer: Mytimer, sys, repair, placement):
     # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
     #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
     np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
-    sysstate: SysState = copy.deepcopy(state_)
+    sysstate = state_
     sysstate.gen_drives()
     sim = Simulate(YEAR, sysstate.total_drives, sys, repair, placement)
     return sim.run_simulation(sysstate, mytimer)
@@ -75,6 +77,7 @@ def iter(state_: SysState, iters):
                 res += tick_dp(sysstate, mytimer, sys, repair, placement)
             elif sysstate.mode == 'MLEC':
                 res += tick_mlec_raid(sysstate, mytimer, sys, repair, placement)
+
         # end = time.time()
         # print("totaltime: {}".format(end - start))
         return (res, mytimer, sys.metrics)
@@ -100,31 +103,32 @@ def simulate(state, iters, epochs, concur=10):
         failed_instances += res[0]
         metrics += res[2]
         
+    print(metrics)
     return [failed_instances, epochs * iters, metrics]
 
 
-def normal_sim():
-    for afr in range(3, 4, 1):
-        io_speed = 50
-        cap = 20
-        adapt = False
-        l1args = DriveArgs(d_shards=8, p_shards=2, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        l1sys = SysState(total_drives=50, drive_args=l1args, placement='DP', drives_per_server=50, 
-                        top_d_shards=7, top_p_shards=0, adapt=adapt, server_fail = False)
+def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
+                total_drives, drives_per_server, placement):
+    # logging.basicConfig(level=logging.INFO)
+    for cap in range(20, 30, 10):
+        drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
+        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_server=drives_per_server, 
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0)
 
-        # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
-        res = simulate(l1sys, iters=100, epochs=1, concur=1)
-        break
+
+        # res = simulate(sys_state1, iters=100000, epochs=24, concur=24)
+        # res = simulate(sys_state1, iters=1000, epochs=1, concur=1)
+        # break
         res = [0, 0]
         while res[0] < 20:
             start  = time.time()
-            temp = simulate(l1sys, iters=50000, epochs=200, concur=200)
+            temp = simulate(sys_state1, iters=50000, epochs=200, concur=200)
             res[0] += temp[0]
             res[1] += temp[1]
             simulationTime = time.time() - start
             print("simulation time: {}".format(simulationTime))
             print(res)
-        # res = simulate(l1sys, iters=1000, epochs=1, concur=1)
+        # res = simulate(sys_state1, iters=1000, epochs=1, concur=1)
         print('++++++++++++++++++++++++++++++++')
         print('Total Fails: ' + str(res[0]))
         print('Total Iters: ' + str(res[1]))
@@ -138,26 +142,16 @@ def normal_sim():
             print("Num of Nine: " + nn)
             print("error sigma: " + sigma)
 
-            output = open("s-result-{}.log".format(l1sys.mode), "a")
-            output.write("{}-{}-{} {} {} {} {} {} {} {} {}\n".format(l1args.data_shards,
-                    l1args.parity_shards, l1sys.total_drives,
-                    afr, cap, io_speed, nn, sigma, res[0], res[1], "adapt" if adapt else "notadapt"))
+            output = open("s-result-{}.log".format(placement), "a")
+            output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
+                N_local, k_local, N_net, k_net, total_drives,
+                afr, cap, io_speed, nn, sigma, res[0], res[1], "adapt" if adapt else "notadapt"))
             output.close()
 
 
-def approx_1_sim():
+def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
+                    total_drives, drives_per_server, placement):
     for cap in range(20, 30, 10):
-        afr = 5
-        io_speed = 20
-        # cap = 20
-        adapt = False
-        N_local = 8
-        k_local = 2
-        N_net = 8
-        k_net = 2
-        total_drives = (N_local+k_local) * (N_net+k_net)
-        drives_per_server=N_local+k_local
-        placement = 'MLEC'
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
         sys_state1 = SysState(total_drives=drives_per_server, drive_args=drive_args1, placement='RAID', drives_per_server=drives_per_server, 
                         top_d_shards=N_net, top_p_shards=0, adapt=adapt, server_fail = 0)
@@ -227,19 +221,9 @@ def approx_1_sim():
         output.close()
 
 
-def approx_2_sim():
+def approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
+                    total_drives, drives_per_server, placement):
     for cap in range(100, 110, 10):
-        afr = 5
-        io_speed = 50
-        # cap = 20
-        adapt = False
-        N_local = 8
-        k_local = 2
-        N_net = 8
-        k_net = 2
-        total_drives = (N_local+k_local) * (N_net+k_net)
-        drives_per_server=N_local+k_local
-        placement = 'MLEC'
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
         sys_state1 = SysState(total_drives=drives_per_server, drive_args=drive_args1, placement='RAID', drives_per_server=drives_per_server, 
                         top_d_shards=N_net, top_p_shards=0, adapt=adapt, server_fail = 0)
@@ -316,14 +300,54 @@ if __name__ == "__main__":
     logger = logging.getLogger()
     # logging.basicConfig(level=logging.INFO)
 
-    sim_mode = 0
+    parser = argparse.ArgumentParser(description='Parse simulator configurations.')
+    parser.add_argument('-manualFail', type=int, help="number of manual failed servers.", default=0)
+    parser.add_argument('-afr', type=int, help="disk annual failure rate.", default=5)
+    parser.add_argument('-io_speed', type=int, help="disk repair rate.", default=30)
+    parser.add_argument('-cap', type=int, help="disk capacity (TB)", default=20)
+    parser.add_argument('-adapt', type=bool, help="assume seagate adapt or not", default=False)
+    parser.add_argument('-n_local', type=int, help="number of data chunks in local EC", default=7)
+    parser.add_argument('-k_local', type=int, help="number of parity chunks in local EC", default=1)
+    parser.add_argument('-n_net', type=int, help="number of data chunks in network EC", default=7)
+    parser.add_argument('-k_net', type=int, help="number of parity chunks in network EC", default=1)
+    parser.add_argument('-total_drives', type=int, help="number of total drives in the system", default=-1)
+    parser.add_argument('-drives_per_server', type=int, help="number of drives per server", default=-1)
+    parser.add_argument('-placement', type=str, help="placement policy. Can be RAID/DP/MLEC/LRC", default='MLEC')
+    args = parser.parse_args()
+
+    sim_mode = args.manualFail
+
+    afr = args.afr
+    io_speed = args.io_speed
+    cap = args.cap
+    adapt = args.adapt
+    N_local = args.n_local
+    k_local = args.k_local
+    N_net = args.n_net
+    k_net = args.k_net
+
+    total_drives = args.total_drives
+    if total_drives == -1:
+        total_drives = (N_local+k_local) * (N_net+k_net)
+
+
+    drives_per_server = args.drives_per_server
+    if drives_per_server == -1:
+        drives_per_server=N_local+k_local
+    
+    placement = args.placement
+    if placement != 'MLEC':
+        k_net = 0
 
     if sim_mode == 0:
-        normal_sim()
+        normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
+                    total_drives, drives_per_server, placement)
     elif sim_mode == 1:
-        approx_1_sim()
+        approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
+                    total_drives, drives_per_server, placement)
     elif sim_mode == 2:
-        approx_2_sim()
+        approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
+                    total_drives, drives_per_server, placement)
 
 
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_afr=50&d_cap=20&dr_rw_speed=50&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&spares=0&rec_wr_spd_alloc=100

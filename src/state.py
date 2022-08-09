@@ -45,6 +45,8 @@ class State:
                 self.servers[serverId].failed_disks.pop(diskId, None)
                 self.failed_disks.pop(diskId, None)
                 # logging.info("server {} after pop: {}".format(serverId, self.servers[serverId].failed_disks))
+                self.sys.metrics.total_net_traffic_per_year += self.disks[diskId].repair_data * (self.sys.k + 1)
+                
             if event_type == Disk.EVENT_FAIL:
                 self.disks[diskId].state = Disk.STATE_FAILED
                 self.servers[serverId].failed_disks[diskId] = 1
@@ -338,8 +340,9 @@ class State:
             priority_percent = float(priority_sets)/total_sets
             repaired_percent = 0
             disk.curr_repair_data_remaining = disk.repair_data * priority_percent
-            if priority == 2:
-                self.sys.metrics.total_net_traffic_per_year -= disk.curr_repair_data_remaining
+            if priority > 1:
+                self.sys.metrics.total_net_traffic_per_year -= disk.curr_repair_data_remaining * (priority - 1) * self.sys.k
+
         else:
             # print("disk {}  priority {}  repair time {}".format(diskId, priority, disk.repair_time))
             repaired_percent = repaired_time / disk.repair_time[priority]
@@ -349,7 +352,7 @@ class State:
         parallelism = good_num
         #print "decluster parallelism", diskId, parallelism
         #----------------------------------------------------
-        amplification = self.sys.k + 1
+        amplification = self.sys.k + priority
         if priority < fail_per_server:
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_server)
         else:
@@ -385,7 +388,7 @@ class State:
         parallelism = good_num
         #print "decluster parallelism", diskId, parallelism
         #----------------------------------------------------
-        amplification = self.sys.k + priority
+        amplification = self.sys.k + 1
         if priority < fail_per_server:
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_server)
         else:

@@ -41,6 +41,8 @@ class Simulate:
         self.failure_queue = []
         self.repair_queue = []
 
+        self.sys.priority_per_set = {}
+
         # temp = time.time()
         self.state = State(self.sys)
         # resetStateEndTime = time.time()
@@ -56,9 +58,18 @@ class Simulate:
         # generate disks failures events from failure traces
         #-----------------------------------------------------
         # if self.use_trace:
+        # heappush(self.failure_queue, (0, Disk.EVENT_FAIL, 0))
+        # heappush(self.failure_queue, (0.001, Disk.EVENT_FAIL, 1))
+        # return
+
+        logging.info("initialFailures: {}".format(len(initialFailures)))
+
+
         for disk_fail_time, diskId in failures:
             heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
             logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Disk.EVENT_FAIL, diskId))
+            self.sys.metrics.failure_count += 1
+            
         
         if self.sys.server_fail > 0:
             for diskId in range(self.sys.server_fail):
@@ -70,7 +81,6 @@ class Simulate:
         # heapEndTime = time.time()
         # mytimer.resetHeapTime += heapEndTime - resetGenFailEndTime
         #-----------------------------------------------------
-        self.sys.priority_per_set = {}
 
 
     #------------------------------------------
@@ -127,12 +137,14 @@ class Simulate:
     #----------------------------------------------------------------
     def run_simulation(self, sysstate, mytimer):
         logging.debug(" * begin running simulation")
+        self.sys.metrics.iter_count += 1
 
         # start = time.time()
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
         # seedEndTime = time.time()
         
         initialFailures = sysstate.gen_failure_times(sysstate.total_drives)
+        logging.info("sysstate.total_drives: {}".format(sysstate.total_drives))
         # genEndTime = time.time()
         # mytimer.seedtime += seedEndTime - start
         # mytimer.genfailtime += genEndTime - seedEndTime

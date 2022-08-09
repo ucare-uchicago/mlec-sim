@@ -10,8 +10,7 @@ class SysState:
         self.drive_args = drive_args
         self.mode = placement
 
-        # for the sake of simulation, we are going to round the total_drives
-        self.total_drives = (total_drives // drive_args.total_shards) * drive_args.total_shards
+        self.total_drives = total_drives
         self.good_cnt = self.total_drives
         self.fail_cnt = 0
         self.drives_per_server = drives_per_server
