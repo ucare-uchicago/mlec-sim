@@ -58,9 +58,7 @@ def tick_mlec_raid(sysstate, mytimer: Mytimer, sys, repair, placement):
 def tick_raid_net(state_, mytimer: Mytimer, sys, repair, placement):
     # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
     #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
-    np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
     sysstate = state_
-    sysstate.gen_drives()
     sim = Simulate(YEAR, sysstate.total_drives, sys, repair, placement)
     return sim.run_simulation(sysstate, mytimer)
 
@@ -86,7 +84,7 @@ def iter(state_: SysState, iters):
                 res += tick_dp(sysstate, mytimer, sys, repair, placement)
             elif sysstate.mode == 'MLEC':
                 res += tick_mlec_raid(sysstate, mytimer, sys, repair, placement)
-            elif sysstate.mode == 'RAID-NET':
+            elif sysstate.mode == 'RAID_NET':
                 res += tick_raid_net(sysstate, mytimer, sys, repair, placement)
 
         # end = time.time()
@@ -120,16 +118,15 @@ def simulate(state, iters, epochs, concur=10):
 
 def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
                 total_drives, drives_per_server, placement):
-    # logging.basicConfig(level=logging.INFO)
-    for cap in range(20, 30, 10):
+        # logging.basicConfig(level=logging.INFO)
+    for afr in range(1, 11):
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
         sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_server=drives_per_server, 
                         top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0)
 
 
-        # res = simulate(sys_state1, iters=100000, epochs=24, concur=24)
-        # res = simulate(sys_state1, iters=1000, epochs=1, concur=1)
-        # break
+        # res = simulate(sys_state1, iters=10000, epochs=1, concur=1)
+        # return
         res = [0, 0]
         while res[0] < 20:
             start  = time.time()
@@ -162,6 +159,7 @@ def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
 def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
                     total_drives, drives_per_server, placement):
+    # logging.basicConfig(level=logging.INFO)
     for cap in range(20, 30, 10):
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
         sys_state1 = SysState(total_drives=drives_per_server, drive_args=drive_args1, placement='RAID', drives_per_server=drives_per_server, 
@@ -309,7 +307,6 @@ def approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
 if __name__ == "__main__":
     logger = logging.getLogger()
-    # logging.basicConfig(level=logging.INFO)
 
     parser = argparse.ArgumentParser(description='Parse simulator configurations.')
     parser.add_argument('-manualFail', type=int, help="number of manual failed servers.", default=0)

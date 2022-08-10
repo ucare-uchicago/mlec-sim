@@ -128,15 +128,27 @@ class Trinity:
 
     def net_raid_layout(self):
         logging.debug("* net raid generation")
-        self.net_raid_server_layout = {}
-        for serverId in self.servers:
-            disks_per_server = self.disks_per_server[serverId]
-            sets = []
-            for i in range(num_stripesets):
-                stripeset  = disks_per_server[i*(self.k+self.m) :(i+1)*(self.k+self.m)]
-                sets.append(stripeset)
-            self.flat_cluster_server_layout[serverId] = sets
-            logging.info("* server {} has {} stripesets".format(serverId, num_stripesets))
+        num_server_group = self.num_servers // (self.k + self.m)
+        num_stripesets = self.num_disks_per_server * num_server_group
+        stripe_width = self.k + self.m
+        
+        sets = {}
+        for i in range(num_stripesets):
+            
+            num_stripesets_per_server_group = self.num_disks_per_server
+            serverGroupId = i // num_stripesets_per_server_group
+            stripeset = []
+            for serverId in range(serverGroupId*stripe_width, (serverGroupId+1)*stripe_width):
+                diskId = serverId * num_stripesets_per_server_group + i % num_stripesets_per_server_group
+                disk = self.disks[diskId]
+                disk.serverId = serverId
+                disk.stripesetId = i
+                stripeset.append(diskId)
+                # logging.info(" stripesetId: {} diskId: {}".format(i, diskId))
+            sets[i] = stripeset
+        self.net_raid_stripesets_layout = sets
+        logging.info("* there are {} stripesets:\n{}".format(
+                num_stripesets, sets))
 
 
 
@@ -148,7 +160,7 @@ class Trinity:
 
 
 if __name__ == "__main__":
-    sys = Trinity(330, 110, 8, 2, 0,2,1,1)
-    sys.flat_cluster_layout()
-
+    logger = logging.getLogger()
+    logging.basicConfig(level=logging.INFO)
+    sys = Trinity(100, 10, 4, 1, 3,2,1,1)
 

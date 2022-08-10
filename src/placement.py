@@ -25,6 +25,8 @@ class Placement:
             return self.flat_decluster_simulate(state)
         if self.place_type == 2:
             return self.mlec_cluster_simulate(state)
+        if self.place_type == 3:
+            return self.net_raid_simulate(state)
             
 
 
@@ -92,13 +94,17 @@ class Placement:
 
 
 
-    def flat_draid_simulate(self, state):
+    def net_raid_simulate(self, state):
         prob = 0
-        for diskId in state.disks:
-            if state.disks[diskId].priority > self.sys.m:
+        failed_disks = state.get_failed_disks()
+        for diskId in failed_disks:
+            disk = state.disks[diskId]
+            failed_disks_per_stripeset = state.get_failed_disks_per_stripeset(disk.stripesetId)
+            if len(failed_disks_per_stripeset) > self.sys.m:
                 prob = 1
                 return prob
         return prob
+
 
 
     def flat_decluster_simulate(self, state):

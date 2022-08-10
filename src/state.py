@@ -4,6 +4,7 @@ import numpy as np
 import logging
 from functools import reduce
 from server import Server
+from constants import RAID_NET
 
 class State:
     #--------------------------------------
@@ -109,6 +110,9 @@ class State:
     def update_priority(self, event_type, diskset):
         updated_servers = {}
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
+            if self.sys.place_type == RAID_NET:
+                self.update_priority_raid_net(event_type, diskset)
+                return
             for diskId in diskset:
                 # print("{} {} for disk {} priority {}".format(self.curr_time, event_type, diskId, self.disks[diskId].priority))
                 if self.sys.place_type == 1:
@@ -150,6 +154,9 @@ class State:
                         for diskId in fail_per_server:
                             self.update_cluster_repair_time(diskId, len(fail_per_server))
         if event_type == Disk.EVENT_FAIL:
+            if self.sys.place_type == RAID_NET:
+                self.update_priority_raid_net(event_type, diskset)
+                return
             for diskId in diskset:
                 serverId = diskId // self.sys.num_disks_per_server
                 if self.servers[serverId].state == Server.STATE_FAILED:
@@ -248,6 +255,52 @@ class State:
                     self.update_mlec_cluster_server_repair_time(serverId, len(failed_servers))
 
 
+    #----------------------------------------------
+    # raid net
+    #----------------------------------------------
+
+    def update_priority_raid_net(self, event_type, diskset):
+        if event_type == Disk.EVENT_REPAIR:
+            logging.info("  update_priority_raid_net event: {} diskset: {}".format(event_type, diskset))
+            to_update_stripesets = {}
+            for diskId in diskset:
+                disk = self.disks[diskId]
+                to_update_stripesets[disk.stripesetId] = 1
+            for stripesetId in to_update_stripesets:
+                failed_disks_per_stripeset = self.get_failed_disks_per_stripeset(stripesetId)
+                for diskId in failed_disks_per_stripeset:
+                    self.update_disk_repair_time_raid_net(diskId)
+        if event_type == Disk.EVENT_FAIL:
+            logging.info("  update_priority_raid_net event: {} diskset: {}".format(event_type, diskset))
+            for diskId in diskset:
+                disk = self.disks[diskId]
+                disk.repair_start_time = self.curr_time
+
+                failed_disks_per_stripeset = self.get_failed_disks_per_stripeset(disk.stripesetId)
+                logging.info("  update_priority_raid_net event: {} stripesetId: {} failed_disks_per_stripeset: {}".format(
+                                event_type, disk.stripesetId, failed_disks_per_stripeset))
+                for diskId_per_stripeset in failed_disks_per_stripeset:
+                    self.update_disk_repair_time_raid_net(diskId_per_stripeset)
+
+
+    def update_disk_repair_time_raid_net(self, diskId):
+        disk = self.disks[diskId]
+        fail_per_stripeset = len(self.get_failed_disks_per_stripeset(disk.stripesetId))
+
+        repaired_time = self.curr_time - disk.repair_start_time
+        if repaired_time == 0:
+            repaired_percent = 0
+            disk.curr_repair_data_remaining = disk.repair_data
+        else:
+            repaired_percent = repaired_time / disk.repair_time[0]
+            disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
+        repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_stripeset)
+        disk.repair_time[0] = repair_time / 3600 / 24
+        disk.repair_start_time = self.curr_time
+        disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
+        logging.info("  curr time: {}  repair time: {}  finish time: {}".format(self.curr_time, disk.repair_time[0], disk.estimate_repair_time))
+
+
 
     def update_cluster_repair_time(self, diskId, fail_per_server):
         disk = self.disks[diskId]
@@ -268,6 +321,7 @@ class State:
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
+        logging.info("  curr time: {}  repair time: {}  finish time: {}".format(self.curr_time, disk.repair_time[0], disk.estimate_repair_time))
 
     
     def update_cluster_repair_time_adapt(self, diskId, fail_per_server):
@@ -428,6 +482,15 @@ class State:
         logging.info("sedrver {} get: {}".format(serverId, list(self.servers[serverId].failed_disks.keys())))
         return list(self.servers[serverId].failed_disks.keys())
 
+
+    def get_failed_disks_per_stripeset(self, stripesetId):
+        failed_disks = []
+        stripeset = self.sys.net_raid_stripesets_layout[stripesetId]
+        for diskId in stripeset:
+            # logging.info("  get_failed_disks_per_stripeset  diskId: {}".format(diskId))
+            if self.disks[diskId].state == Disk.STATE_FAILED:
+                failed_disks.append(diskId)
+        return failed_disks
 
 
     def get_failed_disks(self):
