@@ -128,9 +128,10 @@ class Trinity:
 
     def net_raid_layout(self):
         logging.debug("* net raid generation")
-        num_server_group = self.num_servers // (self.k + self.m)
+        stripe_width = self.top_k + self.top_m
+        num_server_group = self.num_servers // stripe_width
         num_stripesets = self.num_disks_per_server * num_server_group
-        stripe_width = self.k + self.m
+        
         
         sets = {}
         for i in range(num_stripesets):

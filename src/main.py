@@ -345,7 +345,13 @@ if __name__ == "__main__":
     
     placement = args.placement
     if placement in ['RAID', 'DP']:
+        N_net = 1
         k_net = 0
+        
+    
+    if placement in ['RAID_NET']:
+        N_local = 1
+        k_local = 0
 
     if sim_mode == 0:
         normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
