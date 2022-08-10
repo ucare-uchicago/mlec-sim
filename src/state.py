@@ -19,10 +19,13 @@ class State:
         #----------------------------------
         self.sys = sys
         self.n = sys.k + sys.m
-        self.disks = {}
         self.servers = {}
-        for diskId in range(sys.num_disks):
-            self.disks[diskId] = Disk(diskId, sys.diskSize)
+        self.disks = self.sys.disks
+        for diskId in self.disks:
+            disk = self.disks[diskId]
+            disk.state = Disk.STATE_NORMAL
+            disk.priority = 0
+            disk.repair_time = {}
         server_repair_data = sys.diskSize * sys.num_disks_per_server
         for serverId in self.sys.servers:
             self.servers[serverId] = Server(serverId, server_repair_data, sys.num_disks_per_server // self.n)

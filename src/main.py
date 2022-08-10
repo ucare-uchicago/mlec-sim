@@ -55,6 +55,15 @@ def tick_mlec_raid(sysstate, mytimer: Mytimer, sys, repair, placement):
     sim = Simulate(YEAR, sysstate.total_drives, sys, repair, placement)
     return sim.run_simulation(sysstate, mytimer)
 
+def tick_raid_net(state_, mytimer: Mytimer, sys, repair, placement):
+    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
+    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
+    np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
+    sysstate = state_
+    sysstate.gen_drives()
+    sim = Simulate(YEAR, sysstate.total_drives, sys, repair, placement)
+    return sim.run_simulation(sysstate, mytimer)
+
 def iter(state_: SysState, iters):
     
     try:
@@ -77,6 +86,8 @@ def iter(state_: SysState, iters):
                 res += tick_dp(sysstate, mytimer, sys, repair, placement)
             elif sysstate.mode == 'MLEC':
                 res += tick_mlec_raid(sysstate, mytimer, sys, repair, placement)
+            elif sysstate.mode == 'RAID-NET':
+                res += tick_raid_net(sysstate, mytimer, sys, repair, placement)
 
         # end = time.time()
         # print("totaltime: {}".format(end - start))
@@ -336,7 +347,7 @@ if __name__ == "__main__":
         drives_per_server=N_local+k_local
     
     placement = args.placement
-    if placement != 'MLEC':
+    if placement in ['RAID', 'DP']:
         k_net = 0
 
     if sim_mode == 0:

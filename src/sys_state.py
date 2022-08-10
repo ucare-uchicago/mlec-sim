@@ -32,6 +32,8 @@ class SysState:
             self.place_type = 1
         elif placement == 'MLEC':
             self.place_type = 2
+        elif placement == 'RAID-NET':
+            self.place_type = 3
 
     def gen_drives(self):
         # Initialize simulated drives

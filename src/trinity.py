@@ -4,6 +4,7 @@ from newposition import Position
 import logging
 from server import Server
 from metrics import Metrics
+from disk import Disk
 #----------------------------
 # Logging Settings
 #----------------------------
@@ -27,7 +28,9 @@ class Trinity:
         #self.racks = range(self.num_racks)
         #self.servers = range(self.num_servers)
         self.num_disks = num_disks
-        self.disks = range(num_disks)
+        self.disks = {}
+        for diskId in range(num_disks):
+            self.disks[diskId] = Disk(diskId, diskCap)
         #--------------------------------------------
         # Set the Trinity system layout
         #--------------------------------------------
@@ -67,7 +70,8 @@ class Trinity:
             self.flat_decluster_layout()
         if place_type == 2:
             self.mlec_cluster_layout()
-            #self.flat_greedy_layout()
+        if place_type == 3:
+            self.net_raid_layout()
         #--------------------------------------------
         self.diskSize = diskCap
         self.diskIO = rebuildRate
@@ -108,7 +112,7 @@ class Trinity:
 
     # same as flat_cluster_layout
     def mlec_cluster_layout(self):
-        logging.debug("* flat cluster generation")
+        logging.debug("* mlec cluster generation")
         self.flat_cluster_server_layout = {}
         for serverId in self.servers:
             disks_per_server = self.disks_per_server[serverId]
@@ -122,6 +126,17 @@ class Trinity:
 
 
 
+    def net_raid_layout(self):
+        logging.debug("* net raid generation")
+        self.net_raid_server_layout = {}
+        for serverId in self.servers:
+            disks_per_server = self.disks_per_server[serverId]
+            sets = []
+            for i in range(num_stripesets):
+                stripeset  = disks_per_server[i*(self.k+self.m) :(i+1)*(self.k+self.m)]
+                sets.append(stripeset)
+            self.flat_cluster_server_layout[serverId] = sets
+            logging.info("* server {} has {} stripesets".format(serverId, num_stripesets))
 
 
 
