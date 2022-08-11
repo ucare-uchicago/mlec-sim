@@ -179,7 +179,7 @@ class Simulate:
             # update all disks state/priority
             #--------------------------------------
             curr_time = event_time
-            self.state.curr_time = curr_time
+            self.state.update_curr_time(curr_time)
 
             self.state.update_state(event_type, diskset)
             # updateStateEndTime = time.time()

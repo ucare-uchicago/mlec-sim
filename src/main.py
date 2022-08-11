@@ -119,7 +119,7 @@ def simulate(state, iters, epochs, concur=10):
 def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
                 total_drives, drives_per_server, placement):
         # logging.basicConfig(level=logging.INFO)
-    for afr in range(1, 11):
+    for afr in range(3, 7):
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
         sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_server=drives_per_server, 
                         top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0)
