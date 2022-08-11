@@ -117,12 +117,12 @@ def simulate(state, iters, epochs, concur=10):
 
 
 def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
-                total_drives, drives_per_server, placement):
+                total_drives, drives_per_server, placement, distribution):
         # logging.basicConfig(level=logging.INFO)
     for afr in range(3, 7):
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
         sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_server=drives_per_server, 
-                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0)
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0, distribution = distribution)
 
 
         # res = simulate(sys_state1, iters=10000, epochs=1, concur=1)
@@ -158,7 +158,7 @@ def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
 
 def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_server, placement):
+                    total_drives, drives_per_server, placement, dist):
     # logging.basicConfig(level=logging.INFO)
     for cap in range(20, 30, 10):
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
@@ -231,7 +231,7 @@ def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
 
 def approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_server, placement):
+                    total_drives, drives_per_server, placement, dist):
     for cap in range(100, 110, 10):
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
         sys_state1 = SysState(total_drives=drives_per_server, drive_args=drive_args1, placement='RAID', drives_per_server=drives_per_server, 
@@ -321,6 +321,7 @@ if __name__ == "__main__":
     parser.add_argument('-total_drives', type=int, help="number of total drives in the system", default=-1)
     parser.add_argument('-drives_per_server', type=int, help="number of drives per server", default=-1)
     parser.add_argument('-placement', type=str, help="placement policy. Can be RAID/DP/MLEC/LRC", default='MLEC')
+    parser.add_argument('-dist', type=str, help="disk failure distribution. Can be exp/weibull", default='exp')
     args = parser.parse_args()
 
     sim_mode = args.manualFail
@@ -353,15 +354,17 @@ if __name__ == "__main__":
         N_local = 1
         k_local = 0
 
+    dist = args.dist
+
     if sim_mode == 0:
         normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_server, placement)
+                    total_drives, drives_per_server, placement, dist)
     elif sim_mode == 1:
         approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_server, placement)
+                    total_drives, drives_per_server, placement, dist)
     elif sim_mode == 2:
         approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_server, placement)
+                    total_drives, drives_per_server, placement, dist)
 
 
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_afr=50&d_cap=20&dr_rw_speed=50&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&spares=0&rec_wr_spd_alloc=100
