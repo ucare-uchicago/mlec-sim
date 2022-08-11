@@ -27,7 +27,7 @@ class State:
             disk.state = Disk.STATE_NORMAL
             disk.priority = 0
             disk.repair_time = {}
-        server_repair_data = sys.diskSize * sys.num_disks_per_server
+        server_repair_data = sys.diskSize * self.n
         for serverId in self.sys.servers:
             self.servers[serverId] = Server(serverId, server_repair_data, sys.num_disks_per_server // self.n)
         self.curr_time = 0
@@ -193,6 +193,18 @@ class State:
             # logging.info("  get_failed_disks_per_stripeset  diskId: {}".format(diskId))
             if self.disks[diskId].state == Disk.STATE_FAILED:
                 failed_disks.append(diskId)
+        return failed_disks
+
+
+    def get_failed_disks_per_stripeset_diskId(self, diskId):
+        failed_disks = []
+        serverId = diskId // self.sys.num_disks_per_server
+        stripesetId = (diskId % self.sys.num_disks_per_server) // self.n
+        stripeset = self.sys.flat_cluster_server_layout[serverId][stripesetId]
+        for d in stripeset:
+            # logging.info("  get_failed_disks_per_stripeset  diskId: {}".format(diskId))
+            if self.disks[d].state == Disk.STATE_FAILED:
+                failed_disks.append(d)
         return failed_disks
 
 

@@ -31,12 +31,12 @@ class MLEC:
                 if self.servers[serverId].state == Server.STATE_FAILED:
                     logging.info("update_priority(): server {} is failed. Event type: {}".format(serverId, event_type))
                     continue
-                fail_per_server = self.state.get_failed_disks_per_server(serverId)
+                fail_per_stripeset = self.state.get_failed_disks_per_stripeset_diskId(diskId)
                 #  what if there are multiple servers
-                if len(fail_per_server) > 0:
+                if len(fail_per_stripeset) > 0:
                     if self.sys.place_type == 2:
-                        for diskId in fail_per_server:
-                            self.update_cluster_repair_time(diskId, len(fail_per_server))
+                        for diskId in fail_per_stripeset:
+                            self.update_disk_repair_time(diskId, len(fail_per_stripeset))
         if event_type == Disk.EVENT_FAIL:
             for diskId in diskset:
                 serverId = diskId // self.sys.num_disks_per_server
@@ -46,10 +46,10 @@ class MLEC:
                 if serverId in updated_servers:
                     continue
                 updated_servers[serverId] = 1
-                fail_per_server = self.state.get_failed_disks_per_server(serverId)
-                new_failures = set(fail_per_server).intersection(set(diskset))
+                fail_per_stripeset = self.state.get_failed_disks_per_stripeset_diskId(diskId)
+                new_failures = set(fail_per_stripeset).intersection(set(diskset))
                 if len(new_failures) > 0:
-                    logging.debug(serverId, "======> ",fail_per_server, diskset, new_failures)
+                    logging.debug(serverId, "======> ",fail_per_stripeset, diskset, new_failures)
                     #--------------------------------------------
                     # calculate repair time for mlec cluster placement
                     #--------------------------------------------
@@ -57,10 +57,10 @@ class MLEC:
                         if len(new_failures) > 0:
                             for diskId in new_failures:
                                 self.disks[diskId].repair_start_time = self.curr_time
-                            for diskId in fail_per_server:
-                                self.update_disk_repair_time(diskId, len(fail_per_server))
+                            for diskId in fail_per_stripeset:
+                                self.update_disk_repair_time(diskId, len(fail_per_stripeset))
 
-    def update_disk_repair_time(self, diskId, fail_per_server):
+    def update_disk_repair_time(self, diskId, fail_per_stripeset):
         disk = self.disks[diskId]
         repaired_time = self.curr_time - disk.repair_start_time
         if repaired_time == 0:
@@ -69,11 +69,11 @@ class MLEC:
         else:
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
-        repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_server)
-        # if repaired_percent > 0 and (fail_per_server > 1  or 
+        repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_stripeset)
+        # if repaired_percent > 0 and (fail_per_stripeset > 1  or 
         #     disk.repair_time[0] != float(disk.curr_repair_data_remaining)/self.sys.diskIO):
-        #     print("fail_per_server {}  old repair time: {}  old repair time:{}  new repair time: {} new finish time {}".format(
-        #         fail_per_server, disk.repair_time[0], disk.repair_time[0] + disk.repair_start_time, repair_time / 3600 / 24,
+        #     print("fail_per_stripeset {}  old repair time: {}  old repair time:{}  new repair time: {} new finish time {}".format(
+        #         fail_per_stripeset, disk.repair_time[0], disk.repair_time[0] + disk.repair_start_time, repair_time / 3600 / 24,
         #         repair_time / 3600 / 24 + self.curr_time
         #     ))
         disk.repair_time[0] = repair_time / 3600 / 24
