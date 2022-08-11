@@ -4,10 +4,7 @@ import numpy as np
 import logging
 from functools import reduce
 from server import Server
-from netraid import NetRAID
-from raid import RAID
-from decluster import Decluster
-from mlec import MLEC
+from policies import *
 
 class State:
     #--------------------------------------

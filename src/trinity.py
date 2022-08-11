@@ -1,6 +1,5 @@
 import numpy as np
 import random
-from newposition import Position
 import logging
 from server import Server
 from metrics import Metrics
