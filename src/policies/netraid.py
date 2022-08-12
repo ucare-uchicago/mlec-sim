@@ -31,6 +31,8 @@ class NetRAID:
             for diskId in diskset:
                 disk = self.disks[diskId]
                 to_update_stripesets[disk.stripesetId] = 1
+                self.sys.metrics.total_net_traffic += disk.repair_data * (self.sys.top_k + 1)
+                self.sys.metrics.total_rebuild_io_per_year += disk.repair_data * (self.sys.top_k + 1)
             for stripesetId in to_update_stripesets:
                 failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(stripesetId)
                 for diskId in failed_disks_per_stripeset:

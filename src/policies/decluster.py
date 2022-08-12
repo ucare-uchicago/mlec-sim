@@ -125,7 +125,7 @@ class Decluster:
             repaired_percent = 0
             disk.curr_repair_data_remaining = disk.repair_data * priority_percent
             if priority > 1:
-                self.sys.metrics.total_net_traffic_per_year -= disk.curr_repair_data_remaining * (priority - 1) * self.sys.k
+                self.sys.metrics.total_rebuild_io_per_year -= disk.curr_repair_data_remaining * (priority - 1) * self.sys.k
 
         else:
             # print("disk {}  priority {}  repair time {}".format(diskId, priority, disk.repair_time))

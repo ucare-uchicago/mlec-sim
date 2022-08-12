@@ -49,8 +49,8 @@ class Simulate:
         # mytimer.resetStateInitTime += resetStateEndTime - temp
 
         # temp = time.time()
-        failure_times = initialFailures[initialFailures < YEAR]
-        failure_idxs = np.where(initialFailures < YEAR)[0]
+        failure_times = initialFailures[initialFailures < self.mission_time]
+        failure_idxs = np.where(initialFailures < self.mission_time)[0]
         failures = list(zip(failure_times, failure_idxs))
         # resetGenFailEndTime = time.time()
         # mytimer.resetGenFailTime += resetGenFailEndTime - temp
@@ -215,7 +215,7 @@ class Simulate:
                 # print(new_failure_added)
                 for i in range(len(diskset)):
                     disk_fail_time = new_failure_intervals[i] + curr_time
-                    if disk_fail_time < YEAR:
+                    if disk_fail_time < self.mission_time:
                         heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskset[i]))
                         # logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
                         continue

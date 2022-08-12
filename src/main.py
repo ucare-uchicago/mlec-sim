@@ -31,38 +31,38 @@ def factorial(n):
     else:
         return n * factorial(n - 1)
 
-def tick_dp(state_, mytimer: Mytimer, sys, repair, placement):
+def tick_dp(state_, mission, mytimer: Mytimer, sys, repair, placement):
     # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
     #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
     np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
     sysstate: SysState = copy.deepcopy(state_)
     sysstate.gen_drives()
-    sim = Simulate(YEAR, sysstate.total_drives, sys, repair, placement)
+    sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
     return sim.run_simulation(sysstate, mytimer)
 
-def tick_raid(state_, mytimer: Mytimer, sys, repair, placement):
+def tick_raid(state_, mission, mytimer: Mytimer, sys, repair, placement):
     # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
     #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
     np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
     sysstate = state_
     sysstate.gen_drives()
-    sim = Simulate(YEAR, sysstate.total_drives, sys, repair, placement)
+    sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
     return sim.run_simulation(sysstate, mytimer)
 
-def tick_mlec_raid(sysstate, mytimer: Mytimer, sys, repair, placement):
+def tick_mlec_raid(sysstate, mission, mytimer: Mytimer, sys, repair, placement):
     # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
     #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
-    sim = Simulate(YEAR, sysstate.total_drives, sys, repair, placement)
+    sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
     return sim.run_simulation(sysstate, mytimer)
 
-def tick_raid_net(state_, mytimer: Mytimer, sys, repair, placement):
+def tick_raid_net(state_, mission, mytimer: Mytimer, sys, repair, placement):
     # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
     #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
     sysstate = state_
-    sim = Simulate(YEAR, sysstate.total_drives, sys, repair, placement)
+    sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
     return sim.run_simulation(sysstate, mytimer)
 
-def iter(state_: SysState, iters):
+def iter(state_: SysState, iters, mission):
     
     try:
         res = 0
@@ -79,13 +79,13 @@ def iter(state_: SysState, iters):
         for iter in range(0, iters):
             logging.info("")
             if sysstate.mode == 'RAID':
-                res += tick_raid(sysstate, mytimer, sys, repair, placement)
+                res += tick_raid(sysstate, mission, mytimer, sys, repair, placement)
             elif sysstate.mode == 'DP':
-                res += tick_dp(sysstate, mytimer, sys, repair, placement)
+                res += tick_dp(sysstate, mission, mytimer, sys, repair, placement)
             elif sysstate.mode == 'MLEC':
-                res += tick_mlec_raid(sysstate, mytimer, sys, repair, placement)
+                res += tick_mlec_raid(sysstate, mission, mytimer, sys, repair, placement)
             elif sysstate.mode == 'RAID_NET':
-                res += tick_raid_net(sysstate, mytimer, sys, repair, placement)
+                res += tick_raid_net(sysstate, mission, mytimer, sys, repair, placement)
 
         # end = time.time()
         # print("totaltime: {}".format(end - start))
@@ -95,7 +95,7 @@ def iter(state_: SysState, iters):
         return None
 
 # This is a parallel/multi-iter wrapper around iter(state)
-def simulate(state, iters, epochs, concur=10):
+def simulate(state, iters, epochs, concur=10, mission=YEAR):
     # So tick(state) is for a single system, and we want to simulate multiple systems
     executor = ProcessPoolExecutor(concur)
     
@@ -104,7 +104,7 @@ def simulate(state, iters, epochs, concur=10):
     metrics = Metrics()
 
     for epoch in range(0, epochs):
-        futures.append(executor.submit(iter, state, iters))
+        futures.append(executor.submit(iter, state, iters, mission))
     ress = wait_futures(futures)
     
     executor.shutdown()
@@ -112,24 +112,27 @@ def simulate(state, iters, epochs, concur=10):
         failed_instances += res[0]
         metrics += res[2]
         
-    print(metrics)
     return [failed_instances, epochs * iters, metrics]
 
 
 def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
                 total_drives, drives_per_server, placement, distribution):
     # logging.basicConfig(level=logging.INFO)
-    for afr in range(4, 7):
+    
+    for afr in range(2, 11):
+        mission = YEAR
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
         sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_server=drives_per_server, 
                         top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0, distribution = distribution)
 
-        res = [0, 0]
+        res = [0, 0, Metrics()]
         while res[0] < 20:
             start  = time.time()
-            temp = simulate(sys_state1, iters=50000, epochs=200, concur=200)
+            temp = simulate(sys_state1, iters=50000, epochs=200, concur=200, mission=mission)
             res[0] += temp[0]
             res[1] += temp[1]
+            res[2] += temp[2]
+            print(res[2])
             simulationTime = time.time() - start
             print("simulation time: {}".format(simulationTime))
             print(res)
@@ -137,6 +140,9 @@ def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
         print('++++++++++++++++++++++++++++++++')
         print('Total Fails: ' + str(res[0]))
         print('Total Iters: ' + str(res[1]))
+
+        res[1] *= mission/YEAR
+        
 
         if res[0] == 0:
             print("NO FAILURE!")
@@ -301,12 +307,61 @@ def approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
         output.close()
 
 
+def io_over_year(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
+                total_drives, drives_per_server, placement, distribution):
+    # logging.basicConfig(level=logging.INFO)
+    rebuildio_prev_year = 0
+
+    for years in range(1,51,1):
+        mission = years*YEAR
+        drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
+        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_server=drives_per_server, 
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0, distribution = distribution)
+
+        res = [0, 0, Metrics()]
+        start  = time.time()
+        temp = simulate(sys_state1, iters=int(10000000/200/years), epochs=200, concur=200, mission=mission)
+        res[0] += temp[0]
+        res[1] += temp[1]
+        res[2] += temp[2]
+        print(res[2])
+        simulationTime = time.time() - start
+        print("simulation time: {}".format(simulationTime))
+        # res = simulate(sys_state1, iters=1000, epochs=1, concur=1)
+        print('++++++++++++++++++++++++++++++++')
+        print('Total Fails: ' + str(res[0]))
+        print('Total Iters: ' + str(res[1]))
+
+        res[1] *= years
+
+        rebuildio = res[2].getAverageRebuildIO() - rebuildio_prev_year
+        rebuildio_prev_year = res[2].getAverageRebuildIO()
+
+        if res[0] == 0:
+            print("NO FAILURE!")
+            nn = 'N/A'
+            sigma = 'N/A'
+        else:
+            # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+            nn = str(round(-math.log10(res[0]/res[1]),3))
+            sigma = str(round(1/(math.log(10) * (res[0]**0.5)),3))
+            print("Num of Nine: " + nn)
+            print("error sigma: " + sigma)
+
+        output = open("s-rebuildio-{}.log".format(placement), "a")
+        output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {} {} {}\n".format(
+            N_local, k_local, N_net, k_net, total_drives,
+            afr, cap, io_speed, nn, sigma, res[0], res[1], "adapt" if adapt else "notadapt",
+            years, rebuildio))
+        output.close()
+
+
 
 if __name__ == "__main__":
     logger = logging.getLogger()
 
     parser = argparse.ArgumentParser(description='Parse simulator configurations.')
-    parser.add_argument('-manualFail', type=int, help="number of manual failed servers.", default=0)
+    parser.add_argument('-sim_mode', type=int, help="simulation mode", default=0)
     parser.add_argument('-afr', type=int, help="disk annual failure rate.", default=5)
     parser.add_argument('-io_speed', type=int, help="disk repair rate.", default=30)
     parser.add_argument('-cap', type=int, help="disk capacity (TB)", default=20)
@@ -321,7 +376,7 @@ if __name__ == "__main__":
     parser.add_argument('-dist', type=str, help="disk failure distribution. Can be exp/weibull", default='exp')
     args = parser.parse_args()
 
-    sim_mode = args.manualFail
+    sim_mode = args.sim_mode
 
     afr = args.afr
     io_speed = args.io_speed
@@ -361,6 +416,9 @@ if __name__ == "__main__":
                     total_drives, drives_per_server, placement, dist)
     elif sim_mode == 2:
         approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
+                    total_drives, drives_per_server, placement, dist)
+    elif sim_mode == 3:
+        io_over_year(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
                     total_drives, drives_per_server, placement, dist)
 
 

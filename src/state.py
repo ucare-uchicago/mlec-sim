@@ -62,7 +62,7 @@ class State:
                 self.servers[serverId].failed_disks.pop(diskId, None)
                 self.failed_disks.pop(diskId, None)
                 # logging.info("server {} after pop: {}".format(serverId, self.servers[serverId].failed_disks))
-                self.sys.metrics.total_rebuild_io_per_year += self.disks[diskId].repair_data * (self.sys.k + 1)
+                
                 
             if event_type == Disk.EVENT_FAIL:
                 self.disks[diskId].state = Disk.STATE_FAILED
@@ -112,6 +112,8 @@ class State:
                 
                 for diskId in self.sys.disks_per_server[serverId]:
                     self.disks[diskId].state = Disk.STATE_NORMAL 
+                
+                self.sys.metrics.total_net_traffic += self.servers[serverId].repair_data * (self.sys.top_k + 1)
 
 
         return new_server_failures

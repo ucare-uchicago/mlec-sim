@@ -24,6 +24,8 @@ class MLEC:
         updated_servers = {}
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
             for diskId in diskset:
+                disk = self.disks[diskId]
+                self.sys.metrics.total_rebuild_io_per_year += disk.repair_data * (self.sys.k + 1)
                 serverId = diskId // self.sys.num_disks_per_server
                 if serverId in updated_servers:
                     continue

@@ -1,6 +1,5 @@
 from asyncore import write
 from sys_state import SysState
-from constants import debug, YEAR
 
 import heapq
 import math
