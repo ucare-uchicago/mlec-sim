@@ -1,1 +1,0 @@
-python SOLsim.py -type 1 -rebuildRate 50 -utilizeRatio 1 -no-trace -D 164 -N 16400 -failRatio 0.01 -T 86400 -k 8 -m 2 -outputFile ./test.txt
