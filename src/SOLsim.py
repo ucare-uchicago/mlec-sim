@@ -1,6 +1,6 @@
 from multiprocessing import Pool
 from signal import pause
-from trinity import Trinity
+from system import System
 from parser import Parser
 from weibull import Weibull
 from simulate import Simulate

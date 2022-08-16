@@ -5,7 +5,7 @@ import heapq
 import math
 import numpy as np
 from collections import OrderedDict
-from trinity import Trinity
+from system import System
 from disk import Disk
 import operator as op
 from heapq import *
@@ -15,7 +15,7 @@ from server import Server
 class Repair:
     def __init__(self, sys, place_type):
         #---------------------------------------
-        # Initialize Trinity Storage System
+        # Initialize System Storage System
         #---------------------------------------
         self.sys = sys
         self.place_type = place_type

@@ -8,7 +8,7 @@ from disk import Disk
 # Logging Settings
 #----------------------------
 
-class Trinity:
+class System:
     def __init__(self, num_disks, num_disks_per_server, k, m, place_type, diskCap, rebuildRate,
                     utilizeRatio, top_k = 1, top_m = 0, adapt = False, server_fail = False):
         #--------------------------------------------
@@ -16,13 +16,13 @@ class Trinity:
         #--------------------------------------------
         #self.num_racks = num_racks
         #self.num_servers_per_rack = num_servers_per_rack
-        logging.debug("TRINITY NUM_DISKS_PER_SERVER: " + str(num_disks_per_server))
+        logging.debug("system NUM_DISKS_PER_SERVER: " + str(num_disks_per_server))
         self.num_disks_per_server = num_disks_per_server
         #self.num_disks_per_rack = num_disks_per_server * num_servers_per_rack
         #self.num_servers = num_disks / num_servers_per_rack
         #self.num_disks = self.num_servers * num_disks_per_server
         #--------------------------------------------
-        # set up the Trinity racks, servers, disks
+        # set up the system racks, servers, disks
         #--------------------------------------------
         #self.racks = range(self.num_racks)
         #self.servers = range(self.num_servers)
@@ -31,7 +31,7 @@ class Trinity:
         for diskId in range(num_disks):
             self.disks[diskId] = Disk(diskId, diskCap)
         #--------------------------------------------
-        # Set the Trinity system layout
+        # Set the system system layout
         #--------------------------------------------
         self.servers_per_rack = {}
         self.disks_per_server = {}
@@ -162,5 +162,5 @@ class Trinity:
 if __name__ == "__main__":
     logger = logging.getLogger()
     logging.basicConfig(level=logging.INFO)
-    sys = Trinity(100, 10, 4, 1, 3,2,1,1)
+    sys = System100, 10, 4, 1, 3,2,1,1)
 

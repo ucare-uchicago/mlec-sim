@@ -14,7 +14,7 @@ from util import wait_futures
 from constants import debug, YEAR
 
 from placement import Placement
-from trinity import Trinity
+from system import System
 from repair import Repair
 
 from simulate import Simulate
@@ -70,7 +70,7 @@ def iter(state_: SysState, iters, mission):
         res = 0
         sysstate = copy.deepcopy(state_)
         mytimer = Mytimer()
-        sys = Trinity(sysstate.total_drives, sysstate.drives_per_server, sysstate.drive_args.data_shards,
+        sys = System(sysstate.total_drives, sysstate.drives_per_server, sysstate.drive_args.data_shards,
                 sysstate.drive_args.parity_shards, sysstate.place_type, sysstate.drive_args.drive_cap * 1024 * 1024,
                 sysstate.drive_args.rec_speed, 1, sysstate.top_d_shards, sysstate.top_p_shards,
                 sysstate.adapt, sysstate.server_fail)

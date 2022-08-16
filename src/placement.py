@@ -1,4 +1,4 @@
-from trinity import Trinity
+from system import System
 from disk import Disk
 import logging
 from server import Server
@@ -6,7 +6,7 @@ from server import Server
 class Placement:
     def __init__(self, sys, place_type):
         #---------------------------------------
-        # Initialize Trinity Storage System
+        # Initialize System Storage System
         #---------------------------------------
         self.sys = sys
         self.place_type = place_type
@@ -80,7 +80,7 @@ class Placement:
 
 if __name__ == "__main__":
     #-----------------------------------------------------------------------------------
-    sys = Trinity(6, 1, 9, 2,1,2,1,2,1)
+    sys = System(6, 1, 9, 2,1,2,1,2,1)
     sim = Placement(sys, 1)
     failures = [2,3,4,6]
     
