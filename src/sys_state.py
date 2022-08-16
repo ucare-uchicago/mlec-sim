@@ -6,7 +6,7 @@ from heapq import *
 class SysState:
     
     def __init__(self, total_drives, drive_args, placement, drives_per_server, 
-                top_d_shards = 1, top_p_shards = 0, adapt = False, server_fail = 0, distribution = 'exp'):
+                top_d_shards = 1, top_p_shards = 0, adapt = False, server_fail = 0, failure_generator = None):
         self.drive_args = drive_args
         self.mode = placement
 
@@ -18,7 +18,6 @@ class SysState:
         self.top_p_shards = top_p_shards
 
         self.drive_args = drive_args
-        self.mtbf_days = -365.25/log(1-drive_args.afr_in_pct/100)
         self.failures_store = []
         self.failures_store_len = 100
         self.failures_store_idx = self.failures_store_len
@@ -35,10 +34,9 @@ class SysState:
         elif placement == 'RAID_NET':
             self.place_type = 3
 
-        if distribution == 'exp':
-            self.failure_generator = Exponential(self.mtbf_days)
-        elif distribution == 'weibull':
-            self.failure_generator = Weibull(self.mtbf_days)
+        self.failure_generator = failure_generator
+        if failure_generator == None:
+            self.failure_generator = Exponential(drive_args.afr_in_pct)
 
     def gen_drives(self):
         # Initialize simulated drives
@@ -63,16 +61,17 @@ class SysState:
 
 
 class Exponential:
-    def __init__(self, mtbf_days):
-        self.mtbf_days = mtbf_days
+    def __init__(self, afr_in_pct):
+        self.mtbf_days = -365.25/log(1-afr_in_pct/100)
 
     def get(self, n):
         return np.random.exponential(self.mtbf_days, n)
 
 
 class Weibull:
-    def __init__(self, mtbf_days):
-        self.mtbf_days = mtbf_days
+    def __init__(self, alpha, beta):
+        self.alpha = alpha
+        self.beta = beta
 
     def get(self, n):
-        return np.random.weibull(2, n) * self.mtbf_days
+        return np.random.weibull(self.beta, n) * self.alpha * 365.25

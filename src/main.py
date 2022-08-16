@@ -9,7 +9,7 @@ import logging
 
 # Custom stuff
 from drive_args import DriveArgs
-from sys_state import SysState
+from sys_state import SysState, Weibull
 from util import wait_futures
 from constants import debug, YEAR
 
@@ -23,6 +23,8 @@ from metrics import Metrics
 import time
 
 import argparse
+
+from helpers.weibullNines import calculate_weibull_nines
 
 
 def factorial(n):
@@ -119,7 +121,7 @@ def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
                 total_drives, drives_per_server, placement, distribution):
     # logging.basicConfig(level=logging.INFO)
     
-    for afr in range(2, 11):
+    # for afr in range(2, 11):
         mission = YEAR
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
         sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_server=drives_per_server, 
@@ -357,6 +359,65 @@ def io_over_year(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
 
 
+def weibull_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
+                total_drives, drives_per_server, placement, distribution):
+    # logging.basicConfig(level=logging.INFO)
+    
+    for beta in np.arange(1, 2.2, 0.2):
+        mission = YEAR
+        t_l = 5  # 5 years
+        alpha = t_l / ((- t_l * math.log((1-afr/100))) ** (1/beta))  # in years
+
+        print("{} {} {} {} {} {} {}".format(afr/100,beta,cap,io_speed,drives_per_server,N_local,k_local))
+        nines_from_calculator = calculate_weibull_nines(afr=afr/100, beta=beta, 
+                                                        disk_cap=cap, io=io_speed,
+                                                        n=drives_per_server, k=N_local, c=k_local)
+        server_num = total_drives / drives_per_server
+        nines_from_calculator -= math.log10(server_num)
+        print("nines_from_calculator: {}".format(nines_from_calculator))
+
+        failure_generator = Weibull(alpha, beta)
+        print("alpha: {}  beta: {}".format(alpha, beta))
+        drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
+        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_server=drives_per_server, 
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0, failure_generator = failure_generator)
+
+        res = [0, 0, Metrics()]
+        while res[0] < 20:
+            start  = time.time()
+            temp = simulate(sys_state1, iters=50000, epochs=200, concur=200, mission=mission)
+            res[0] += temp[0]
+            res[1] += temp[1]
+            res[2] += temp[2]
+            print(res[2])
+            simulationTime = time.time() - start
+            print("simulation time: {}".format(simulationTime))
+            print(res)
+        # res = simulate(sys_state1, iters=1000, epochs=1, concur=1)
+        print('++++++++++++++++++++++++++++++++')
+        print('Total Fails: ' + str(res[0]))
+        print('Total Iters: ' + str(res[1]))
+
+        res[1] *= mission/YEAR
+        
+
+        if res[0] == 0:
+            print("NO FAILURE!")
+        else:
+            # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+            nn = str(round(-math.log10(res[0]/res[1]),3))
+            sigma = str(round(1/(math.log(10) * (res[0]**0.5)),3))
+            print("Num of Nine: " + nn)
+            print("error sigma: " + sigma)
+
+            output = open("s-weibull-{}.log".format(placement), "a")
+            output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {} {} {} {}\n".format(
+                N_local, k_local, N_net, k_net, total_drives,
+                afr, cap, io_speed, nn, sigma, res[0], res[1], "adapt" if adapt else "notadapt",
+                alpha, beta, nines_from_calculator))
+            output.close()
+
+
 if __name__ == "__main__":
     logger = logging.getLogger()
 
@@ -419,6 +480,9 @@ if __name__ == "__main__":
                     total_drives, drives_per_server, placement, dist)
     elif sim_mode == 3:
         io_over_year(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
+                    total_drives, drives_per_server, placement, dist)
+    elif sim_mode == 4:
+        weibull_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
                     total_drives, drives_per_server, placement, dist)
 
 
