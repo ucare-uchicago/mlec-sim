@@ -125,7 +125,7 @@ def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
         mission = YEAR
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
         sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_server=drives_per_server, 
-                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0, distribution = distribution)
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0)
 
         res = [0, 0, Metrics()]
         while res[0] < 20:

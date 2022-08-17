@@ -1,7 +1,6 @@
 from inspect import trace
 from multiprocessing.pool import ThreadPool
 from placement import Placement
-from system import System
 from repair import Repair
 from state import State
 from disk import Disk
@@ -252,58 +251,5 @@ class Simulate:
         return prob
 
 
-
-
-
-    #----------------------------
-    # run statistical model
-    #----------------------------
-    def run_iteration(self, one_iter):
-        #logger.info("* begin an iteration %d with params %d*"% (one_iter, params))
-        curr_time = 0
-        while True:
-            (event_time, diskId) = self.get_next_event(curr_time)
-            curr_time = event_time
-            if event_time > self.mission_time:
-                break
-        return (0, 0, 0)
-
-
-    #----------------------------
-    # display the results
-    #----------------------------
-    def display_results(self, final_results):
-        #-----------------------------------------
-        # collect the reliability metrics 
-        #-----------------------------------------
-        for each in final_results:
-            (x, y, z) = each
-            logging.debug(x, y, z)
-        
-
-
-if __name__ == "__main__":
-    #--------------------------------------------
-    total_iterations = 40
-    num_threads = 1
-    if total_iterations % num_threads != 0:
-        logging.debug("total iterations should be divided by number of threads")
-        sys.exit(2)
-    iterations_per_worker = [total_iterations / num_threads] * num_threads
-    #--------------------------------------------
-    logging.debug(">>>>> start:", time.time())
-    sim = Simulate(10, 6, 1, 9, 2,1,2,1,2,1)
-    pool = ThreadPool(num_threads)
-    results = pool.map(sim.run_simulation, iterations_per_worker)
-    pool.close()
-    pool.join()
-    #--------------------------------------------
-    final_results = []
-    for one in results:
-        final_results += one
-    logging.debug(">>>>>>>>>>>>>>>> final results", final_results)
-    sim.display_results(final_results)
-    logging.debug(">>>>> end:", time.time())
-    #--------------------------------------------
     
 

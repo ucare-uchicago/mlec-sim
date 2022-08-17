@@ -162,5 +162,5 @@ class System:
 if __name__ == "__main__":
     logger = logging.getLogger()
     logging.basicConfig(level=logging.INFO)
-    sys = System100, 10, 4, 1, 3,2,1,1)
+    sys = System(100, 10, 4, 1, 3,2,1,1)
 
