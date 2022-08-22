@@ -57,6 +57,13 @@ def tick_mlec_raid(sysstate, mission, mytimer: Mytimer, sys, repair, placement):
     sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
     return sim.run_simulation(sysstate, mytimer)
 
+def tick_mlec_dp(sysstate, mission, mytimer: Mytimer, sys, repair, placement):
+    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
+    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
+    sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
+    return sim.run_simulation(sysstate, mytimer)
+
+
 def tick_raid_net(state_, mission, mytimer: Mytimer, sys, repair, placement):
     # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
     #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
@@ -88,7 +95,8 @@ def iter(state_: SysState, iters, mission):
                 res += tick_mlec_raid(sysstate, mission, mytimer, sys, repair, placement)
             elif sysstate.mode == 'RAID_NET':
                 res += tick_raid_net(sysstate, mission, mytimer, sys, repair, placement)
-
+            elif sysstate.mode == 'MLEC_DP':
+                res += tick_mlec_dp(sysstate, mission, mytimer, sys, repair, placement)
         # end = time.time()
         # print("totaltime: {}".format(end - start))
         return (res, mytimer, sys.metrics)
@@ -119,7 +127,7 @@ def simulate(state, iters, epochs, concur=10, mission=YEAR):
 
 def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
                 total_drives, drives_per_server, placement, distribution):
-    # logging.basicConfig(level=logging.INFO)
+        # logging.basicConfig(level=logging.INFO)
     
     # for afr in range(2, 11):
         mission = YEAR
@@ -128,6 +136,9 @@ def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
                         top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0)
 
         res = [0, 0, Metrics()]
+
+        # temp = simulate(sys_state1, iters=1000, epochs=1, concur=1, mission=mission)
+        # return
         while res[0] < 20:
             start  = time.time()
             temp = simulate(sys_state1, iters=50000, epochs=200, concur=200, mission=mission)
@@ -167,7 +178,7 @@ def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
     # logging.basicConfig(level=logging.INFO)
     for cap in range(20, 30, 10):
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = SysState(total_drives=drives_per_server, drive_args=drive_args1, placement='RAID', drives_per_server=drives_per_server, 
+        sys_state1 = SysState(total_drives=drives_per_server, drive_args=drive_args1, placement='DP', drives_per_server=drives_per_server, 
                         top_d_shards=N_net, top_p_shards=0, adapt=adapt, server_fail = 0)
 
         print('')

@@ -184,16 +184,19 @@ class Simulate:
             # updateStateEndTime = time.time()
             # mytimer.updateStateTime += updateStateEndTime - getEventEndTime
 
-            if self.sys.place_type == 2:
-                new_server_failures = self.state.update_server_state(event_type, diskset)
-                # updateServerStateEndTime = time.time()
-                # mytimer.updateServerStateTime += updateServerStateEndTime - updateStateEndTime
 
             self.state.update_priority(event_type, diskset)
             # updatePriorityEndTime = time.time()
             # mytimer.updatePriorityTime += updatePriorityEndTime - updateServerStateEndTime
 
-            if self.sys.place_type == 2:
+            if self.sys.place_type in [2,4]:
+                new_server_failures = self.state.update_server_state(event_type, diskset)
+                # updateServerStateEndTime = time.time()
+                # mytimer.updateServerStateTime += updateServerStateEndTime - updateStateEndTime
+
+
+
+            if self.sys.place_type in [2,4]:
                 if len(new_server_failures) > 0:
                     self.state.update_server_priority(event_type, new_server_failures, diskset)
                     # updateServerPriorityEndTime = time.time()

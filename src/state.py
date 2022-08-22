@@ -27,7 +27,11 @@ class State:
             disk.state = Disk.STATE_NORMAL
             disk.priority = 0
             disk.repair_time = {}
-        server_repair_data = sys.diskSize * self.n
+        if self.sys.place_type == 2:
+            server_repair_data = sys.diskSize * self.n
+        else:
+            # server_repair_data = sys.diskSize * self.sys.num_disks_per_server
+            server_repair_data = sys.diskSize * (self.sys.m + 1)
         for serverId in self.sys.servers:
             self.servers[serverId] = Server(serverId, server_repair_data, sys.num_disks_per_server // self.n)
         self.curr_time = 0
@@ -41,6 +45,10 @@ class State:
             self.policy = MLEC(self)
         elif self.sys.place_type == 3:
             self.policy = NetRAID(self)
+        elif self.sys.place_type == 4:
+            self.policy = MLECDP(self)
+        self.repairing = True
+        self.repair_start_time = 0
         #----------------------------------
 
 
@@ -75,107 +83,24 @@ class State:
     # update server state
     #----------------------------------------------
     def update_server_state(self, event_type, diskset):
-        new_server_failures = []
-        if event_type == Disk.EVENT_FAIL:
-            for diskId in diskset:
-                serverId = diskId // self.sys.num_disks_per_server
-                # if server already fails, we don't need to fail it again.
-                if self.servers[serverId].state == Server.STATE_FAILED:
-                    continue
-                # otherwise, we need to check if a new server fails
-                fail_per_server = self.get_failed_disks_per_server(serverId)
-                stripesets_per_server = self.sys.flat_cluster_server_layout[serverId]
-                for stripeset in stripesets_per_server:
-                    fail_per_set = set(stripeset).intersection(set(fail_per_server))
-                    if len(fail_per_set) > self.sys.m:
-                        if serverId not in new_server_failures:
-                            new_server_failures.append(serverId)
-                        self.servers[serverId].state = Server.STATE_FAILED
-                        self.failed_servers[serverId] = 1
-                        break
-        
-        if event_type == Server.EVENT_FAIL:
-            serverset = diskset
-            for serverId in serverset:
-                self.servers[serverId].state = Server.STATE_FAILED
-                new_server_failures.append(serverId)
-                self.failed_servers[serverId] = 1
+        return self.policy.update_server_state(event_type, diskset)
 
-        if event_type == Server.EVENT_REPAIR:
-            serverset = diskset
-            for serverId in serverset:
-                self.servers[serverId].state = Server.STATE_NORMAL
-                self.failed_servers.pop(serverId, None)
-                for diskId in self.servers[serverId].failed_disks:
-                    self.failed_disks.pop(diskId, None)
-                self.servers[serverId].failed_disks.clear()
-                
-                for diskId in self.sys.disks_per_server[serverId]:
-                    self.disks[diskId].state = Disk.STATE_NORMAL 
-                
-                self.sys.metrics.total_net_traffic += self.servers[serverId].repair_data * (self.sys.top_k + 1)
-
-
-        return new_server_failures
 
 
     #----------------------------------------------
     # update decluster: priority, #stripesets
     #----------------------------------------------
     def update_priority(self, event_type, diskset):
-        self.policy.update_priority(event_type, diskset)
+        return self.policy.update_priority(event_type, diskset)
                                 
     
     #----------------------------------------------
     # update network-level priority
     #----------------------------------------------
     def update_server_priority(self, event_type, new_failed_servers, serverset):
-        failed_servers = self.get_failed_servers()
-        if event_type == Disk.EVENT_FAIL:
-            if self.sys.place_type == 2:
-                for serverId in new_failed_servers:
-                    self.servers[serverId].repair_start_time = self.curr_time
-                for serverId in failed_servers:
-                    self.update_mlec_cluster_server_repair_time(serverId, len(failed_servers))
-
-        if event_type == Server.EVENT_FAIL:
-            if self.sys.place_type == 2:
-                for serverId in new_failed_servers:
-                    self.servers[serverId].repair_start_time = self.curr_time
-                for serverId in failed_servers:
-                    self.update_mlec_cluster_server_repair_time(serverId, len(failed_servers))
-
-        if event_type == Server.EVENT_REPAIR:
-            if self.sys.place_type == 2:
-                for serverId in failed_servers:
-                    self.update_mlec_cluster_server_repair_time(serverId, len(failed_servers))
+        self.policy.update_server_priority(event_type, new_failed_servers, serverset)
 
 
-
-
-
-
-
-
-
-
-
-    def update_mlec_cluster_server_repair_time(self, serverId, failed_servers):
-        server = self.servers[serverId]
-        repaired_time = self.curr_time - server.repair_start_time
-        if repaired_time == 0:
-            repaired_percent = 0
-            server.curr_repair_data_remaining = server.repair_data
-        else:
-            
-            repaired_percent = repaired_time / server.repair_time[0]
-            server.curr_repair_data_remaining = server.curr_repair_data_remaining * (1 - repaired_percent)
-        repair_time = float(server.curr_repair_data_remaining)/(self.sys.diskIO * self.sys.num_disks_per_server / failed_servers)
-        server.repair_time[0] = repair_time / 3600 / 24
-        server.repair_start_time = self.curr_time
-        server.estimate_repair_time = self.curr_time + server.repair_time[0]
-        logging.info("calculate repair time for server {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
-                        serverId, repaired_time, server.repair_time[0], server.repair_start_time))
 
 
 

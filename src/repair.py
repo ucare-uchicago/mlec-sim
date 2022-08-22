@@ -28,7 +28,7 @@ class Repair:
         repair_queue.clear()
         checked_servers = {}
         for serverId in state.get_failed_servers():
-            if self.place_type == 2:
+            if self.place_type in [2,4]:
                 repair_time = state.servers[serverId].repair_time[0]
                 #-----------------------------------------------------
                 heappush(repair_queue, (state.servers[serverId].estimate_repair_time, Server.EVENT_REPAIR, serverId))
@@ -71,3 +71,24 @@ class Repair:
                     estimate_time = state.disks[diskId].repair_start_time
                     estimate_time  += repair_time
                     heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+                if self.place_type == 4:
+                    #-----------------------------------------------------
+                    # FIFO reconstruct, utilize the hot spares
+                    #-----------------------------------------------------
+                    disk = state.disks[diskId]
+                    priority = disk.priority
+                    estimate_time = disk.estimate_repair_time
+                    if priority > 1:
+                        heappush(repair_queue, (estimate_time, Disk.EVENT_FASTREBUILD, diskId))
+                        # print("push to repair queue  finish time{} {} {}".format(estimate_time, 
+                        #           Disk.EVENT_FASTREBUILD, diskId))
+                    if priority == 1:
+                        heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+        if len(repair_queue) > 0:
+            if not state.repairing:
+                state.repairing = True
+                state.repair_start_time = curr_time
+        else:
+            if state.repairing:
+                state.repairing = False
+                state.sys.metrics.total_rebuild_time += curr_time - state.repair_start_time

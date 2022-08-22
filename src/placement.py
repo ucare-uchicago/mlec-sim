@@ -27,6 +27,8 @@ class Placement:
             return self.mlec_cluster_simulate(state)
         if self.place_type == 3:
             return self.net_raid_simulate(state)
+        if self.place_type == 4:
+            return self.mlec_dp_simulate(state)
             
 
 
@@ -50,7 +52,12 @@ class Placement:
             prob = 1
         return prob
 
-
+    def mlec_dp_simulate(self, state):
+        prob = 0
+        failed_servers = state.get_failed_servers()
+        if len(failed_servers) > self.sys.top_m:
+            prob = 1
+        return prob
 
 
     def net_raid_simulate(self, state):

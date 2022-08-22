@@ -33,6 +33,8 @@ class SysState:
             self.place_type = 2
         elif placement == 'RAID_NET':
             self.place_type = 3
+        elif placement == 'MLEC_DP':
+            self.place_type = 4
 
         self.failure_generator = failure_generator
         if failure_generator == None:

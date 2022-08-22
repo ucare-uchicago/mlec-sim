@@ -71,6 +71,8 @@ class System:
             self.mlec_cluster_layout()
         if place_type == 3:
             self.net_raid_layout()
+        if place_type == 4:
+            self.mlec_dp_layout()
         #--------------------------------------------
         self.diskSize = diskCap
         self.diskIO = rebuildRate
@@ -99,6 +101,14 @@ class System:
     
     def flat_decluster_layout(self):
         logging.debug("* flat decluster generation *")
+        self.flat_decluster_server_layout = {}
+        for serverId in self.servers:
+            disks_per_server = self.disks_per_server[serverId]
+            self.flat_decluster_server_layout[serverId] = disks_per_server
+
+
+    def mlec_dp_layout(self):
+        logging.debug("* mlec decluster generation")
         self.flat_decluster_server_layout = {}
         for serverId in self.servers:
             disks_per_server = self.disks_per_server[serverId]
