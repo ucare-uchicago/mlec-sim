@@ -131,7 +131,8 @@ class System:
                 stripeset  = disks_per_server[i*(self.k+self.m) :(i+1)*(self.k+self.m)]
                 sets.append(stripeset)
             self.flat_cluster_server_layout[serverId] = sets
-            logging.info("* server {} has {} stripesets".format(serverId, num_stripesets))
+            logging.info("* server {} has {} stripesets: {}".format(
+                        serverId, num_stripesets, self.flat_cluster_server_layout[serverId]))
 
 
 
@@ -172,5 +173,5 @@ class System:
 if __name__ == "__main__":
     logger = logging.getLogger()
     logging.basicConfig(level=logging.INFO)
-    sys = System(100, 10, 4, 1, 3,2,1,1)
+    sys = System(100, 10, 4, 1, 2,2,1,1)
 

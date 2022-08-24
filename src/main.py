@@ -33,43 +33,6 @@ def factorial(n):
     else:
         return n * factorial(n - 1)
 
-def tick_dp(state_, mission, mytimer: Mytimer, sys, repair, placement):
-    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
-    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
-    np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
-    sysstate: SysState = copy.deepcopy(state_)
-    sysstate.gen_drives()
-    sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
-    return sim.run_simulation(sysstate, mytimer)
-
-def tick_raid(state_, mission, mytimer: Mytimer, sys, repair, placement):
-    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
-    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
-    np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
-    sysstate = state_
-    sysstate.gen_drives()
-    sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
-    return sim.run_simulation(sysstate, mytimer)
-
-def tick_mlec_raid(sysstate, mission, mytimer: Mytimer, sys, repair, placement):
-    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
-    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
-    sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
-    return sim.run_simulation(sysstate, mytimer)
-
-def tick_mlec_dp(sysstate, mission, mytimer: Mytimer, sys, repair, placement):
-    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
-    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
-    sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
-    return sim.run_simulation(sysstate, mytimer)
-
-
-def tick_raid_net(state_, mission, mytimer: Mytimer, sys, repair, placement):
-    # sim = Simulate(mission_time, iterations_per_worker, traces_per_worker, num_disks, num_disks_per_server, 
-    #                 k, m, use_trace, place_type, traceDir, diskCap, rebuildRate, utilizeRatio, failRatio)
-    sysstate = state_
-    sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
-    return sim.run_simulation(sysstate, mytimer)
 
 def iter(state_: SysState, iters, mission):
     
@@ -84,21 +47,13 @@ def iter(state_: SysState, iters, mission):
         repair = Repair(sys, sysstate.place_type)
         placement = Placement(sys, sysstate.place_type)
 
-        # start = time.time()
+        start = time.time()
         for iter in range(0, iters):
             logging.info("")
-            if sysstate.mode == 'RAID':
-                res += tick_raid(sysstate, mission, mytimer, sys, repair, placement)
-            elif sysstate.mode == 'DP':
-                res += tick_dp(sysstate, mission, mytimer, sys, repair, placement)
-            elif sysstate.mode == 'MLEC':
-                res += tick_mlec_raid(sysstate, mission, mytimer, sys, repair, placement)
-            elif sysstate.mode == 'RAID_NET':
-                res += tick_raid_net(sysstate, mission, mytimer, sys, repair, placement)
-            elif sysstate.mode == 'MLEC_DP':
-                res += tick_mlec_dp(sysstate, mission, mytimer, sys, repair, placement)
-        # end = time.time()
-        # print("totaltime: {}".format(end - start))
+            sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
+            res += sim.run_simulation(sysstate, mytimer)
+        end = time.time()
+        print("totaltime: {}".format(end - start))
         return (res, mytimer, sys.metrics)
     except Exception as e:
         print(traceback.format_exc())
@@ -137,8 +92,8 @@ def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
         res = [0, 0, Metrics()]
 
-        # temp = simulate(sys_state1, iters=1000, epochs=1, concur=1, mission=mission)
-        # return
+        temp = simulate(sys_state1, iters=1000, epochs=1, concur=1, mission=mission)
+        return
         while res[0] < 20:
             start  = time.time()
             temp = simulate(sys_state1, iters=50000, epochs=200, concur=200, mission=mission)
@@ -176,7 +131,8 @@ def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
                     total_drives, drives_per_server, placement, dist):
     # logging.basicConfig(level=logging.INFO)
-    for cap in range(20, 30, 10):
+
+        # Compute P(server 1 fails)
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
         sys_state1 = SysState(total_drives=drives_per_server, drive_args=drive_args1, placement='DP', drives_per_server=drives_per_server, 
                         top_d_shards=N_net, top_p_shards=0, adapt=adapt, server_fail = 0)
@@ -194,6 +150,7 @@ def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
             simulationTime = time.time() - start
             print("simulation time: {}".format(simulationTime))
             print(res)
+        
         # res = simulate(l1sys, iters=1000, epochs=1, concur=1)
         server_one_fail_prob = res[0] / res[1]
         print('++++++++++++++++++++')
@@ -201,11 +158,12 @@ def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
         print('Total Iters: ' + str(res[1]))
         print('Probability that server one fails: {}'.format(server_one_fail_prob))
 
+        # Compute P(server 1 fails | system fails)
         pro_sys_fail_contain_s1 = 1 - math.comb(N_net + k_net - 1, k_net + 1) / math.comb(N_net + k_net, k_net + 1)
         print('------------')
         print('Probability that system failure contains server one: {}'.format(pro_sys_fail_contain_s1))
 
-
+        # Compute P(system fails | server 1 fails)
         drive_args2 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
         sys_state2 = SysState(total_drives=total_drives, drive_args=drive_args2, placement=placement, drives_per_server=drives_per_server, 
                         top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 1)
@@ -227,6 +185,8 @@ def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
         print('Probability that the system fails when server one fails: {}'.format(conditional_prob))
 
         print('------------')
+
+        # P(system fails) = P(system fails | server 1 fails) * P(server 1 fails) / P(server 1 fails | system fails)
         res[0] = res[0] * server_one_fail_prob / pro_sys_fail_contain_s1
         aggr_prob = conditional_prob * server_one_fail_prob / pro_sys_fail_contain_s1
         print('Total Fails: ' + str(res[0]))
