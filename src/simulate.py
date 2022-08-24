@@ -42,17 +42,17 @@ class Simulate:
 
         self.sys.priority_per_set = {}
 
-        # temp = time.time()
+        temp = time.time()
         self.state = State(self.sys)
-        # resetStateEndTime = time.time()
-        # mytimer.resetStateInitTime += resetStateEndTime - temp
+        resetStateEndTime = time.time()
+        mytimer.resetStateInitTime += resetStateEndTime - temp
 
-        # temp = time.time()
+        temp = time.time()
         failure_times = initialFailures[initialFailures < self.mission_time]
         failure_idxs = np.where(initialFailures < self.mission_time)[0]
         failures = list(zip(failure_times, failure_idxs))
-        # resetGenFailEndTime = time.time()
-        # mytimer.resetGenFailTime += resetGenFailEndTime - temp
+        resetGenFailEndTime = time.time()
+        mytimer.resetGenFailTime += resetGenFailEndTime - temp
         #-----------------------------------------------------
         # generate disks failures events from failure traces
         #-----------------------------------------------------
@@ -61,12 +61,12 @@ class Simulate:
         # heappush(self.failure_queue, (0.001, Disk.EVENT_FAIL, 1))
         # return
 
-        logging.info("initialFailures: {}".format(len(initialFailures)))
+        # logging.info("initialFailures: {}".format(len(initialFailures)))
 
 
         for disk_fail_time, diskId in failures:
             heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
-            logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Disk.EVENT_FAIL, diskId))
+            # logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Disk.EVENT_FAIL, diskId))
             self.sys.metrics.failure_count += 1
             
         
@@ -74,11 +74,11 @@ class Simulate:
             for diskId in range(self.sys.server_fail):
                 disk_fail_time = random.random() * YEAR
                 heappush(self.failure_queue, (disk_fail_time, Server.EVENT_FAIL, diskId))
-                logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Server.EVENT_FAIL, diskId))
+                # logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Server.EVENT_FAIL, diskId))
 
 
-        # heapEndTime = time.time()
-        # mytimer.resetHeapTime += heapEndTime - resetGenFailEndTime
+        heapEndTime = time.time()
+        mytimer.resetHeapTime += heapEndTime - resetGenFailEndTime
         #-----------------------------------------------------
 
 
@@ -123,7 +123,6 @@ class Simulate:
                 while self.repair_queue and self.repair_queue[0][0] == next_event_time and self.repair_queue[0][1] == next_event_type:
                     simultaneous_event = heappop(self.repair_queue)
                     diskset.append(simultaneous_event[2])
-            logging.debug("++++++++++ pop ", next_event_time, next_event_type, diskset, "curr-time", curr_time)
             return (next_event_time, next_event_type, diskset)
         else:
             #print " -None, None, None- "
@@ -135,22 +134,21 @@ class Simulate:
     # run simulation based on statistical model or production traces
     #----------------------------------------------------------------
     def run_simulation(self, sysstate, mytimer):
-        logging.debug(" * begin running simulation")
         self.sys.metrics.iter_count += 1
 
-        # start = time.time()
+        start = time.time()
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
-        # seedEndTime = time.time()
+        seedEndTime = time.time()
         
         initialFailures = sysstate.gen_failure_times(sysstate.total_drives)
-        logging.info("sysstate.total_drives: {}".format(sysstate.total_drives))
-        # genEndTime = time.time()
-        # mytimer.seedtime += seedEndTime - start
-        # mytimer.genfailtime += genEndTime - seedEndTime
+        # logging.info("sysstate.total_drives: {}".format(sysstate.total_drives))
+        genEndTime = time.time()
+        mytimer.seedtime += seedEndTime - start
+        mytimer.genfailtime += genEndTime - seedEndTime
 
-        # start = time.time()
+        start = time.time()
         self.reset(initialFailures, mytimer)
-        # mytimer.resettime += (time.time() - start)
+        mytimer.resettime += (time.time() - start)
 
         curr_time = 0
         prob = 0
@@ -164,16 +162,16 @@ class Simulate:
             # getEventEndTime = time.time()
             # mytimer.getEventTime += getEventEndTime - iterStartTime
 
-            logging.info("----record----")
-            logging.info(event_time)
-            logging.info(event_type)
-            logging.info(diskset)
+            # logging.info("----record----")
+            # logging.info(event_time)
+            # logging.info(event_type)
+            # logging.info(diskset)
             if event_time == None:
                 break
-            # rerun = False
-            for diskId in diskset:
-                if event_type == Disk.EVENT_FAIL and self.state.disks[diskId].state == Disk.STATE_FAILED:
-                    logging.info("XXXXXXXXXXXX Disk {} failed again ok it happened".format(diskId))
+            
+            # for diskId in diskset:
+            #     if event_type == Disk.EVENT_FAIL and self.state.disks[diskId].state == Disk.STATE_FAILED:
+            #         logging.info("XXXXXXXXXXXX Disk {} failed again ok it happened".format(diskId))
             #--------------------------------------
             # update all disks state/priority
             #--------------------------------------
@@ -236,7 +234,7 @@ class Simulate:
                 #curr_failures = self.state.get_failed_disks()
                 if self.placement.check_data_loss_prob(self.state):
                     prob = 1
-                    logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+                    # logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     # loss_events = self.placement.check_data_loss_events(self.state)
                     return prob
                     #------------------------------------------

@@ -29,7 +29,6 @@ class Decluster:
                 # print("{} {} for disk {} priority {}".format(self.curr_time, event_type, diskId, self.disks[diskId].priority))
                 if self.sys.place_type == 1:
                     curr_priority = self.disks[diskId].priority
-                    logging.debug("pop diskId",diskId, curr_priority)
                     del self.disks[diskId].repair_time[curr_priority]
                     # print("delete repair time for disk {} priority {}".format(diskId, curr_priority))
                     self.disks[diskId].priority -= 1
@@ -41,7 +40,7 @@ class Decluster:
                     continue
                 updated_servers[serverId] = 1
                 if self.servers[serverId].state == Server.STATE_FAILED:
-                    logging.info("update_priority(): server {} is failed. Event type: {}".format(serverId, event_type))
+                    # logging.info("update_priority(): server {} is failed. Event type: {}".format(serverId, event_type))
                     continue
                 fail_per_server = self.state.get_failed_disks_per_server(serverId)
                 #  what if there are multiple servers

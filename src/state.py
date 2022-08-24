@@ -109,7 +109,7 @@ class State:
 
 
     def get_failed_disks_per_server(self, serverId):
-        logging.info("sedrver {} get: {}".format(serverId, list(self.servers[serverId].failed_disks.keys())))
+        # logging.info("sedrver {} get: {}".format(serverId, list(self.servers[serverId].failed_disks.keys())))
         return list(self.servers[serverId].failed_disks.keys())
 
 

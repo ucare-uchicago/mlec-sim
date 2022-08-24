@@ -49,11 +49,14 @@ def iter(state_: SysState, iters, mission):
 
         start = time.time()
         for iter in range(0, iters):
-            logging.info("")
+            # logging.info("")
+            temp = time.time()
             sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
+            mytimer.simInitTime += time.time() - temp
             res += sim.run_simulation(sysstate, mytimer)
         end = time.time()
         print("totaltime: {}".format(end - start))
+        print(mytimer)
         return (res, mytimer, sys.metrics)
     except Exception as e:
         print(traceback.format_exc())

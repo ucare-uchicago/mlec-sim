@@ -24,7 +24,7 @@ class Repair:
 
 
     def update_repair_event(self, diskset, state, curr_time, repair_queue):
-        logging.debug("updating repair",diskset)
+        # logging.debug("updating repair",diskset)
         repair_queue.clear()
         checked_servers = {}
         for serverId in state.get_failed_servers():
@@ -44,8 +44,8 @@ class Repair:
                     estimate_time = state.disks[diskId].repair_start_time
                     estimate_time  += repair_time
                     heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
-                    logging.debug("--------> push ", repair_time, estimate_time, Disk.EVENT_REPAIR, 
-                                "D-",diskId,"-", "S-",diskId/84, "R-",diskId/504)
+                    # logging.debug("--------> push ", repair_time, estimate_time, Disk.EVENT_REPAIR, 
+                    #             "D-",diskId,"-", "S-",diskId/84, "R-",diskId/504)
                 if self.place_type == 1:
                     disk = state.disks[diskId]
                     estimate_time = disk.repair_start_time
@@ -65,7 +65,7 @@ class Repair:
                     #-----------------------------------------------------
                     heappush(repair_queue, (state.disks[diskId].estimate_repair_time, Disk.EVENT_REPAIR, diskId))
                 if self.place_type == 3:
-                    logging.info("  update_repair_event. diskId: {}".format(diskId))
+                    # logging.info("  update_repair_event. diskId: {}".format(diskId))
                     repair_time = state.disks[diskId].repair_time[0]
                     #-----------------------------------------------------
                     estimate_time = state.disks[diskId].repair_start_time

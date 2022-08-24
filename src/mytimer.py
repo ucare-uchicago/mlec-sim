@@ -1,5 +1,6 @@
 class Mytimer:
     def __init__(self):
+        self.simInitTime = 0
         self.seedtime = 0
         self.copytime = 0
         self.genfailtime = 0
@@ -19,11 +20,12 @@ class Mytimer:
         self.updateRepairTime = 0
     
     def __str__(self):
-        return (" seedtime\t\t{}\n copytime\t\t{}\n genfailtime\t\t{}\n" 
+        return (" simInitTime\t\t{}\n seedtime\t\t{}\n copytime\t\t{}\n genfailtime\t\t{}\n" 
                 " resettime\t\t{}\n   resetStateInitTime\t{}\n   resetDiskInitTime\t{}\n   resetGenFailTime\t{}\n   resetHeapTime\t{}\n"
                 " getEventTime\t\t{}\n updateClockTime\t{}\n updateStateTime\t{}\n"
                 " updateServerStateTime\t{}\n updatePriorityTime\t{}\n updateServerPriTime\t{}\n"
                 " newFailTime\t\t{}\n checkLossTime\t\t{}\n updateRepairTime\t{}\n").format(
+            self.simInitTime,
             self.seedtime,
             self.copytime,
             self.genfailtime,

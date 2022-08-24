@@ -16,7 +16,6 @@ class System:
         #--------------------------------------------
         #self.num_racks = num_racks
         #self.num_servers_per_rack = num_servers_per_rack
-        logging.debug("system NUM_DISKS_PER_SERVER: " + str(num_disks_per_server))
         self.num_disks_per_server = num_disks_per_server
         #self.num_disks_per_rack = num_disks_per_server * num_servers_per_rack
         #self.num_servers = num_disks / num_servers_per_rack
@@ -83,7 +82,6 @@ class System:
 
 
     def flat_cluster_layout(self):
-        logging.debug("* flat cluster generation")
         self.flat_cluster_server_layout = {}
         for serverId in self.servers:
             disks_per_server = self.disks_per_server[serverId]
@@ -93,14 +91,13 @@ class System:
                 stripeset  = disks_per_server[i*(self.k+self.m) :(i+1)*(self.k+self.m)]
                 sets.append(stripeset)
             self.flat_cluster_server_layout[serverId] = sets
-            logging.info("* server {} has {} stripesets".format(serverId, num_stripesets))
+            # logging.info("* server {} has {} stripesets".format(serverId, num_stripesets))
         #for serverId in self.servers:
         #    print "serverId", serverId, len(self.flat_cluster_server_layout[serverId])
 
 
     
     def flat_decluster_layout(self):
-        logging.debug("* flat decluster generation *")
         self.flat_decluster_server_layout = {}
         for serverId in self.servers:
             disks_per_server = self.disks_per_server[serverId]
@@ -108,7 +105,6 @@ class System:
 
 
     def mlec_dp_layout(self):
-        logging.debug("* mlec decluster generation")
         self.flat_decluster_server_layout = {}
         for serverId in self.servers:
             disks_per_server = self.disks_per_server[serverId]
@@ -121,7 +117,6 @@ class System:
 
     # same as flat_cluster_layout
     def mlec_cluster_layout(self):
-        logging.debug("* mlec cluster generation")
         self.flat_cluster_server_layout = {}
         for serverId in self.servers:
             disks_per_server = self.disks_per_server[serverId]
@@ -131,13 +126,12 @@ class System:
                 stripeset  = disks_per_server[i*(self.k+self.m) :(i+1)*(self.k+self.m)]
                 sets.append(stripeset)
             self.flat_cluster_server_layout[serverId] = sets
-            logging.info("* server {} has {} stripesets: {}".format(
-                        serverId, num_stripesets, self.flat_cluster_server_layout[serverId]))
+            # logging.info("* server {} has {} stripesets: {}".format(
+            #             serverId, num_stripesets, self.flat_cluster_server_layout[serverId]))
 
 
 
     def net_raid_layout(self):
-        logging.debug("* net raid generation")
         stripe_width = self.top_k + self.top_m
         num_server_group = self.num_servers // stripe_width
         num_stripesets = self.num_disks_per_server * num_server_group
@@ -158,8 +152,8 @@ class System:
                 # logging.info(" stripesetId: {} diskId: {}".format(i, diskId))
             sets[i] = stripeset
         self.net_raid_stripesets_layout = sets
-        logging.info("* there are {} stripesets:\n{}".format(
-                num_stripesets, sets))
+        # logging.info("* there are {} stripesets:\n{}".format(
+        #         num_stripesets, sets))
 
 
 

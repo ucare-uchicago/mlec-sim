@@ -31,7 +31,7 @@ class MLEC:
                     continue
                 updated_servers[serverId] = 1
                 if self.servers[serverId].state == Server.STATE_FAILED:
-                    logging.info("update_priority(): server {} is failed. Event type: {}".format(serverId, event_type))
+                    # logging.info("update_priority(): server {} is failed. Event type: {}".format(serverId, event_type))
                     continue
                 fail_per_stripeset = self.state.get_failed_disks_per_stripeset_diskId(diskId)
                 #  what if there are multiple servers
@@ -43,7 +43,7 @@ class MLEC:
             for diskId in diskset:
                 serverId = diskId // self.sys.num_disks_per_server
                 if self.servers[serverId].state == Server.STATE_FAILED:
-                    logging.info("update_priority(): server {} is failed".format(serverId))
+                    # logging.info("update_priority(): server {} is failed".format(serverId))
                     continue
                 if serverId in updated_servers:
                     continue
@@ -51,7 +51,6 @@ class MLEC:
                 fail_per_stripeset = self.state.get_failed_disks_per_stripeset_diskId(diskId)
                 new_failures = set(fail_per_stripeset).intersection(set(diskset))
                 if len(new_failures) > 0:
-                    logging.debug(serverId, "======> ",fail_per_stripeset, diskset, new_failures)
                     #--------------------------------------------
                     # calculate repair time for mlec cluster placement
                     #--------------------------------------------
@@ -81,8 +80,8 @@ class MLEC:
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
-        logging.info("calculate repair time for disk {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
-                        diskId, repaired_time, disk.repair_time[0], disk.repair_start_time))
+        # logging.info("calculate repair time for disk {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
+        #                 diskId, repaired_time, disk.repair_time[0], disk.repair_start_time))
 
 
     #----------------------------------------------
@@ -167,5 +166,5 @@ class MLEC:
         server.repair_time[0] = repair_time / 3600 / 24
         server.repair_start_time = self.curr_time
         server.estimate_repair_time = self.curr_time + server.repair_time[0]
-        logging.info("calculate repair time for server {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
-                        serverId, repaired_time, server.repair_time[0], server.repair_start_time))
+        # logging.info("calculate repair time for server {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
+        #                 serverId, repaired_time, server.repair_time[0], server.repair_start_time))

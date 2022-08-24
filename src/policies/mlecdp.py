@@ -27,7 +27,6 @@ class MLECDP:
             for diskId in diskset:
                 # print("{} {} for disk {} priority {}".format(self.curr_time, event_type, diskId, self.disks[diskId].priority))
                     curr_priority = self.disks[diskId].priority
-                    logging.debug("pop diskId",diskId, curr_priority)
                     del self.disks[diskId].repair_time[curr_priority]
                     # print("delete repair time for disk {} priority {}".format(diskId, curr_priority))
                     self.disks[diskId].priority -= 1
@@ -39,7 +38,7 @@ class MLECDP:
                     continue
                 updated_servers[serverId] = 1
                 if self.servers[serverId].state == Server.STATE_FAILED:
-                    logging.info("update_priority(): server {} is failed. Event type: {}".format(serverId, event_type))
+                    # logging.info("update_priority(): server {} is failed. Event type: {}".format(serverId, event_type))
                     continue
                 fail_per_server = self.state.get_failed_disks_per_server(serverId)
                 #  what if there are multiple servers
@@ -60,7 +59,7 @@ class MLECDP:
             for diskId in diskset:
                 serverId = diskId // self.sys.num_disks_per_server
                 if self.servers[serverId].state == Server.STATE_FAILED:
-                    logging.info("update_priority(): server {} is failed".format(serverId))
+                    # logging.info("update_priority(): server {} is failed".format(serverId))
                     continue
                 if serverId in updated_servers:
                     continue
@@ -68,16 +67,10 @@ class MLECDP:
                 fail_per_server = self.state.get_failed_disks_per_server(serverId)
                 new_failures = set(fail_per_server).intersection(set(diskset))
                 if len(new_failures) > 0:
-                    logging.debug(serverId, "======> ",fail_per_server, diskset, new_failures)
                     #-----------------------------------------------------
                     # calculate repairT and update priority for decluster
                     #-----------------------------------------------------
                     if len(new_failures) > 0:
-                            # print("{} {} for disk {} priority {}".format(self.curr_time, event_type, diskset, self.disks[diskset[0]].priority))
-
-                            logging.debug("server {} {} {}".format(serverId, fail_per_server, new_failures))
-                            #--------------------------------------------
-                            #print "serverId", serverId, "-", fail_per_server
                             #----------------------------------------------
                             fail_num = len(fail_per_server) # count total failed disks number
                             good_num = len(self.sys.disks_per_server[serverId]) - fail_num
@@ -96,7 +89,7 @@ class MLECDP:
                                 self.disks[diskId].repair_start_time = self.curr_time
                                 self.disks[diskId].good_num = good_num
                                 self.disks[diskId].fail_num = fail_num
-                                logging.info("\tdisk {} priority {}".format(diskId, self.disks[diskId].priority))
+                                # logging.info("\tdisk {} priority {}".format(diskId, self.disks[diskId].priority))
 
                             if self.sys.adapt:
                                 for diskId in fail_per_server:
@@ -184,11 +177,11 @@ class MLECDP:
                 fail_per_server = self.state.get_failed_disks_per_server(serverId)
                 max_priority = 0
                 for diskId in fail_per_server:
-                    logging.info("\tdisk {} priority {}".format(diskId, self.disks[diskId].priority))
+                    # logging.info("\tdisk {} priority {}".format(diskId, self.disks[diskId].priority))
                     if self.disks[diskId].priority > max_priority:
                         max_priority = self.disks[diskId].priority
-                logging.info("max_priority: {}  fail_per_server: {}"
-                                .format(max_priority, fail_per_server))
+                # logging.info("max_priority: {}  fail_per_server: {}"
+                #                 .format(max_priority, fail_per_server))
                 if max_priority > self.sys.m:
                     if serverId not in new_server_failures:
                         new_server_failures.append(serverId)
@@ -233,8 +226,8 @@ class MLECDP:
         server.repair_time[0] = repair_time / 3600 / 24
         server.repair_start_time = self.curr_time
         server.estimate_repair_time = self.curr_time + server.repair_time[0]
-        logging.info("calculate repair time for server {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
-                        serverId, repaired_time, server.repair_time[0], server.repair_start_time))
+        # logging.info("calculate repair time for server {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
+        #                 serverId, repaired_time, server.repair_time[0], server.repair_start_time))
 
     def ncr(self, n, r):
         r = min(r, n-r)
