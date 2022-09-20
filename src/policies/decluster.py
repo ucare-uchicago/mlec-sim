@@ -3,7 +3,7 @@ import operator as op
 import numpy as np
 import logging
 from functools import reduce
-from server import Server
+from rack import Rack
 
 
 class Decluster:
@@ -14,15 +14,15 @@ class Decluster:
         self.state = state
         self.sys = state.sys
         self.n = state.n
-        self.servers = state.servers
+        self.racks = state.racks
         self.disks = state.disks
         self.curr_time = state.curr_time
         self.failed_disks = state.failed_disks
-        self.failed_servers = state.failed_servers
+        self.failed_racks = state.failed_racks
 
 
     def update_priority(self, event_type, diskset):
-        updated_servers = {}
+        updated_racks = {}
 
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
             for diskId in diskset:
@@ -35,42 +35,42 @@ class Decluster:
                     self.disks[diskId].repair_start_time = self.curr_time
 
             for diskId in diskset:
-                serverId = diskId // self.sys.num_disks_per_server
-                if serverId in updated_servers:
+                rackId = diskId // self.sys.num_disks_per_rack
+                if rackId in updated_racks:
                     continue
-                updated_servers[serverId] = 1
-                if self.servers[serverId].state == Server.STATE_FAILED:
-                    # logging.info("update_priority(): server {} is failed. Event type: {}".format(serverId, event_type))
+                updated_racks[rackId] = 1
+                if self.racks[rackId].state == Rack.STATE_FAILED:
+                    # logging.info("update_priority(): rack {} is failed. Event type: {}".format(rackId, event_type))
                     continue
-                fail_per_server = self.state.get_failed_disks_per_server(serverId)
-                #  what if there are multiple servers
-                if len(fail_per_server) > 0:
+                fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
+                #  what if there are multiple racks
+                if len(fail_per_rack) > 0:
                     if self.sys.place_type == 1:
                         if self.sys.adapt:
                             priorities = []
-                            for diskId in fail_per_server:
+                            for diskId in fail_per_rack:
                                 priorities.append(self.disks[diskId].priority)
                             max_priority = max(priorities)
-                            for diskId in fail_per_server:
+                            for diskId in fail_per_rack:
                                 self.update_disk_repair_time_adapt(diskId, 
-                                    self.disks[diskId].priority, len(fail_per_server), max_priority)
+                                    self.disks[diskId].priority, len(fail_per_rack), max_priority)
                         else:
-                            for diskId in fail_per_server:
-                                self.update_disk_repair_time(diskId, self.disks[diskId].priority, len(fail_per_server))
+                            for diskId in fail_per_rack:
+                                self.update_disk_repair_time(diskId, self.disks[diskId].priority, len(fail_per_rack))
 
         if event_type == Disk.EVENT_FAIL:
             for diskId in diskset:
-                serverId = diskId // self.sys.num_disks_per_server
-                if self.servers[serverId].state == Server.STATE_FAILED:
-                    logging.info("update_priority(): server {} is failed".format(serverId))
+                rackId = diskId // self.sys.num_disks_per_rack
+                if self.racks[rackId].state == Rack.STATE_FAILED:
+                    logging.info("update_priority(): rack {} is failed".format(rackId))
                     continue
-                if serverId in updated_servers:
+                if rackId in updated_racks:
                     continue
-                updated_servers[serverId] = 1
-                fail_per_server = self.state.get_failed_disks_per_server(serverId)
-                new_failures = set(fail_per_server).intersection(set(diskset))
+                updated_racks[rackId] = 1
+                fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
+                new_failures = set(fail_per_rack).intersection(set(diskset))
                 if len(new_failures) > 0:
-                    logging.debug(serverId, "======> ",fail_per_server, diskset, new_failures)
+                    logging.debug(rackId, "======> ",fail_per_rack, diskset, new_failures)
                     #-----------------------------------------------------
                     # calculate repairT and update priority for decluster
                     #-----------------------------------------------------
@@ -78,15 +78,15 @@ class Decluster:
                         if len(new_failures) > 0:
                             # print("{} {} for disk {} priority {}".format(self.curr_time, event_type, diskset, self.disks[diskset[0]].priority))
 
-                            logging.debug("server {} {} {}".format(serverId, fail_per_server, new_failures))
+                            logging.debug("rack {} {} {}".format(rackId, fail_per_rack, new_failures))
                             #--------------------------------------------
-                            #print "serverId", serverId, "-", fail_per_server
+                            #print "rackId", rackId, "-", fail_per_rack
                             #----------------------------------------------
-                            fail_num = len(fail_per_server) # count total failed disks number
-                            good_num = len(self.sys.disks_per_server[serverId]) - fail_num
+                            fail_num = len(fail_per_rack) # count total failed disks number
+                            good_num = len(self.sys.disks_per_rack[rackId]) - fail_num
                             #----------------------------------------------
                             priorities = []
-                            for diskId in fail_per_server:
+                            for diskId in fail_per_rack:
                                 priorities.append(self.disks[diskId].priority)
                             max_priority = max(priorities)+len(new_failures)
                             #----------------------------------------------
@@ -100,17 +100,17 @@ class Decluster:
                                 self.disks[diskId].good_num = good_num
                                 self.disks[diskId].fail_num = fail_num
                             if self.sys.adapt:
-                                for diskId in fail_per_server:
+                                for diskId in fail_per_rack:
                                     self.update_disk_repair_time_adapt(diskId, self.disks[diskId].priority, 
-                                        len(fail_per_server), max_priority)
+                                        len(fail_per_rack), max_priority)
                             else:
-                                for diskId in fail_per_server:
+                                for diskId in fail_per_rack:
                                     self.update_disk_repair_time(diskId, self.disks[diskId].priority, 
-                                        len(fail_per_server))
+                                        len(fail_per_rack))
                             
     
 
-    def update_disk_repair_time(self, diskId, priority, fail_per_server):
+    def update_disk_repair_time(self, diskId, priority, fail_per_rack):
         disk = self.disks[diskId]
         good_num = disk.good_num
         fail_num = disk.fail_num
@@ -136,8 +136,8 @@ class Decluster:
         #print "decluster parallelism", diskId, parallelism
         #----------------------------------------------------
         amplification = self.sys.k + priority
-        if priority < fail_per_server:
-            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_server)
+        if priority < fail_per_rack:
+            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_rack)
         else:
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism)
         #print "-----", self.sys.diskSize, amplification, self.sys.diskIO, parallelism
@@ -149,7 +149,7 @@ class Decluster:
         # print("{}  disk {}  priority {}  repair time {}".format(self.curr_time, diskId, priority, disk.repair_time))
         #----------------------------------------------------
 
-    def update_disk_repair_time_adapt(self, diskId, priority, fail_per_server, max_priority):
+    def update_disk_repair_time_adapt(self, diskId, priority, fail_per_rack, max_priority):
         disk = self.disks[diskId]
         good_num = disk.good_num
         fail_num = disk.fail_num
@@ -172,8 +172,8 @@ class Decluster:
         #print "decluster parallelism", diskId, parallelism
         #----------------------------------------------------
         amplification = self.sys.k + 1
-        if priority < fail_per_server:
-            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_server)
+        if priority < fail_per_rack:
+            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_rack)
         else:
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism)
         #print "-----", self.sys.diskSize, amplification, self.sys.diskIO, parallelism
@@ -184,7 +184,7 @@ class Decluster:
         disk.estimate_repair_time = self.curr_time + disk.repair_time[priority]
         # print("{}  disk {}  priority {}  repair time {}".format(self.curr_time, diskId, priority, disk.repair_time))
         #----------------------------------------------------
-        if max_priority == fail_per_server and disk.priority < max_priority:
+        if max_priority == fail_per_rack and disk.priority < max_priority:
             # the disk repair will be delayed because other disk is doing critical rebuild
             max_priority_sets = self.ncr(good_num, self.n-max_priority)*self.ncr(fail_num-1, max_priority-1)
             total_sets = self.ncr((good_num+fail_num-1), (self.n-1)) 
@@ -193,8 +193,8 @@ class Decluster:
             critical_repair_time = critical_data*amplification/(self.sys.diskIO*parallelism) / 3600 / 24
             disk.repair_start_time += critical_repair_time
             disk.estimate_repair_time += critical_repair_time
-            logging.info("disk ID {}  disk priority {}  fail_per_server {} critical time {}  estimate finish time {}".format(
-                            diskId, disk.priority, fail_per_server, critical_repair_time, disk.estimate_repair_time))
+            logging.info("disk ID {}  disk priority {}  fail_per_rack {} critical time {}  estimate finish time {}".format(
+                            diskId, disk.priority, fail_per_rack, critical_repair_time, disk.estimate_repair_time))
 
 
     def ncr(self, n, r):

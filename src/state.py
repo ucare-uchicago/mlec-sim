@@ -3,7 +3,7 @@ import operator as op
 import numpy as np
 import logging
 from functools import reduce
-from server import Server
+from rack import Rack
 from policies import *
 
 class State:
@@ -16,11 +16,11 @@ class State:
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
-    def __init__(self, sys):
+    def __init__(self, sys, mytimer):
         #----------------------------------
         self.sys = sys
         self.n = sys.k + sys.m
-        self.servers = {}
+        self.racks = {}
         self.disks = self.sys.disks
         for diskId in self.disks:
             disk = self.disks[diskId]
@@ -28,15 +28,23 @@ class State:
             disk.priority = 0
             disk.repair_time = {}
         if self.sys.place_type == 2:
-            server_repair_data = sys.diskSize * self.n
+            # rack_repair_data = sys.diskSize * self.n
+            rack_repair_data = sys.diskSize * (self.sys.m + 1)
         else:
-            # server_repair_data = sys.diskSize * self.sys.num_disks_per_server
-            server_repair_data = sys.diskSize * (self.sys.m + 1)
-        for serverId in self.sys.servers:
-            self.servers[serverId] = Server(serverId, server_repair_data, sys.num_disks_per_server // self.n)
+            # rack_repair_data = sys.diskSize * self.sys.num_disks_per_rack
+            rack_repair_data = sys.diskSize * (self.sys.m + 1)
+
+        self.stripeset_num_per_rack = sys.num_disks_per_rack // self.n
+        for rackId in self.sys.racks:
+            self.racks[rackId] = Rack(rackId, rack_repair_data, self.stripeset_num_per_rack)
         self.curr_time = 0
         self.failed_disks = {}
-        self.failed_servers = {}
+        self.failed_racks = {}
+        self.repairing = True
+        self.repair_start_time = 0
+
+        self.mytimer = mytimer
+
         if self.sys.place_type == 0:
             self.policy = RAID(self)
         elif self.sys.place_type == 1:
@@ -47,9 +55,8 @@ class State:
             self.policy = NetRAID(self)
         elif self.sys.place_type == 4:
             self.policy = MLECDP(self)
-        self.repairing = True
-        self.repair_start_time = 0
         #----------------------------------
+        
 
 
 
@@ -63,27 +70,29 @@ class State:
     # update diskset state
     #----------------------------------------------
     def update_state(self, event_type, diskset):
+        if self.sys.place_type == 2:
+            return self.policy.update_state(event_type, diskset)
         for diskId in diskset:
-            serverId = diskId // self.sys.num_disks_per_server
+            rackId = diskId // self.sys.num_disks_per_rack
             if event_type == Disk.EVENT_REPAIR:
                 self.disks[diskId].state = Disk.STATE_NORMAL
-                self.servers[serverId].failed_disks.pop(diskId, None)
+                self.racks[rackId].failed_disks.pop(diskId, None)
                 self.failed_disks.pop(diskId, None)
-                # logging.info("server {} after pop: {}".format(serverId, self.servers[serverId].failed_disks))
+                # logging.info("rack {} after pop: {}".format(rackId, self.racks[rackId].failed_disks))
                 
                 
             if event_type == Disk.EVENT_FAIL:
                 self.disks[diskId].state = Disk.STATE_FAILED
-                self.servers[serverId].failed_disks[diskId] = 1
+                self.racks[rackId].failed_disks[diskId] = 1
                 self.failed_disks[diskId] = 1
-                # logging.info("server {} after add: {}".format(serverId, self.servers[serverId].failed_disks))
+                # logging.info("rack {} after add: {}".format(rackId, self.racks[rackId].failed_disks))
 
 
     #----------------------------------------------
-    # update server state
+    # update rack state
     #----------------------------------------------
-    def update_server_state(self, event_type, diskset):
-        return self.policy.update_server_state(event_type, diskset)
+    def update_rack_state(self, event_type, diskset):
+        return self.policy.update_rack_state(event_type, diskset)
 
 
 
@@ -97,8 +106,8 @@ class State:
     #----------------------------------------------
     # update network-level priority
     #----------------------------------------------
-    def update_server_priority(self, event_type, new_failed_servers, serverset):
-        self.policy.update_server_priority(event_type, new_failed_servers, serverset)
+    def update_rack_priority(self, event_type, new_failed_racks, rackset):
+        self.policy.update_rack_priority(event_type, new_failed_racks, rackset)
 
 
 
@@ -108,9 +117,9 @@ class State:
 
 
 
-    def get_failed_disks_per_server(self, serverId):
-        # logging.info("sedrver {} get: {}".format(serverId, list(self.servers[serverId].failed_disks.keys())))
-        return list(self.servers[serverId].failed_disks.keys())
+    def get_failed_disks_per_rack(self, rackId):
+        # logging.info("sedrver {} get: {}".format(rackId, list(self.racks[rackId].failed_disks.keys())))
+        return list(self.racks[rackId].failed_disks.keys())
 
 
     def get_failed_disks_per_stripeset(self, stripesetId):
@@ -125,9 +134,9 @@ class State:
 
     def get_failed_disks_per_stripeset_diskId(self, diskId):
         failed_disks = []
-        serverId = diskId // self.sys.num_disks_per_server
-        stripesetId = (diskId % self.sys.num_disks_per_server) // self.n
-        stripeset = self.sys.flat_cluster_server_layout[serverId][stripesetId]
+        rackId = diskId // self.sys.num_disks_per_rack
+        stripesetId = (diskId % self.sys.num_disks_per_rack) // self.n
+        stripeset = self.sys.flat_cluster_rack_layout[rackId][stripesetId]
         for d in stripeset:
             # logging.info("  get_failed_disks_per_stripeset  diskId: {}".format(diskId))
             if self.disks[d].state == Disk.STATE_FAILED:
@@ -138,5 +147,5 @@ class State:
     def get_failed_disks(self):
         return list(self.failed_disks.keys())
 
-    def get_failed_servers(self):
-        return list(self.failed_servers.keys())
+    def get_failed_racks(self):
+        return list(self.failed_racks.keys())

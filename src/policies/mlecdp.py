@@ -3,7 +3,7 @@ import operator as op
 import numpy as np
 import logging
 from functools import reduce
-from server import Server
+from rack import Rack
 
 class MLECDP:
     #--------------------------------------
@@ -13,15 +13,15 @@ class MLECDP:
         self.state = state
         self.sys = state.sys
         self.n = state.n
-        self.servers = state.servers
+        self.racks = state.racks
         self.disks = state.disks
         self.curr_time = state.curr_time
         self.failed_disks = state.failed_disks
-        self.failed_servers = state.failed_servers
+        self.failed_racks = state.failed_racks
 
     #----------------------------------------------
     def update_priority(self, event_type, diskset):
-        updated_servers = {}
+        updated_racks = {}
 
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
             for diskId in diskset:
@@ -33,50 +33,50 @@ class MLECDP:
                     self.disks[diskId].repair_start_time = self.curr_time
 
             for diskId in diskset:
-                serverId = diskId // self.sys.num_disks_per_server
-                if serverId in updated_servers:
+                rackId = diskId // self.sys.num_disks_per_rack
+                if rackId in updated_racks:
                     continue
-                updated_servers[serverId] = 1
-                if self.servers[serverId].state == Server.STATE_FAILED:
-                    # logging.info("update_priority(): server {} is failed. Event type: {}".format(serverId, event_type))
+                updated_racks[rackId] = 1
+                if self.racks[rackId].state == Rack.STATE_FAILED:
+                    # logging.info("update_priority(): rack {} is failed. Event type: {}".format(rackId, event_type))
                     continue
-                fail_per_server = self.state.get_failed_disks_per_server(serverId)
-                #  what if there are multiple servers
-                if len(fail_per_server) > 0:
+                fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
+                #  what if there are multiple racks
+                if len(fail_per_rack) > 0:
                         if self.sys.adapt:
                             priorities = []
-                            for diskId in fail_per_server:
+                            for diskId in fail_per_rack:
                                 priorities.append(self.disks[diskId].priority)
                             max_priority = max(priorities)
-                            for diskId in fail_per_server:
+                            for diskId in fail_per_rack:
                                 self.update_disk_repair_time_adapt(diskId, 
-                                    self.disks[diskId].priority, len(fail_per_server), max_priority)
+                                    self.disks[diskId].priority, len(fail_per_rack), max_priority)
                         else:
-                            for diskId in fail_per_server:
-                                self.update_disk_repair_time(diskId, self.disks[diskId].priority, len(fail_per_server))
+                            for diskId in fail_per_rack:
+                                self.update_disk_repair_time(diskId, self.disks[diskId].priority, len(fail_per_rack))
 
         if event_type == Disk.EVENT_FAIL:
             for diskId in diskset:
-                serverId = diskId // self.sys.num_disks_per_server
-                if self.servers[serverId].state == Server.STATE_FAILED:
-                    # logging.info("update_priority(): server {} is failed".format(serverId))
+                rackId = diskId // self.sys.num_disks_per_rack
+                if self.racks[rackId].state == Rack.STATE_FAILED:
+                    # logging.info("update_priority(): rack {} is failed".format(rackId))
                     continue
-                if serverId in updated_servers:
+                if rackId in updated_racks:
                     continue
-                updated_servers[serverId] = 1
-                fail_per_server = self.state.get_failed_disks_per_server(serverId)
-                new_failures = set(fail_per_server).intersection(set(diskset))
+                updated_racks[rackId] = 1
+                fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
+                new_failures = set(fail_per_rack).intersection(set(diskset))
                 if len(new_failures) > 0:
                     #-----------------------------------------------------
                     # calculate repairT and update priority for decluster
                     #-----------------------------------------------------
                     if len(new_failures) > 0:
                             #----------------------------------------------
-                            fail_num = len(fail_per_server) # count total failed disks number
-                            good_num = len(self.sys.disks_per_server[serverId]) - fail_num
+                            fail_num = len(fail_per_rack) # count total failed disks number
+                            good_num = len(self.sys.disks_per_rack[rackId]) - fail_num
                             #----------------------------------------------
                             priorities = []
-                            for diskId in fail_per_server:
+                            for diskId in fail_per_rack:
                                 priorities.append(self.disks[diskId].priority)
                             max_priority = max(priorities)+len(new_failures)
                             #----------------------------------------------
@@ -92,15 +92,15 @@ class MLECDP:
                                 # logging.info("\tdisk {} priority {}".format(diskId, self.disks[diskId].priority))
 
                             if self.sys.adapt:
-                                for diskId in fail_per_server:
+                                for diskId in fail_per_rack:
                                     self.update_disk_repair_time_adapt(diskId, self.disks[diskId].priority, 
-                                        len(fail_per_server), max_priority)
+                                        len(fail_per_rack), max_priority)
                             else:
-                                for diskId in fail_per_server:
+                                for diskId in fail_per_rack:
                                     self.update_disk_repair_time(diskId, self.disks[diskId].priority, 
-                                        len(fail_per_server))
+                                        len(fail_per_rack))
 
-    def update_disk_repair_time(self, diskId, priority, fail_per_server):
+    def update_disk_repair_time(self, diskId, priority, fail_per_rack):
         disk = self.disks[diskId]
         good_num = disk.good_num
         fail_num = disk.fail_num
@@ -127,8 +127,8 @@ class MLECDP:
         #----------------------------------------------------
         # amplification = self.sys.k + priority
         amplification = self.sys.k + 1
-        if priority < fail_per_server:
-            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_server)
+        if priority < fail_per_rack:
+            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_rack)
         else:
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism)
         #print "-----", self.sys.diskSize, amplification, self.sys.diskIO, parallelism
@@ -144,90 +144,94 @@ class MLECDP:
     #----------------------------------------------
     # update network-level priority
     #----------------------------------------------
-    def update_server_priority(self, event_type, new_failed_servers, serverset):
-        failed_servers = self.state.get_failed_servers()
+    def update_rack_priority(self, event_type, new_failed_racks, rackset):
+        failed_racks = self.state.get_failed_racks()
         if event_type == Disk.EVENT_FAIL:
-                for serverId in new_failed_servers:
-                    self.servers[serverId].repair_start_time = self.curr_time
-                for serverId in failed_servers:
-                    self.update_server_repair_time(serverId, len(failed_servers))
+                for rackId in new_failed_racks:
+                    self.racks[rackId].repair_start_time = self.curr_time
+                    self.racks[rackId].init_repair_start_time = self.curr_time
+                for rackId in failed_racks:
+                    self.update_rack_repair_time(rackId, len(failed_racks))
 
-        if event_type == Server.EVENT_FAIL:
-                for serverId in new_failed_servers:
-                    self.servers[serverId].repair_start_time = self.curr_time
-                for serverId in failed_servers:
-                    self.update_server_repair_time(serverId, len(failed_servers))
+        if event_type == Rack.EVENT_FAIL:
+                for rackId in new_failed_racks:
+                    self.racks[rackId].repair_start_time = self.curr_time
+                    self.racks[rackId].init_repair_start_time = self.curr_time
+                for rackId in failed_racks:
+                    self.update_rack_repair_time(rackId, len(failed_racks))
 
-        if event_type == Server.EVENT_REPAIR:
-                for serverId in failed_servers:
-                    self.update_server_repair_time(serverId, len(failed_servers))
+        if event_type == Rack.EVENT_REPAIR:
+                for rackId in failed_racks:
+                    self.update_rack_repair_time(rackId, len(failed_racks))
     
     #----------------------------------------------
-    # update server state
+    # update rack state
     #----------------------------------------------
-    def update_server_state(self, event_type, diskset):
-        new_server_failures = []
+    def update_rack_state(self, event_type, diskset):
+        new_rack_failures = []
         if event_type == Disk.EVENT_FAIL:
             for diskId in diskset:
-                serverId = diskId // self.sys.num_disks_per_server
-                # if server already fails, we don't need to fail it again.
-                if self.servers[serverId].state == Server.STATE_FAILED:
+                rackId = diskId // self.sys.num_disks_per_rack
+                # if rack already fails, we don't need to fail it again.
+                if self.racks[rackId].state == Rack.STATE_FAILED:
                     continue
-                # otherwise, we need to check if a new server fails
-                fail_per_server = self.state.get_failed_disks_per_server(serverId)
+                # otherwise, we need to check if a new rack fails
+                fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
                 max_priority = 0
-                for diskId in fail_per_server:
+                for diskId in fail_per_rack:
                     # logging.info("\tdisk {} priority {}".format(diskId, self.disks[diskId].priority))
                     if self.disks[diskId].priority > max_priority:
                         max_priority = self.disks[diskId].priority
-                # logging.info("max_priority: {}  fail_per_server: {}"
-                #                 .format(max_priority, fail_per_server))
+                # logging.info("max_priority: {}  fail_per_rack: {}"
+                #                 .format(max_priority, fail_per_rack))
                 if max_priority > self.sys.m:
-                    if serverId not in new_server_failures:
-                        new_server_failures.append(serverId)
-                    self.servers[serverId].state = Server.STATE_FAILED
-                    self.failed_servers[serverId] = 1
+                    if rackId not in new_rack_failures:
+                        new_rack_failures.append(rackId)
+                    self.racks[rackId].state = Rack.STATE_FAILED
+                    self.failed_racks[rackId] = 1
                     break
         
-        if event_type == Server.EVENT_FAIL:
-            serverset = diskset
-            for serverId in serverset:
-                self.servers[serverId].state = Server.STATE_FAILED
-                new_server_failures.append(serverId)
-                self.failed_servers[serverId] = 1
+        if event_type == Rack.EVENT_FAIL:
+            rackset = diskset
+            for rackId in rackset:
+                self.racks[rackId].state = Rack.STATE_FAILED
+                new_rack_failures.append(rackId)
+                self.failed_racks[rackId] = 1
 
-        if event_type == Server.EVENT_REPAIR:
-            serverset = diskset
-            for serverId in serverset:
-                self.servers[serverId].state = Server.STATE_NORMAL
-                self.failed_servers.pop(serverId, None)
-                for diskId in self.servers[serverId].failed_disks:
+        if event_type == Rack.EVENT_REPAIR:
+            rackset = diskset
+            for rackId in rackset:
+                self.racks[rackId].state = Rack.STATE_NORMAL
+                self.failed_racks.pop(rackId, None)
+                for diskId in self.racks[rackId].failed_disks:
                     self.failed_disks.pop(diskId, None)
-                self.servers[serverId].failed_disks.clear()
+                self.racks[rackId].failed_disks.clear()
                 
-                for diskId in self.sys.disks_per_server[serverId]:
+                for diskId in self.sys.disks_per_rack[rackId]:
                     self.disks[diskId].state = Disk.STATE_NORMAL 
                 
-                self.sys.metrics.total_net_traffic += self.servers[serverId].repair_data * (self.sys.top_k + 1)
+                self.sys.metrics.total_net_traffic += self.racks[rackId].repair_data * (self.sys.top_k + 1)
+                self.sys.metrics.total_net_repair_time += self.curr_time - self.racks[rackId].init_repair_start_time
+                self.sys.metrics.total_net_repair_count += 1
 
 
-        return new_server_failures
+        return new_rack_failures
     
-    def update_server_repair_time(self, serverId, failed_servers):
-        server = self.servers[serverId]
-        repaired_time = self.curr_time - server.repair_start_time
+    def update_rack_repair_time(self, rackId, failed_racks):
+        rack = self.racks[rackId]
+        repaired_time = self.curr_time - rack.repair_start_time
         if repaired_time == 0:
             repaired_percent = 0
-            server.curr_repair_data_remaining = server.repair_data
+            rack.curr_repair_data_remaining = rack.repair_data
         else:
-            repaired_percent = repaired_time / server.repair_time[0]
-            server.curr_repair_data_remaining = server.curr_repair_data_remaining * (1 - repaired_percent)
-        repair_time = float(server.curr_repair_data_remaining)/(self.sys.diskIO * self.sys.num_disks_per_server / failed_servers)
-        server.repair_time[0] = repair_time / 3600 / 24
-        server.repair_start_time = self.curr_time
-        server.estimate_repair_time = self.curr_time + server.repair_time[0]
-        # logging.info("calculate repair time for server {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
-        #                 serverId, repaired_time, server.repair_time[0], server.repair_start_time))
+            repaired_percent = repaired_time / rack.repair_time[0]
+            rack.curr_repair_data_remaining = rack.curr_repair_data_remaining * (1 - repaired_percent)
+        repair_time = float(rack.curr_repair_data_remaining)/(self.sys.diskIO * self.sys.num_disks_per_rack / failed_racks)
+        rack.repair_time[0] = repair_time / 3600 / 24
+        rack.repair_start_time = self.curr_time
+        rack.estimate_repair_time = self.curr_time + rack.repair_time[0]
+        # logging.info("calculate repair time for rack {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
+        #                 rackId, repaired_time, rack.repair_time[0], rack.repair_start_time))
 
     def ncr(self, n, r):
         r = min(r, n-r)

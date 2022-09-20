@@ -3,7 +3,7 @@ import operator as op
 import numpy as np
 import logging
 from functools import reduce
-from server import Server
+from rack import Rack
 from constants import RAID_NET
 
 class NetRAID:
@@ -14,11 +14,11 @@ class NetRAID:
         self.state = state
         self.sys = state.sys
         self.n = state.n
-        self.servers = state.servers
+        self.racks = state.racks
         self.disks = state.disks
         self.curr_time = state.curr_time
         self.failed_disks = state.failed_disks
-        self.failed_servers = state.failed_servers
+        self.failed_racks = state.failed_racks
 
     #----------------------------------------------
     # raid net

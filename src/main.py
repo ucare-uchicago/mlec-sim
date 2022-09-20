@@ -40,10 +40,10 @@ def iter(state_: SysState, iters, mission):
         res = 0
         sysstate = copy.deepcopy(state_)
         mytimer = Mytimer()
-        sys = System(sysstate.total_drives, sysstate.drives_per_server, sysstate.drive_args.data_shards,
+        sys = System(sysstate.total_drives, sysstate.drives_per_rack, sysstate.drive_args.data_shards,
                 sysstate.drive_args.parity_shards, sysstate.place_type, sysstate.drive_args.drive_cap * 1024 * 1024,
                 sysstate.drive_args.rec_speed, 1, sysstate.top_d_shards, sysstate.top_p_shards,
-                sysstate.adapt, sysstate.server_fail)
+                sysstate.adapt, sysstate.rack_fail)
         repair = Repair(sys, sysstate.place_type)
         placement = Placement(sys, sysstate.place_type)
 
@@ -55,8 +55,8 @@ def iter(state_: SysState, iters, mission):
             mytimer.simInitTime += time.time() - temp
             res += sim.run_simulation(sysstate, mytimer)
         end = time.time()
-        print("totaltime: {}".format(end - start))
-        print(mytimer)
+        # print("totaltime: {}".format(end - start))
+        # print(mytimer)
         return (res, mytimer, sys.metrics)
     except Exception as e:
         print(traceback.format_exc())
@@ -79,24 +79,25 @@ def simulate(state, iters, epochs, concur=10, mission=YEAR):
     for res in ress:
         failed_instances += res[0]
         metrics += res[2]
-        
+    
+    # logging.info("  failed_instances: {}".format(failed_instances))
     return [failed_instances, epochs * iters, metrics]
 
 
 def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
-                total_drives, drives_per_server, placement, distribution):
+                total_drives, drives_per_rack, placement, distribution):
         # logging.basicConfig(level=logging.INFO)
     
     # for afr in range(2, 11):
         mission = YEAR
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_server=drives_per_server, 
-                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0)
+        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, rack_fail = 0)
 
         res = [0, 0, Metrics()]
 
-        temp = simulate(sys_state1, iters=1000, epochs=1, concur=1, mission=mission)
-        return
+        # temp = simulate(sys_state1, iters=10000, epochs=1, concur=1, mission=mission)
+        # return
         while res[0] < 20:
             start  = time.time()
             temp = simulate(sys_state1, iters=50000, epochs=200, concur=200, mission=mission)
@@ -107,6 +108,7 @@ def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
             simulationTime = time.time() - start
             print("simulation time: {}".format(simulationTime))
             print(res)
+        
         # res = simulate(sys_state1, iters=1000, epochs=1, concur=1)
         print('++++++++++++++++++++++++++++++++')
         print('Total Fails: ' + str(res[0]))
@@ -132,13 +134,14 @@ def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
 
 def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_server, placement, dist):
+                    total_drives, drives_per_rack, placement, dist):
     # logging.basicConfig(level=logging.INFO)
 
-        # Compute P(server 1 fails)
+        # Compute P(rack 1 fails)
+    for afr in range(2, 11):
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = SysState(total_drives=drives_per_server, drive_args=drive_args1, placement='DP', drives_per_server=drives_per_server, 
-                        top_d_shards=N_net, top_p_shards=0, adapt=adapt, server_fail = 0)
+        sys_state1 = SysState(total_drives=drives_per_rack, drive_args=drive_args1, placement='RAID', drives_per_rack=drives_per_rack, 
+                        top_d_shards=N_net, top_p_shards=0, adapt=adapt, rack_fail = 0)
 
         print('')
         # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
@@ -153,23 +156,28 @@ def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
             simulationTime = time.time() - start
             print("simulation time: {}".format(simulationTime))
             print(res)
-        
         # res = simulate(l1sys, iters=1000, epochs=1, concur=1)
-        server_one_fail_prob = res[0] / res[1]
+        rack_one_fail_prob = res[0] / res[1]
         print('++++++++++++++++++++')
         print('Total Fails: ' + str(res[0]))
         print('Total Iters: ' + str(res[1]))
-        print('Probability that server one fails: {}'.format(server_one_fail_prob))
+        print('Probability that rack one fails: {}'.format(rack_one_fail_prob))
 
-        # Compute P(server 1 fails | system fails)
-        pro_sys_fail_contain_s1 = 1 - math.comb(N_net + k_net - 1, k_net + 1) / math.comb(N_net + k_net, k_net + 1)
+        # Compute P(rack 1 fails | system fails)
+        #       = P(rack 1 fails | rack_stripeset 1 fails) * P(rack_stripeset 1 fails | system fails)
+        num_rack_stripesets = total_drives // drives_per_rack // (N_net + k_net)
+        pro_sys_fail_contain_rack_stripeset_1 = (
+                    1 - math.comb(num_rack_stripesets - 1, 1) / math.comb(num_rack_stripesets, 1))
+        pro_rack_stripeset_1_fail_contain_s1 = (
+                    1 - math.comb(N_net + k_net - 1, k_net + 1) / math.comb(N_net + k_net, k_net + 1))
+        pro_sys_fail_contain_s1 = pro_sys_fail_contain_rack_stripeset_1 * pro_rack_stripeset_1_fail_contain_s1
         print('------------')
-        print('Probability that system failure contains server one: {}'.format(pro_sys_fail_contain_s1))
+        print('Probability that system failure contains rack one: {}'.format(pro_sys_fail_contain_s1))
 
-        # Compute P(system fails | server 1 fails)
+        # Compute P(system fails | rack 1 fails)
         drive_args2 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state2 = SysState(total_drives=total_drives, drive_args=drive_args2, placement=placement, drives_per_server=drives_per_server, 
-                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 1)
+        sys_state2 = SysState(total_drives=total_drives, drive_args=drive_args2, placement=placement, drives_per_rack=drives_per_rack, 
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, rack_fail = 1)
 
         res = [0, 0]
         while res[0] < 20:
@@ -185,13 +193,13 @@ def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
         print('------------')
         print('Total Fails: ' + str(res[0]))
         print('Total Iters: ' + str(res[1]))
-        print('Probability that the system fails when server one fails: {}'.format(conditional_prob))
+        print('Probability that the system fails when rack one fails: {}'.format(conditional_prob))
 
         print('------------')
 
-        # P(system fails) = P(system fails | server 1 fails) * P(server 1 fails) / P(server 1 fails | system fails)
-        res[0] = res[0] * server_one_fail_prob / pro_sys_fail_contain_s1
-        aggr_prob = conditional_prob * server_one_fail_prob / pro_sys_fail_contain_s1
+        # P(system fails) = P(system fails | rack 1 fails) * P(rack 1 fails) / P(rack 1 fails | system fails)
+        res[0] = res[0] * rack_one_fail_prob / pro_sys_fail_contain_s1
+        aggr_prob = conditional_prob * rack_one_fail_prob / pro_sys_fail_contain_s1
         print('Total Fails: ' + str(res[0]))
         print('Total Iters: ' + str(res[1]))
         print('Probability that the system fails: {}'.format(aggr_prob))
@@ -210,11 +218,11 @@ def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
 
 def approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_server, placement, dist):
+                    total_drives, drives_per_rack, placement, dist):
     for cap in range(100, 110, 10):
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = SysState(total_drives=drives_per_server, drive_args=drive_args1, placement='RAID', drives_per_server=drives_per_server, 
-                        top_d_shards=N_net, top_p_shards=0, adapt=adapt, server_fail = 0)
+        sys_state1 = SysState(total_drives=drives_per_rack, drive_args=drive_args1, placement='RAID', drives_per_rack=drives_per_rack, 
+                        top_d_shards=N_net, top_p_shards=0, adapt=adapt, rack_fail = 0)
 
         print('')
         # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
@@ -230,22 +238,22 @@ def approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
             print("simulation time: {}".format(simulationTime))
             print(res)
         # res = simulate(l1sys, iters=1000, epochs=1, concur=1)
-        server_one_fail_prob = res[0] / res[1]
-        server_one_and_two_fail_prob = server_one_fail_prob ** 2
+        rack_one_fail_prob = res[0] / res[1]
+        rack_one_and_two_fail_prob = rack_one_fail_prob ** 2
         print('++++++++++++++++++++')
         print('Total Fails: ' + str(res[0]))
         print('Total Iters: ' + str(res[1]))
-        print('Probability that server one fails: {}'.format(server_one_fail_prob))
-        print('Probability that server one and two fails: {}'.format(server_one_and_two_fail_prob))
+        print('Probability that rack one fails: {}'.format(rack_one_fail_prob))
+        print('Probability that rack one and two fails: {}'.format(rack_one_and_two_fail_prob))
 
         pro_sys_fail_contain_s1_s2 = math.comb(N_net + k_net - 2, k_net + 1 - 2) / math.comb(N_net + k_net, k_net + 1)
         print('------------')
-        print('Probability that system failure contains server one: {}'.format(pro_sys_fail_contain_s1_s2))
+        print('Probability that system failure contains rack one: {}'.format(pro_sys_fail_contain_s1_s2))
 
 
         drive_args2 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state2 = SysState(total_drives=total_drives, drive_args=drive_args2, placement=placement, drives_per_server=drives_per_server, 
-                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 2)
+        sys_state2 = SysState(total_drives=total_drives, drive_args=drive_args2, placement=placement, drives_per_rack=drives_per_rack, 
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, rack_fail = 2)
 
         res = [0, 0]
         while res[0] < 20:
@@ -261,11 +269,11 @@ def approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
         print('------------')
         print('Total Fails: ' + str(res[0]))
         print('Total Iters: ' + str(res[1]))
-        print('Probability that the system fails when server one fails: {}'.format(conditional_prob))
+        print('Probability that the system fails when rack one fails: {}'.format(conditional_prob))
 
         print('------------')
-        res[0] = res[0] * server_one_and_two_fail_prob / pro_sys_fail_contain_s1_s2
-        aggr_prob = conditional_prob * server_one_and_two_fail_prob / pro_sys_fail_contain_s1_s2
+        res[0] = res[0] * rack_one_and_two_fail_prob / pro_sys_fail_contain_s1_s2
+        aggr_prob = conditional_prob * rack_one_and_two_fail_prob / pro_sys_fail_contain_s1_s2
         print('Total Fails: ' + str(res[0]))
         print('Total Iters: ' + str(res[1]))
         print('Probability that the system fails: {}'.format(aggr_prob))
@@ -284,15 +292,15 @@ def approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
 
 def io_over_year(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
-                total_drives, drives_per_server, placement, distribution):
+                total_drives, drives_per_rack, placement, distribution):
     # logging.basicConfig(level=logging.INFO)
     rebuildio_prev_year = 0
 
     for years in range(1,51,1):
         mission = years*YEAR
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_server=drives_per_server, 
-                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0, distribution = distribution)
+        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, rack_fail = 0, distribution = distribution)
 
         res = [0, 0, Metrics()]
         start  = time.time()
@@ -334,7 +342,7 @@ def io_over_year(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
 
 def weibull_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
-                total_drives, drives_per_server, placement, distribution):
+                total_drives, drives_per_rack, placement, distribution):
     # logging.basicConfig(level=logging.INFO)
     
     for beta in np.arange(1, 2.2, 0.2):
@@ -342,19 +350,19 @@ def weibull_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
         t_l = 5  # 5 years
         alpha = t_l / ((- t_l * math.log((1-afr/100))) ** (1/beta))  # in years
 
-        print("{} {} {} {} {} {} {}".format(afr/100,beta,cap,io_speed,drives_per_server,N_local,k_local))
+        print("{} {} {} {} {} {} {}".format(afr/100,beta,cap,io_speed,drives_per_rack,N_local,k_local))
         nines_from_calculator = calculate_weibull_nines(afr=afr/100, beta=beta, 
                                                         disk_cap=cap, io=io_speed,
-                                                        n=drives_per_server, k=N_local, c=k_local)
-        server_num = total_drives / drives_per_server
-        nines_from_calculator -= math.log10(server_num)
+                                                        n=drives_per_rack, k=N_local, c=k_local)
+        rack_num = total_drives / drives_per_rack
+        nines_from_calculator -= math.log10(rack_num)
         print("nines_from_calculator: {}".format(nines_from_calculator))
 
         failure_generator = Weibull(alpha, beta)
         print("alpha: {}  beta: {}".format(alpha, beta))
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_server=drives_per_server, 
-                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, server_fail = 0, failure_generator = failure_generator)
+        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, rack_fail = 0, failure_generator = failure_generator)
 
         res = [0, 0, Metrics()]
         while res[0] < 20:
@@ -391,6 +399,50 @@ def weibull_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
                 alpha, beta, nines_from_calculator))
             output.close()
 
+def metric_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
+                total_drives, drives_per_rack, placement, distribution):
+        # logging.basicConfig(level=logging.INFO)
+    
+    for afr in range(2, 6):
+        mission = YEAR
+        drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
+        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
+                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, rack_fail = 0)
+
+        res = [0, 0, Metrics()]
+
+        # temp = simulate(sys_state1, iters=10000, epochs=1, concur=1, mission=mission)
+        # return
+        start  = time.time()
+        temp = simulate(sys_state1, iters=5000, epochs=200, concur=200, mission=mission)
+        res[0] += temp[0]
+        res[1] += temp[1]
+        res[2] += temp[2]
+        print(res[2])
+
+        simulationTime = time.time() - start
+        print("simulation time: {}".format(simulationTime))
+        print(res)
+        
+        # res = simulate(sys_state1, iters=1000, epochs=1, concur=1)
+        print('++++++++++++++++++++++++++++++++')
+        print('Total Fails: ' + str(res[0]))
+        print('Total Iters: ' + str(res[1]))
+
+        res[1] *= mission/YEAR
+        
+
+        if res[0] == 0:
+            print("NO FAILURE!")
+            # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+
+        output = open("s-metric-{}.log".format(placement), "a")
+        output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {} {}\n".format(
+            N_local, k_local, N_net, k_net, total_drives,
+            afr, cap, io_speed, res[0], res[1], "adapt" if adapt else "notadapt",
+            res[2].getAverageRebuildIO(), res[2].getAverageNetTraffic(), res[2].getAvgNetRepairTime()))
+        output.close()
+
 
 if __name__ == "__main__":
     logger = logging.getLogger()
@@ -406,7 +458,7 @@ if __name__ == "__main__":
     parser.add_argument('-n_net', type=int, help="number of data chunks in network EC", default=7)
     parser.add_argument('-k_net', type=int, help="number of parity chunks in network EC", default=1)
     parser.add_argument('-total_drives', type=int, help="number of total drives in the system", default=-1)
-    parser.add_argument('-drives_per_server', type=int, help="number of drives per server", default=-1)
+    parser.add_argument('-drives_per_rack', type=int, help="number of drives per rack", default=-1)
     parser.add_argument('-placement', type=str, help="placement policy. Can be RAID/DP/MLEC/LRC", default='MLEC')
     parser.add_argument('-dist', type=str, help="disk failure distribution. Can be exp/weibull", default='exp')
     args = parser.parse_args()
@@ -427,9 +479,9 @@ if __name__ == "__main__":
         total_drives = (N_local+k_local) * (N_net+k_net)
 
 
-    drives_per_server = args.drives_per_server
-    if drives_per_server == -1:
-        drives_per_server=N_local+k_local
+    drives_per_rack = args.drives_per_rack
+    if drives_per_rack == -1:
+        drives_per_rack=N_local+k_local
     
     placement = args.placement
     if placement in ['RAID', 'DP']:
@@ -445,19 +497,22 @@ if __name__ == "__main__":
 
     if sim_mode == 0:
         normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_server, placement, dist)
+                    total_drives, drives_per_rack, placement, dist)
     elif sim_mode == 1:
         approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_server, placement, dist)
+                    total_drives, drives_per_rack, placement, dist)
     elif sim_mode == 2:
         approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_server, placement, dist)
+                    total_drives, drives_per_rack, placement, dist)
     elif sim_mode == 3:
         io_over_year(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_server, placement, dist)
+                    total_drives, drives_per_rack, placement, dist)
     elif sim_mode == 4:
         weibull_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_server, placement, dist)
+                    total_drives, drives_per_rack, placement, dist)
+    elif sim_mode == 5:
+        metric_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
+                    total_drives, drives_per_rack, placement, dist)
 
 
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_afr=50&d_cap=20&dr_rw_speed=50&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&spares=0&rec_wr_spd_alloc=100

@@ -1,23 +1,23 @@
 from mpmath import mpf
 
-class Server:
+class Rack:
     #----------------------------
     # The 2 possible disk states
     #----------------------------
-    STATE_NORMAL = "< server state normal >"
-    STATE_FAILED = "< server state failed >"
+    STATE_NORMAL = "< rack state normal >"
+    STATE_FAILED = "< rack state failed >"
 
     #----------------------------------
     # The 2 possible events
     #----------------------------------
-    EVENT_FAIL = "<server failure>"
-    EVENT_REPAIR = "<server repair>"
+    EVENT_FAIL = "<rack failure>"
+    EVENT_REPAIR = "<rack repair>"
 
     #----------------------------------
-    # Initialize the server
+    # Initialize the rack
     #----------------------------------
-    def __init__(self, serverId, repair_data, stripeset_num):
-        self.serverId = serverId
+    def __init__(self, rackId, repair_data, stripeset_num):
+        self.rackId = rackId
         self.state = self.STATE_NORMAL
         #-------------------------------
         # initialize the repair priority
@@ -36,3 +36,7 @@ class Server:
         self.stripesets_repair_finish = []
         for i in range(stripeset_num):
             self.stripesets_repair_finish.append(0)
+        
+        # self.stripeset_failed_disks = []
+        # for i in range(stripeset_num):
+        #     self.stripeset_failed_disks.append({})
