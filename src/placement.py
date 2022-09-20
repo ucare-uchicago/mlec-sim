@@ -1,7 +1,7 @@
 from system import System
 from disk import Disk
 import logging
-from server import Server
+from rack import Rack
 
 class Placement:
     def __init__(self, sys, place_type):
@@ -34,11 +34,11 @@ class Placement:
 
     def flat_cluster_simulate(self, state):
         prob = 0
-        for serverId in self.sys.servers:
-            fail_per_server = state.get_failed_disks_per_server(serverId)
-            stripesets_per_server = self.sys.flat_cluster_server_layout[serverId]
-            for stripeset in stripesets_per_server:
-                fail_per_set = set(stripeset).intersection(set(fail_per_server))
+        for rackId in self.sys.racks:
+            fail_per_rack = state.get_failed_disks_per_rack(rackId)
+            stripesets_per_rack = self.sys.flat_cluster_rack_layout[rackId]
+            for stripeset in stripesets_per_rack:
+                fail_per_set = set(stripeset).intersection(set(fail_per_rack))
                 if len(fail_per_set) > self.sys.m:
                     prob = 1
                     return prob
@@ -47,15 +47,16 @@ class Placement:
 
     def mlec_cluster_simulate(self, state):
         prob = 0
-        failed_servers = state.get_failed_servers()
-        if len(failed_servers) > self.sys.top_m:
-            prob = 1
+        for i in range(self.sys.num_rack_stripesets):
+            failed_racks_per_stripeset = state.policy.get_failed_racks_per_stripeset(i)
+            if len(failed_racks_per_stripeset) > self.sys.top_m:
+                prob = 1
         return prob
 
     def mlec_dp_simulate(self, state):
         prob = 0
-        failed_servers = state.get_failed_servers()
-        if len(failed_servers) > self.sys.top_m:
+        failed_racks = state.get_failed_racks()
+        if len(failed_racks) > self.sys.top_m:
             prob = 1
         return prob
 

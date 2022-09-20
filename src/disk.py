@@ -21,7 +21,7 @@ class Disk:
         # initialize the state be normal
         #-------------------------------
         self.diskId = diskId
-        self.serverId = 0
+        self.rackId = 0
         self.stripesetId = 0
         #-------------------------------
         # initialize the state be normal

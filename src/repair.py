@@ -10,7 +10,7 @@ from disk import Disk
 import operator as op
 from heapq import *
 import logging
-from server import Server
+from rack import Rack
 
 class Repair:
     def __init__(self, sys, place_type):
@@ -26,15 +26,15 @@ class Repair:
     def update_repair_event(self, diskset, state, curr_time, repair_queue):
         # logging.debug("updating repair",diskset)
         repair_queue.clear()
-        checked_servers = {}
-        for serverId in state.get_failed_servers():
+        checked_racks = {}
+        for rackId in state.get_failed_racks():
             if self.place_type in [2,4]:
-                repair_time = state.servers[serverId].repair_time[0]
+                repair_time = state.racks[rackId].repair_time[0]
                 #-----------------------------------------------------
-                heappush(repair_queue, (state.servers[serverId].estimate_repair_time, Server.EVENT_REPAIR, serverId))
+                heappush(repair_queue, (state.racks[rackId].estimate_repair_time, Rack.EVENT_REPAIR, rackId))
         for diskId in state.get_failed_disks():
-            serverId = diskId // self.sys.num_disks_per_server
-            if state.servers[serverId].state == Server.STATE_NORMAL:
+            rackId = diskId // self.sys.num_disks_per_rack
+            if state.racks[rackId].state == Rack.STATE_NORMAL:
                 if self.place_type == 0:
                     #-----------------------------------------------------
                     # FIFO reconstruct, utilize the hot spares

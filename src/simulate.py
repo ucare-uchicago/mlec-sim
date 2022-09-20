@@ -4,7 +4,7 @@ from placement import Placement
 from repair import Repair
 from state import State
 from disk import Disk
-from server import Server
+from rack import Rack
 from heapq import *
 import logging
 import time
@@ -32,9 +32,9 @@ class Simulate:
 
     #------------------------------------------
     # initiate failure queue and repair queue
-    # failure queue: the queue of failure events (including server failure and disk failure)
-    # repair queue: the queue of repair events (including server repair and disk repair)
-    # element in the queue follows this format: (event_time, event_type, disk/server ID)
+    # failure queue: the queue of failure events (including rack failure and disk failure)
+    # repair queue: the queue of repair events (including rack repair and disk repair)
+    # element in the queue follows this format: (event_time, event_type, disk/rack ID)
     #------------------------------------------
     def reset(self, initialFailures, mytimer):
         self.failure_queue = []
@@ -43,7 +43,7 @@ class Simulate:
         self.sys.priority_per_set = {}
 
         temp = time.time()
-        self.state = State(self.sys)
+        self.state = State(self.sys, mytimer)
         resetStateEndTime = time.time()
         mytimer.resetStateInitTime += resetStateEndTime - temp
 
@@ -70,11 +70,11 @@ class Simulate:
             self.sys.metrics.failure_count += 1
             
         
-        if self.sys.server_fail > 0:
-            for diskId in range(self.sys.server_fail):
+        if self.sys.rack_fail > 0:
+            for diskId in range(self.sys.rack_fail):
                 disk_fail_time = random.random() * YEAR
-                heappush(self.failure_queue, (disk_fail_time, Server.EVENT_FAIL, diskId))
-                # logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Server.EVENT_FAIL, diskId))
+                heappush(self.failure_queue, (disk_fail_time, Rack.EVENT_FAIL, diskId))
+                # logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Rack.EVENT_FAIL, diskId))
 
 
         heapEndTime = time.time()
@@ -136,12 +136,14 @@ class Simulate:
     def run_simulation(self, sysstate, mytimer):
         self.sys.metrics.iter_count += 1
 
+        self.mytimer = mytimer
         start = time.time()
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
         seedEndTime = time.time()
         
         initialFailures = sysstate.gen_failure_times(sysstate.total_drives)
-        # logging.info("sysstate.total_drives: {}".format(sysstate.total_drives))
+        logging.info("")
+        logging.info("---------")
         genEndTime = time.time()
         mytimer.seedtime += seedEndTime - start
         mytimer.genfailtime += genEndTime - seedEndTime
@@ -154,21 +156,19 @@ class Simulate:
         prob = 0
         loss_events = 0
         while True:
-            # iterStartTime = time.time()
+            iterStartTime = time.time()
             #---------------------------
             # extract the next event
             #---------------------------
             (event_time, event_type, diskset) = self.get_next_eventset(curr_time)
-            # getEventEndTime = time.time()
-            # mytimer.getEventTime += getEventEndTime - iterStartTime
+            getEventEndTime = time.time()
+            mytimer.getEventTime += getEventEndTime - iterStartTime
 
-            # logging.info("----record----")
-            # logging.info(event_time)
-            # logging.info(event_type)
-            # logging.info(diskset)
+            logging.info("----record----  {} {} {}".format(event_time, event_type, diskset))
+            
             if event_time == None:
                 break
-            
+
             # for diskId in diskset:
             #     if event_type == Disk.EVENT_FAIL and self.state.disks[diskId].state == Disk.STATE_FAILED:
             #         logging.info("XXXXXXXXXXXX Disk {} failed again ok it happened".format(diskId))
@@ -179,26 +179,26 @@ class Simulate:
             self.state.update_curr_time(curr_time)
 
             self.state.update_state(event_type, diskset)
-            # updateStateEndTime = time.time()
-            # mytimer.updateStateTime += updateStateEndTime - getEventEndTime
+            updateStateEndTime = time.time()
+            mytimer.updateStateTime += updateStateEndTime - getEventEndTime
 
 
             self.state.update_priority(event_type, diskset)
-            # updatePriorityEndTime = time.time()
-            # mytimer.updatePriorityTime += updatePriorityEndTime - updateServerStateEndTime
+            updatePriorityEndTime = time.time()
+            mytimer.updatePriorityTime += updatePriorityEndTime - updateStateEndTime
 
             if self.sys.place_type in [2,4]:
-                new_server_failures = self.state.update_server_state(event_type, diskset)
-                # updateServerStateEndTime = time.time()
-                # mytimer.updateServerStateTime += updateServerStateEndTime - updateStateEndTime
+                new_rack_failures = self.state.update_rack_state(event_type, diskset)
+                # updateRackStateEndTime = time.time()
+                # mytimer.updateRackStateTime += updateRackStateEndTime - updatePriorityEndTime
 
 
 
             if self.sys.place_type in [2,4]:
-                if len(new_server_failures) > 0:
-                    self.state.update_server_priority(event_type, new_server_failures, diskset)
-                    # updateServerPriorityEndTime = time.time()
-                    # mytimer.updateServerPriorityTime += updateServerPriorityEndTime - updatePriorityEndTime
+                if len(new_rack_failures) > 0:
+                    self.state.update_rack_priority(event_type, new_rack_failures, diskset)
+                    # updateRackPriorityEndTime = time.time()
+                    # mytimer.updateRackPriorityTime += updateRackPriorityEndTime - updateRackStateEndTime
 
             #---------------------------
             # exceed mission-time, exit
@@ -221,7 +221,7 @@ class Simulate:
                         continue
                     # print(self.failure_queue)
             # newFailEndTime = time.time()
-            # mytimer.newFailTime += newFailEndTime - updateServerPriorityEndTime
+            # mytimer.newFailTime += newFailEndTime - updateRackPriorityEndTime
 
 
             # if event_type == Disk.EVENT_FASTREBUILD:
@@ -230,11 +230,11 @@ class Simulate:
             #---------------------------
             # failure event, check PDL
             #---------------------------
-            if event_type == Disk.EVENT_FAIL or event_type == Server.EVENT_FAIL:
+            if event_type == Disk.EVENT_FAIL or event_type == Rack.EVENT_FAIL:
                 #curr_failures = self.state.get_failed_disks()
                 if self.placement.check_data_loss_prob(self.state):
                     prob = 1
-                    # logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+                    logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     # loss_events = self.placement.check_data_loss_events(self.state)
                     return prob
                     #------------------------------------------

@@ -5,15 +5,15 @@ from heapq import *
 
 class SysState:
     
-    def __init__(self, total_drives, drive_args, placement, drives_per_server, 
-                top_d_shards = 1, top_p_shards = 0, adapt = False, server_fail = 0, failure_generator = None):
+    def __init__(self, total_drives, drive_args, placement, drives_per_rack, 
+                top_d_shards = 1, top_p_shards = 0, adapt = False, rack_fail = 0, failure_generator = None):
         self.drive_args = drive_args
         self.mode = placement
 
         self.total_drives = total_drives
         self.good_cnt = self.total_drives
         self.fail_cnt = 0
-        self.drives_per_server = drives_per_server
+        self.drives_per_rack = drives_per_rack
         self.top_d_shards = top_d_shards
         self.top_p_shards = top_p_shards
 
@@ -23,7 +23,7 @@ class SysState:
         self.failures_store_idx = self.failures_store_len
 
         self.adapt = adapt
-        self.server_fail = server_fail
+        self.rack_fail = rack_fail
 
         if placement == 'RAID':
             self.place_type = 0

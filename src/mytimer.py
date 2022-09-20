@@ -12,9 +12,13 @@ class Mytimer:
         self.getEventTime = 0
         self.updateClockTime = 0
         self.updateStateTime = 0
-        self.updateServerStateTime = 0
+        self.updateRackStateTime = 0
+
         self.updatePriorityTime = 0
-        self.updateServerPriorityTime = 0
+        self.updateDiskRepairTime = 0
+        self.updatePriorityFailTime = 0
+
+        self.updateRackPriorityTime = 0
         self.newFailTime = 0
         self.checkLossTime = 0
         self.updateRepairTime = 0
@@ -23,7 +27,9 @@ class Mytimer:
         return (" simInitTime\t\t{}\n seedtime\t\t{}\n copytime\t\t{}\n genfailtime\t\t{}\n" 
                 " resettime\t\t{}\n   resetStateInitTime\t{}\n   resetDiskInitTime\t{}\n   resetGenFailTime\t{}\n   resetHeapTime\t{}\n"
                 " getEventTime\t\t{}\n updateClockTime\t{}\n updateStateTime\t{}\n"
-                " updateServerStateTime\t{}\n updatePriorityTime\t{}\n updateServerPriTime\t{}\n"
+                " updateRackStateTime\t{}\n"
+                " updatePriorityTime\t{}\n   updateDiskRepairTime\t{}\n   updatePriorityFailTime\t{}\n"
+                " updateRackPriTime\t{}\n"
                 " newFailTime\t\t{}\n checkLossTime\t\t{}\n updateRepairTime\t{}\n").format(
             self.simInitTime,
             self.seedtime,
@@ -37,9 +43,13 @@ class Mytimer:
             self.getEventTime,
             self.updateClockTime,
             self.updateStateTime,
-            self.updateServerStateTime,
+            self.updateRackStateTime,
+            
             self.updatePriorityTime,
-            self.updateServerPriorityTime,
+            self.updateDiskRepairTime,
+            self.updatePriorityFailTime,
+
+            self.updateRackPriorityTime,
             self.newFailTime,
             self.checkLossTime,
             self.updateRepairTime

@@ -1,30 +1,33 @@
 import numpy as np
 import random
 import logging
-from server import Server
+from rack import Rack
 from metrics import Metrics
 from disk import Disk
+
+
+
 #----------------------------
-# Logging Settings
+# Configuration of the system
 #----------------------------
 
 class System:
-    def __init__(self, num_disks, num_disks_per_server, k, m, place_type, diskCap, rebuildRate,
-                    utilizeRatio, top_k = 1, top_m = 0, adapt = False, server_fail = False):
+    def __init__(self, num_disks, num_disks_per_rack, k, m, place_type, diskCap, rebuildRate,
+                    utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = False):
         #--------------------------------------------
         # Set up the Campaign system parameters
         #--------------------------------------------
         #self.num_racks = num_racks
-        #self.num_servers_per_rack = num_servers_per_rack
-        self.num_disks_per_server = num_disks_per_server
-        #self.num_disks_per_rack = num_disks_per_server * num_servers_per_rack
-        #self.num_servers = num_disks / num_servers_per_rack
-        #self.num_disks = self.num_servers * num_disks_per_server
+        #self.num_racks_per_rack = num_racks_per_rack
+        self.num_disks_per_rack = num_disks_per_rack
+        #self.num_disks_per_rack = num_disks_per_rack * num_racks_per_rack
+        #self.num_racks = num_disks / num_racks_per_rack
+        #self.num_disks = self.num_racks * num_disks_per_rack
         #--------------------------------------------
-        # set up the system racks, servers, disks
+        # set up the system racks, racks, disks
         #--------------------------------------------
         #self.racks = range(self.num_racks)
-        #self.servers = range(self.num_servers)
+        #self.racks = range(self.num_racks)
         self.num_disks = num_disks
         self.disks = {}
         for diskId in range(num_disks):
@@ -32,27 +35,27 @@ class System:
         #--------------------------------------------
         # Set the system system layout
         #--------------------------------------------
-        self.servers_per_rack = {}
-        self.disks_per_server = {}
+        self.racks_per_rack = {}
+        self.disks_per_rack = {}
         self.disks_per_rack = {}
         #--------------------------------------------
-        # record servers/disks inside each rack
+        # record racks/disks inside each rack
         #--------------------------------------------
-        if (num_disks//num_disks_per_server) * num_disks_per_server == num_disks:
-            self.num_servers = self.num_disks//self.num_disks_per_server
+        if (num_disks//num_disks_per_rack) * num_disks_per_rack == num_disks:
+            self.num_racks = self.num_disks//self.num_disks_per_rack
         else:
-            self.num_servers = self.num_disks//self.num_disks_per_server+1
-        self.servers = range(self.num_servers)
+            self.num_racks = self.num_disks//self.num_disks_per_rack+1
+        self.racks = range(self.num_racks)
         #---------------------------------------------------------
-        for serverId in self.servers:
-            #if serverId == num_servers -1:
-                #candidate = self.disks_per_server[serverId-1] +num_disks_per_server
-            if serverId == 0:
-                self.disks_per_server[serverId] = np.array(range(num_disks_per_server))
-                #print serverId,"check", self.disks_per_server[serverId]
+        for rackId in self.racks:
+            #if rackId == num_racks -1:
+                #candidate = self.disks_per_rack[rackId-1] +num_disks_per_rack
+            if rackId == 0:
+                self.disks_per_rack[rackId] = np.array(range(num_disks_per_rack))
+                #print rackId,"check", self.disks_per_rack[rackId]
             else:
-                self.disks_per_server[serverId] = self.disks_per_server[serverId-1] + num_disks_per_server
-                #print serverId,"check", self.disks_per_server[serverId]
+                self.disks_per_rack[rackId] = self.disks_per_rack[rackId-1] + num_disks_per_rack
+                #print rackId,"check", self.disks_per_rack[rackId]
         #--------------------------------------------
         # set up the erasure coding configuration
         #--------------------------------------------
@@ -77,38 +80,38 @@ class System:
         self.diskIO = rebuildRate
         self.utilizeRatio = utilizeRatio
         self.adapt = adapt
-        self.server_fail = server_fail
+        self.rack_fail = rack_fail
         self.metrics = Metrics()
 
 
     def flat_cluster_layout(self):
-        self.flat_cluster_server_layout = {}
-        for serverId in self.servers:
-            disks_per_server = self.disks_per_server[serverId]
-            num_stripesets = len(disks_per_server) // (self.k+self.m)
+        self.flat_cluster_rack_layout = {}
+        for rackId in self.racks:
+            disks_per_rack = self.disks_per_rack[rackId]
+            num_stripesets = len(disks_per_rack) // (self.k+self.m)
             sets = []
             for i in range(num_stripesets):
-                stripeset  = disks_per_server[i*(self.k+self.m) :(i+1)*(self.k+self.m)]
+                stripeset  = disks_per_rack[i*(self.k+self.m) :(i+1)*(self.k+self.m)]
                 sets.append(stripeset)
-            self.flat_cluster_server_layout[serverId] = sets
-            # logging.info("* server {} has {} stripesets".format(serverId, num_stripesets))
-        #for serverId in self.servers:
-        #    print "serverId", serverId, len(self.flat_cluster_server_layout[serverId])
+            self.flat_cluster_rack_layout[rackId] = sets
+            # logging.info("* rack {} has {} stripesets".format(rackId, num_stripesets))
+        #for rackId in self.racks:
+        #    print "rackId", rackId, len(self.flat_cluster_rack_layout[rackId])
 
 
     
     def flat_decluster_layout(self):
-        self.flat_decluster_server_layout = {}
-        for serverId in self.servers:
-            disks_per_server = self.disks_per_server[serverId]
-            self.flat_decluster_server_layout[serverId] = disks_per_server
+        self.flat_decluster_rack_layout = {}
+        for rackId in self.racks:
+            disks_per_rack = self.disks_per_rack[rackId]
+            self.flat_decluster_rack_layout[rackId] = disks_per_rack
 
 
     def mlec_dp_layout(self):
-        self.flat_decluster_server_layout = {}
-        for serverId in self.servers:
-            disks_per_server = self.disks_per_server[serverId]
-            self.flat_decluster_server_layout[serverId] = disks_per_server
+        self.flat_decluster_rack_layout = {}
+        for rackId in self.racks:
+            disks_per_rack = self.disks_per_rack[rackId]
+            self.flat_decluster_rack_layout[rackId] = disks_per_rack
 
 
 
@@ -117,36 +120,33 @@ class System:
 
     # same as flat_cluster_layout
     def mlec_cluster_layout(self):
-        self.flat_cluster_server_layout = {}
-        for serverId in self.servers:
-            disks_per_server = self.disks_per_server[serverId]
-            num_stripesets = len(disks_per_server) // (self.k+self.m)
-            sets = []
-            for i in range(num_stripesets):
-                stripeset  = disks_per_server[i*(self.k+self.m) :(i+1)*(self.k+self.m)]
-                sets.append(stripeset)
-            self.flat_cluster_server_layout[serverId] = sets
-            # logging.info("* server {} has {} stripesets: {}".format(
-            #             serverId, num_stripesets, self.flat_cluster_server_layout[serverId]))
+        self.rack_stripesets = []
+        self.top_n = self.top_k + self.top_m
+        self.num_rack_stripesets = self.num_racks // self.top_n
+        for i in range(self.num_rack_stripesets):
+            rack_stripeset  = self.racks[i*self.top_n :(i+1)*self.top_n]
+            self.rack_stripesets.append(rack_stripeset)
+        
+
 
 
 
     def net_raid_layout(self):
         stripe_width = self.top_k + self.top_m
-        num_server_group = self.num_servers // stripe_width
-        num_stripesets = self.num_disks_per_server * num_server_group
+        num_rack_group = self.num_racks // stripe_width
+        num_stripesets = self.num_disks_per_rack * num_rack_group
         
         
         sets = {}
         for i in range(num_stripesets):
             
-            num_stripesets_per_server_group = self.num_disks_per_server
-            serverGroupId = i // num_stripesets_per_server_group
+            num_stripesets_per_rack_group = self.num_disks_per_rack
+            rackGroupId = i // num_stripesets_per_rack_group
             stripeset = []
-            for serverId in range(serverGroupId*stripe_width, (serverGroupId+1)*stripe_width):
-                diskId = serverId * num_stripesets_per_server_group + i % num_stripesets_per_server_group
+            for rackId in range(rackGroupId*stripe_width, (rackGroupId+1)*stripe_width):
+                diskId = rackId * num_stripesets_per_rack_group + i % num_stripesets_per_rack_group
                 disk = self.disks[diskId]
-                disk.serverId = serverId
+                disk.rackId = rackId
                 disk.stripesetId = i
                 stripeset.append(diskId)
                 # logging.info(" stripesetId: {} diskId: {}".format(i, diskId))
