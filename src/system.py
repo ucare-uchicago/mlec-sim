@@ -15,19 +15,12 @@ class System:
     def __init__(self, num_disks, num_disks_per_rack, k, m, place_type, diskCap, rebuildRate,
                     utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = False):
         #--------------------------------------------
-        # Set up the Campaign system parameters
+        # Set up the system parameters
         #--------------------------------------------
-        #self.num_racks = num_racks
-        #self.num_racks_per_rack = num_racks_per_rack
         self.num_disks_per_rack = num_disks_per_rack
-        #self.num_disks_per_rack = num_disks_per_rack * num_racks_per_rack
-        #self.num_racks = num_disks / num_racks_per_rack
-        #self.num_disks = self.num_racks * num_disks_per_rack
         #--------------------------------------------
-        # set up the system racks, racks, disks
+        # set up the system racks, disks
         #--------------------------------------------
-        #self.racks = range(self.num_racks)
-        #self.racks = range(self.num_racks)
         self.num_disks = num_disks
         self.disks = {}
         for diskId in range(num_disks):
@@ -35,8 +28,6 @@ class System:
         #--------------------------------------------
         # Set the system system layout
         #--------------------------------------------
-        self.racks_per_rack = {}
-        self.disks_per_rack = {}
         self.disks_per_rack = {}
         #--------------------------------------------
         # record racks/disks inside each rack
@@ -46,16 +37,11 @@ class System:
         else:
             self.num_racks = self.num_disks//self.num_disks_per_rack+1
         self.racks = range(self.num_racks)
-        #---------------------------------------------------------
         for rackId in self.racks:
-            #if rackId == num_racks -1:
-                #candidate = self.disks_per_rack[rackId-1] +num_disks_per_rack
             if rackId == 0:
                 self.disks_per_rack[rackId] = np.array(range(num_disks_per_rack))
-                #print rackId,"check", self.disks_per_rack[rackId]
             else:
                 self.disks_per_rack[rackId] = self.disks_per_rack[rackId-1] + num_disks_per_rack
-                #print rackId,"check", self.disks_per_rack[rackId]
         #--------------------------------------------
         # set up the erasure coding configuration
         #--------------------------------------------

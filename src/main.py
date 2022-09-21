@@ -9,7 +9,7 @@ import logging
 
 # Custom stuff
 from drive_args import DriveArgs
-from sys_state import SysState, Weibull
+from failure_generator import FailureGenerator, Weibull
 from util import wait_futures
 from constants import debug, YEAR
 
@@ -34,26 +34,23 @@ def factorial(n):
         return n * factorial(n - 1)
 
 
-def iter(state_: SysState, iters, mission):
+def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
     
     try:
         res = 0
-        sysstate = copy.deepcopy(state_)
+        failureGenerator = copy.deepcopy(failureGenerator_)
+        sys = copy.deepcopy(sys_)
         mytimer = Mytimer()
-        sys = System(sysstate.total_drives, sysstate.drives_per_rack, sysstate.drive_args.data_shards,
-                sysstate.drive_args.parity_shards, sysstate.place_type, sysstate.drive_args.drive_cap * 1024 * 1024,
-                sysstate.drive_args.rec_speed, 1, sysstate.top_d_shards, sysstate.top_p_shards,
-                sysstate.adapt, sysstate.rack_fail)
-        repair = Repair(sys, sysstate.place_type)
-        placement = Placement(sys, sysstate.place_type)
+        repair = Repair(sys, sys.place_type)
+        placement = Placement(sys, sys.place_type)
 
         start = time.time()
         for iter in range(0, iters):
             # logging.info("")
             temp = time.time()
-            sim = Simulate(mission, sysstate.total_drives, sys, repair, placement)
+            sim = Simulate(mission, sys.num_disks, sys, repair, placement)
             mytimer.simInitTime += time.time() - temp
-            res += sim.run_simulation(sysstate, mytimer)
+            res += sim.run_simulation(failureGenerator, mytimer)
         end = time.time()
         # print("totaltime: {}".format(end - start))
         # print(mytimer)
@@ -63,7 +60,7 @@ def iter(state_: SysState, iters, mission):
         return None
 
 # This is a parallel/multi-iter wrapper around iter(state)
-def simulate(state, iters, epochs, concur=10, mission=YEAR):
+def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
     # So tick(state) is for a single system, and we want to simulate multiple systems
     executor = ProcessPoolExecutor(concur)
     
@@ -72,7 +69,7 @@ def simulate(state, iters, epochs, concur=10, mission=YEAR):
     metrics = Metrics()
 
     for epoch in range(0, epochs):
-        futures.append(executor.submit(iter, state, iters, mission))
+        futures.append(executor.submit(iter, failureGenerator, sys, iters, mission))
     ress = wait_futures(futures)
     
     executor.shutdown()
@@ -84,15 +81,20 @@ def simulate(state, iters, epochs, concur=10, mission=YEAR):
     return [failed_instances, epochs * iters, metrics]
 
 
+
+# -----------------------------
+# normal Monte Carlo simulation
+# -----------------------------
 def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
-                total_drives, drives_per_rack, placement, distribution):
+                total_drives, drives_per_rack, place_type, distribution):
         # logging.basicConfig(level=logging.INFO)
     
     # for afr in range(2, 11):
         mission = YEAR
-        drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
-                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, rack_fail = 0)
+        failureGenerator = FailureGenerator(afr)
+        
+        sys = System(total_drives, drives_per_rack, N_local, k_local, place_type, cap * 1024 * 1024,
+                io_speed, 1, N_net, k_net, adapt, rack_fail = 0)
 
         res = [0, 0, Metrics()]
 
@@ -100,7 +102,7 @@ def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
         # return
         while res[0] < 20:
             start  = time.time()
-            temp = simulate(sys_state1, iters=50000, epochs=200, concur=200, mission=mission)
+            temp = simulate(failureGenerator, sys, iters=50000, epochs=200, concur=200, mission=mission)
             res[0] += temp[0]
             res[1] += temp[1]
             res[2] += temp[2]
@@ -133,24 +135,35 @@ def normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
             output.close()
 
 
-def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_rack, placement, dist):
+
+# ------------------------
+# Manually inject 1 rack failure in each simulation to make it easier to find system failure
+# 1. get P(rack 1 fails)
+# 2. compute P(rack 1 fails | system fails) using probability theory
+# 3. get P(system fails | rack 1 fails) by manually inject 1 rack failure in each simulation
+# 4. P(system fails) = P(system fails | rack 1 fails) * P(rack 1 fails) / P(rack 1 fails | system fails)
+# ------------------------
+
+def manual_1_rack_failure(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
+                    total_drives, drives_per_rack, place_type, dist):
     # logging.basicConfig(level=logging.INFO)
 
-        # Compute P(rack 1 fails)
-    for afr in range(2, 11):
-        drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = SysState(total_drives=drives_per_rack, drive_args=drive_args1, placement='RAID', drives_per_rack=drives_per_rack, 
-                        top_d_shards=N_net, top_p_shards=0, adapt=adapt, rack_fail = 0)
+    
+    for afr in range(5, 6):
+        # 1. get P(rack 1 fails)
+        local_place_type = 0        # local RAID
+        if place_type == 4:         # if MLEC_DP
+            local_place_type = 1    # local DP
+        failureGenerator = FailureGenerator(afr)
+        sys = System(total_drives, drives_per_rack, N_local, k_local, local_place_type, cap * 1024 * 1024,
+                io_speed, 1, N_net, k_net, adapt, rack_fail = 0)
 
-        print('')
-        # res = simulate(l1sys, iters=100000, epochs=24, concur=24)
-        # res = simulate(l1sys, iters=100, epochs=1, concur=1)
-        # break
-        res = [0, 0]
+        res = [0, 0, Metrics()]
+
+        # loop until we get enough failures
         while res[0] < 20:
             start  = time.time()
-            temp = simulate(sys_state1, iters=50000, epochs=200, concur=200)
+            temp = simulate(failureGenerator, sys, iters=50000, epochs=200, concur=200)
             res[0] += temp[0]
             res[1] += temp[1]
             simulationTime = time.time() - start
@@ -175,14 +188,17 @@ def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
         print('Probability that system failure contains rack one: {}'.format(pro_sys_fail_contain_s1))
 
         # Compute P(system fails | rack 1 fails)
-        drive_args2 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state2 = SysState(total_drives=total_drives, drive_args=drive_args2, placement=placement, drives_per_rack=drives_per_rack, 
-                        top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, rack_fail = 1)
+        failureGenerator2 = FailureGenerator(afr)
+        sys2 = System(total_drives, drives_per_rack, N_local, k_local, place_type, cap * 1024 * 1024,
+                io_speed, 1, N_net, k_net, adapt, rack_fail = 1)
 
-        res = [0, 0]
+        res = [0, 0, Metrics()]
+
+        # temp = simulate(sys_state1, iters=10000, epochs=1, concur=1, mission=mission)
+        # return
         while res[0] < 20:
             start  = time.time()
-            temp = simulate(sys_state2, iters=50000, epochs=200, concur=200)
+            temp = simulate(failureGenerator2, sys2, iters=50000, epochs=200, concur=200)
             res[0] += temp[0]
             res[1] += temp[1]
             simulationTime = time.time() - start
@@ -217,11 +233,11 @@ def approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
         output.close()
 
 
-def approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_rack, placement, dist):
+def manual_2_rack_failure(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
+                    total_drives, drives_per_rack, place_type, dist):
     for cap in range(100, 110, 10):
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = SysState(total_drives=drives_per_rack, drive_args=drive_args1, placement='RAID', drives_per_rack=drives_per_rack, 
+        sys_state1 = FailureGenerator(total_drives=drives_per_rack, drive_args=drive_args1, placement='RAID', drives_per_rack=drives_per_rack, 
                         top_d_shards=N_net, top_p_shards=0, adapt=adapt, rack_fail = 0)
 
         print('')
@@ -252,7 +268,7 @@ def approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
 
         drive_args2 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state2 = SysState(total_drives=total_drives, drive_args=drive_args2, placement=placement, drives_per_rack=drives_per_rack, 
+        sys_state2 = FailureGenerator(total_drives=total_drives, drive_args=drive_args2, placement=placement, drives_per_rack=drives_per_rack, 
                         top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, rack_fail = 2)
 
         res = [0, 0]
@@ -292,14 +308,14 @@ def approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
 
 def io_over_year(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
-                total_drives, drives_per_rack, placement, distribution):
+                total_drives, drives_per_rack, place_type, distribution):
     # logging.basicConfig(level=logging.INFO)
     rebuildio_prev_year = 0
 
     for years in range(1,51,1):
         mission = years*YEAR
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
+        sys_state1 = FailureGenerator(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
                         top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, rack_fail = 0, distribution = distribution)
 
         res = [0, 0, Metrics()]
@@ -342,7 +358,7 @@ def io_over_year(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
 
 
 def weibull_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
-                total_drives, drives_per_rack, placement, distribution):
+                total_drives, drives_per_rack, place_type, distribution):
     # logging.basicConfig(level=logging.INFO)
     
     for beta in np.arange(1, 2.2, 0.2):
@@ -361,7 +377,7 @@ def weibull_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
         failure_generator = Weibull(alpha, beta)
         print("alpha: {}  beta: {}".format(alpha, beta))
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
+        sys_state1 = FailureGenerator(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
                         top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, rack_fail = 0, failure_generator = failure_generator)
 
         res = [0, 0, Metrics()]
@@ -400,13 +416,13 @@ def weibull_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
             output.close()
 
 def metric_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net,
-                total_drives, drives_per_rack, placement, distribution):
+                total_drives, drives_per_rack, place_type, distribution):
         # logging.basicConfig(level=logging.INFO)
     
     for afr in range(2, 6):
         mission = YEAR
         drive_args1 = DriveArgs(d_shards=N_local, p_shards=k_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = SysState(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
+        sys_state1 = FailureGenerator(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
                         top_d_shards=N_net, top_p_shards=k_net, adapt=adapt, rack_fail = 0)
 
         res = [0, 0, Metrics()]
@@ -495,24 +511,35 @@ if __name__ == "__main__":
 
     dist = args.dist
 
+    if placement == 'RAID':
+        place_type = 0
+    elif placement == 'DP':
+        place_type = 1
+    elif placement == 'MLEC':
+        place_type = 2
+    elif placement == 'RAID_NET':
+        place_type = 3
+    elif placement == 'MLEC_DP':
+        place_type = 4
+
     if sim_mode == 0:
         normal_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_rack, placement, dist)
+                    total_drives, drives_per_rack, place_type, dist)
     elif sim_mode == 1:
-        approx_1_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_rack, placement, dist)
+        manual_1_rack_failure(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
+                    total_drives, drives_per_rack, place_type, dist)
     elif sim_mode == 2:
-        approx_2_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_rack, placement, dist)
+        manual_2_rack_failure(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
+                    total_drives, drives_per_rack, place_type, dist)
     elif sim_mode == 3:
         io_over_year(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_rack, placement, dist)
+                    total_drives, drives_per_rack, place_type, dist)
     elif sim_mode == 4:
         weibull_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_rack, placement, dist)
+                    total_drives, drives_per_rack, place_type, dist)
     elif sim_mode == 5:
         metric_sim(afr, io_speed, cap, adapt, N_local, k_local, N_net, k_net, 
-                    total_drives, drives_per_rack, placement, dist)
+                    total_drives, drives_per_rack, place_type, dist)
 
 
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_afr=50&d_cap=20&dr_rw_speed=50&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&spares=0&rec_wr_spd_alloc=100
