@@ -32,7 +32,7 @@ class Metrics:
             self.total_net_traffic / (1024*1024) / self.iter_count,
             self.failure_count / self.iter_count,
             self.total_rebuild_time / self.iter_count,
-            self.total_net_repair_time / self.total_net_repair_count,
+            0 if self.total_net_repair_count == 0 else self.total_net_repair_time / self.total_net_repair_count,
             self.iter_count,
             self.total_net_repair_count
         )
