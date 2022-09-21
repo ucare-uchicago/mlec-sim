@@ -1,5 +1,5 @@
 from asyncore import write
-from sys_state import SysState
+from failure_generator import FailureGenerator
 
 import heapq
 import math

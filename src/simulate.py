@@ -133,7 +133,7 @@ class Simulate:
     #----------------------------------------------------------------
     # run simulation based on statistical model or production traces
     #----------------------------------------------------------------
-    def run_simulation(self, sysstate, mytimer):
+    def run_simulation(self, failureGenerator, mytimer):
         self.sys.metrics.iter_count += 1
 
         self.mytimer = mytimer
@@ -141,7 +141,7 @@ class Simulate:
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
         seedEndTime = time.time()
         
-        initialFailures = sysstate.gen_failure_times(sysstate.total_drives)
+        initialFailures = failureGenerator.gen_failure_times(self.sys.num_disks)
         logging.info("")
         logging.info("---------")
         genEndTime = time.time()
@@ -211,7 +211,7 @@ class Simulate:
             if event_type == Disk.EVENT_FAIL:
                 # print("EVENT_REPAIR")
                 #self.generate_fail_event(diskset, curr_time)
-                new_failure_intervals = sysstate.dp_gen_new_failures(len(diskset))
+                new_failure_intervals = failureGenerator.gen_new_failures(len(diskset))
                 # print(new_failure_added)
                 for i in range(len(diskset)):
                     disk_fail_time = new_failure_intervals[i] + curr_time
