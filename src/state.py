@@ -67,47 +67,35 @@ class State:
 
 
     #----------------------------------------------
-    # update diskset state
+    # update disk state
     #----------------------------------------------
-    def update_state(self, event_type, diskset):
-        if self.sys.place_type == 2:
-            return self.policy.update_state(event_type, diskset)
-        for diskId in diskset:
-            rackId = diskId // self.sys.num_disks_per_rack
-            if event_type == Disk.EVENT_REPAIR:
-                self.disks[diskId].state = Disk.STATE_NORMAL
-                self.racks[rackId].failed_disks.pop(diskId, None)
-                self.failed_disks.pop(diskId, None)
-                # logging.info("rack {} after pop: {}".format(rackId, self.racks[rackId].failed_disks))
-                
-                
-            if event_type == Disk.EVENT_FAIL:
-                self.disks[diskId].state = Disk.STATE_FAILED
-                self.racks[rackId].failed_disks[diskId] = 1
-                self.failed_disks[diskId] = 1
-                # logging.info("rack {} after add: {}".format(rackId, self.racks[rackId].failed_disks))
+    def update_disk_state(self, event_type, diskId):
+        return self.policy.update_disk_state(event_type, diskId)
+
+
+    #----------------------------------------------
+    # update disk priority and compute disk repair time
+    #----------------------------------------------
+    def update_disk_priority(self, event_type, diskset):
+        return self.policy.update_disk_priority(event_type, diskset)
 
 
     #----------------------------------------------
     # update rack state
     #----------------------------------------------
-    def update_rack_state(self, event_type, diskset):
-        return self.policy.update_rack_state(event_type, diskset)
+    def update_rack_state(self, event_type, diskId):
+        return self.policy.update_rack_state(event_type, diskId)
 
 
 
-    #----------------------------------------------
-    # update decluster: priority, #stripesets
-    #----------------------------------------------
-    def update_priority(self, event_type, diskset):
-        return self.policy.update_priority(event_type, diskset)
+
                                 
     
     #----------------------------------------------
     # update network-level priority
     #----------------------------------------------
-    def update_rack_priority(self, event_type, new_failed_racks, rackset):
-        self.policy.update_rack_priority(event_type, new_failed_racks, rackset)
+    def update_rack_priority(self, event_type, new_failed_rack, diskId):
+        self.policy.update_rack_priority(event_type, new_failed_rack, diskId)
 
 
 

@@ -25,68 +25,52 @@ class MLEC:
         for i in range(self.sys.num_rack_stripesets):
             self.failed_racks_per_stripeset.append({})
 
-    def update_state(self, event_type, diskset):
-        for diskId in diskset:
-            rackId = diskId // self.sys.num_disks_per_rack
-            if event_type == Disk.EVENT_REPAIR:
-                self.disks[diskId].state = Disk.STATE_NORMAL
-                self.racks[rackId].failed_disks.pop(diskId, None)
-                self.failed_disks.pop(diskId, None)
-                
-                
-            if event_type == Disk.EVENT_FAIL:
-                self.disks[diskId].state = Disk.STATE_FAILED
-                self.racks[rackId].failed_disks[diskId]=1
-                self.failed_disks[diskId] = 1
+    def update_disk_state(self, event_type, diskId):
+        rackId = diskId // self.sys.num_disks_per_rack
+        if event_type == Disk.EVENT_REPAIR:
+            self.disks[diskId].state = Disk.STATE_NORMAL
+            self.racks[rackId].failed_disks.pop(diskId, None)
+            self.failed_disks.pop(diskId, None)
+            
+            
+        if event_type == Disk.EVENT_FAIL:
+            self.disks[diskId].state = Disk.STATE_FAILED
+            self.racks[rackId].failed_disks[diskId]=1
+            self.failed_disks[diskId] = 1
 
 
     #----------------------------------------------
-    def update_priority(self, event_type, diskset):
-        updated_racks = {}
+    def update_disk_priority(self, event_type, diskId):
+        # if disk repair event
         if event_type == Disk.EVENT_REPAIR:
-            for diskId in diskset:
-                disk = self.disks[diskId]
-                self.sys.metrics.total_rebuild_io_per_year += disk.repair_data * (self.sys.k + 1)
-                rackId = diskId // self.sys.num_disks_per_rack
+            disk = self.disks[diskId]
+            rackId = diskId // self.sys.num_disks_per_rack
 
-                if rackId in updated_racks:
-                    continue
-                updated_racks[rackId] = 1
-                if self.racks[rackId].state == Rack.STATE_FAILED:
-                    # logging.info("update_priority(): rack {} is failed. Event type: {}".format(rackId, event_type))
-                    continue
-                fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
-                #  what if there are multiple racks
-                if len(fail_per_rack) > 0:
-                    if self.sys.place_type == 2:
-                        for diskId in fail_per_rack:
-                            self.update_disk_repair_time(diskId, len(fail_per_rack))
+            self.sys.metrics.total_rebuild_io_per_year += disk.repair_data * (self.sys.k + 1)
+            
+            if self.racks[rackId].state == Rack.STATE_FAILED:
+                # if rack already failed, then no need to fail
+                # this assumes we treat rack as a blackbox and repair everything together
+                # this is not true when we only repair failed stripes
+                return
+            fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
+            for diskId in fail_per_rack:
+                    self.update_disk_repair_time(diskId, len(fail_per_rack))
+        # if disk fail event
         if event_type == Disk.EVENT_FAIL:
-            for diskId in diskset:
-                start = time.time()
                 rackId = diskId // self.sys.num_disks_per_rack
 
                 if self.racks[rackId].state == Rack.STATE_FAILED:
-                    # logging.info("update_priority(): rack {} is failed".format(rackId))
-                    continue
-                if rackId in updated_racks:
-                    continue
-
-                updated_racks[rackId] = 1
+                    # logging.info("update_disk_priority(): rack {} is failed".format(rackId))
+                    return
                 
                 fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
-                new_failures = set(fail_per_rack).intersection(set(diskset))
-                if len(new_failures) > 0:
-                    #--------------------------------------------
-                    # calculate repair time for mlec cluster placement
-                    #--------------------------------------------
-                    if self.sys.place_type == 2:
-                            for diskId in new_failures:
-                                self.disks[diskId].repair_start_time = self.curr_time
-                            end = time.time()
-                            self.mytimer.updatePriorityFailTime += end - start
-                            for diskId in fail_per_rack:
-                                self.update_disk_repair_time(diskId, len(fail_per_rack))
+                #--------------------------------------------
+                # calculate repair time for mlec cluster placement
+                #--------------------------------------------
+                self.disks[diskId].repair_start_time = self.curr_time
+                for failedDiskId in fail_per_rack:
+                    self.update_disk_repair_time(failedDiskId, len(fail_per_rack))
 
     def update_disk_repair_time(self, diskId, fail_per_rack):
         start = time.time()
@@ -116,82 +100,76 @@ class MLEC:
     #----------------------------------------------
     # update network-level priority
     #----------------------------------------------
-    def update_rack_priority(self, event_type, new_failed_racks, rackset):
+    def update_rack_priority(self, event_type, rackId, diskId):
         failed_racks = self.state.get_failed_racks()
         if event_type == Disk.EVENT_FAIL:
-                for rackId in new_failed_racks:
-                    self.racks[rackId].repair_start_time = self.curr_time
-                    self.racks[rackId].init_repair_start_time = self.curr_time
-                for rackId in failed_racks:
-                    failed_racks_per_stripeset = self.get_failed_racks_per_stripesetRackId(rackId)
-                    self.update_rack_repair_time(rackId, len(failed_racks_per_stripeset))
+                self.racks[rackId].repair_start_time = self.curr_time
+                self.racks[rackId].init_repair_start_time = self.curr_time
+                for rId in failed_racks:
+                    failed_racks_per_stripeset = self.get_failed_racks_per_stripesetRackId(rId)
+                    self.update_rack_repair_time(rId, len(failed_racks_per_stripeset))
 
         if event_type == Rack.EVENT_FAIL:
-                for rackId in new_failed_racks:
-                    self.racks[rackId].repair_start_time = self.curr_time
-                    self.racks[rackId].init_repair_start_time = self.curr_time
-                for rackId in failed_racks:
-                    failed_racks_per_stripeset = self.get_failed_racks_per_stripesetRackId(rackId)
-                    self.update_rack_repair_time(rackId, len(failed_racks_per_stripeset))
+                self.racks[rackId].repair_start_time = self.curr_time
+                self.racks[rackId].init_repair_start_time = self.curr_time
+                for rId in failed_racks:
+                    failed_racks_per_stripeset = self.get_failed_racks_per_stripesetRackId(rId)
+                    self.update_rack_repair_time(rId, len(failed_racks_per_stripeset))
 
         if event_type == Rack.EVENT_REPAIR:
-                for rackId in failed_racks:
-                    failed_racks_per_stripeset = self.get_failed_racks_per_stripesetRackId(rackId)
-                    self.update_rack_repair_time(rackId, len(failed_racks_per_stripeset))
+                for rId in failed_racks:
+                    failed_racks_per_stripeset = self.get_failed_racks_per_stripesetRackId(rId)
+                    self.update_rack_repair_time(rId, len(failed_racks_per_stripeset))
     
     #----------------------------------------------
     # update rack state
     #----------------------------------------------
-    def update_rack_state(self, event_type, diskset):
-        new_rack_failures = []
+    def update_rack_state(self, event_type, diskId):
         if event_type == Disk.EVENT_FAIL:
-            for diskId in diskset:
-                rackId = diskId // self.sys.num_disks_per_rack
-                rackStripesetId = rackId // self.sys.top_n
-                # if rack already fails, we don't need to fail it again.
-                if self.racks[rackId].state == Rack.STATE_FAILED:
-                    continue
-                # otherwise, we need to check if a new rack fails
-                fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
-                if len(fail_per_rack) > self.sys.m:
-                    if rackId not in new_rack_failures:
-                        new_rack_failures.append(rackId)
-                    self.racks[rackId].state = Rack.STATE_FAILED
-                    self.failed_racks[rackId] = 1
-                    self.failed_racks_per_stripeset[rackStripesetId][rackId] = 1
-                    break
-        
-        if event_type == Rack.EVENT_FAIL:
-            rackset = diskset
-            for rackId in rackset:
-                rackStripesetId = rackId // self.sys.top_n
+            rackId = diskId // self.sys.num_disks_per_rack
+            rackStripesetId = rackId // self.sys.top_n
+            # if rack already fails, we don't need to fail it again.
+            if self.racks[rackId].state == Rack.STATE_FAILED:
+                return None
+            # otherwise, we need to check if a new rack fails
+            fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
+            if len(fail_per_rack) > self.sys.m:
                 self.racks[rackId].state = Rack.STATE_FAILED
-                new_rack_failures.append(rackId)
                 self.failed_racks[rackId] = 1
                 self.failed_racks_per_stripeset[rackStripesetId][rackId] = 1
+                return rackId
+                
+        
+        if event_type == Rack.EVENT_FAIL:
+            rackId = diskId
+            rackStripesetId = rackId // self.sys.top_n
+            self.racks[rackId].state = Rack.STATE_FAILED
+            self.failed_racks[rackId] = 1
+            self.failed_racks_per_stripeset[rackStripesetId][rackId] = 1
+            return rackId
 
         if event_type == Rack.EVENT_REPAIR:
-            rackset = diskset
-            for rackId in rackset:
-                rackStripesetId = rackId // self.sys.top_n
-                self.racks[rackId].state = Rack.STATE_NORMAL
-                self.failed_racks.pop(rackId, None)
-                self.failed_racks_per_stripeset[rackStripesetId].pop(rackId, None)
+            rackId = diskId
+            rackStripesetId = rackId // self.sys.top_n
+            self.racks[rackId].state = Rack.STATE_NORMAL
+            self.failed_racks.pop(rackId, None)
+            self.failed_racks_per_stripeset[rackStripesetId].pop(rackId, None)
+            
+            fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
+            for diskId in fail_per_rack:
+                self.failed_disks.pop(diskId, None)
                 
-                fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
-                for diskId in fail_per_rack:
-                    self.failed_disks.pop(diskId, None)
-                    
-                self.racks[rackId].failed_disks.clear()
-                
-                for diskId in self.sys.disks_per_rack[rackId]:
-                    self.disks[diskId].state = Disk.STATE_NORMAL 
-                
-                self.sys.metrics.total_net_traffic += self.racks[rackId].repair_data * (self.sys.top_k + 1)
-                self.sys.metrics.total_net_repair_time += self.curr_time - self.racks[rackId].init_repair_start_time
-                self.sys.metrics.total_net_repair_count += 1
+            self.racks[rackId].failed_disks.clear()
+            
+            for diskId in self.sys.disks_per_rack[rackId]:
+                self.disks[diskId].state = Disk.STATE_NORMAL 
+            
+            self.sys.metrics.total_net_traffic += self.racks[rackId].repair_data * (self.sys.top_k + 1)
+            self.sys.metrics.total_net_repair_time += self.curr_time - self.racks[rackId].init_repair_start_time
+            self.sys.metrics.total_net_repair_count += 1
+            return rackId
 
-        return new_rack_failures
+        return None
     
     def update_rack_repair_time(self, rackId, failed_racks_per_stripeset):
         rack = self.racks[rackId]

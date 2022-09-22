@@ -35,7 +35,6 @@ def factorial(n):
 
 
 def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
-    
     try:
         res = 0
         failureGenerator = copy.deepcopy(failureGenerator_)
@@ -61,6 +60,7 @@ def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
 
 # ----------------------------
 # This is a parallel/multi-iter wrapper around iter() function
+# We run X threads in parallel to run the simulation. X = concur.
 # ----------------------------
 def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
     # So tick(state) is for a single system, and we want to simulate multiple systems

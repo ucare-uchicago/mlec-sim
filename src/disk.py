@@ -43,7 +43,7 @@ class Disk:
         # self.fail_num = 0
 
 
-    def update_state(self, state):
+    def update_disk_state(self, state):
         self.state = state
 
 
