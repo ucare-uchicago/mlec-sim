@@ -23,7 +23,7 @@ class Repair:
 
 
 
-    def update_repair_event(self, diskset, state, curr_time, repair_queue):
+    def update_repair_event(self, state, curr_time, repair_queue):
         # logging.debug("updating repair",diskset)
         repair_queue.clear()
         checked_racks = {}

@@ -24,31 +24,43 @@ class NetRAID:
     # raid net
     #----------------------------------------------
 
-    def update_priority(self, event_type, diskset):
+    def update_disk_state(self, event_type, diskId):
+        rackId = diskId // self.sys.num_disks_per_rack
         if event_type == Disk.EVENT_REPAIR:
-            logging.info("  update_priority_raid_net event: {} diskset: {}".format(event_type, diskset))
-            to_update_stripesets = {}
-            for diskId in diskset:
-                disk = self.disks[diskId]
-                to_update_stripesets[disk.stripesetId] = 1
-                self.sys.metrics.total_net_traffic += disk.repair_data * (self.sys.top_k + 1)
-                self.sys.metrics.total_rebuild_io_per_year += disk.repair_data * (self.sys.top_k + 1)
-            for stripesetId in to_update_stripesets:
-                failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(stripesetId)
-                for diskId in failed_disks_per_stripeset:
-                    self.update_disk_repair_time(diskId)
+            self.disks[diskId].state = Disk.STATE_NORMAL
+            self.racks[rackId].failed_disks.pop(diskId, None)
+            self.failed_disks.pop(diskId, None)
+            # logging.info("rack {} after pop: {}".format(rackId, self.racks[rackId].failed_disks))
+            
+            
+        if event_type == Disk.EVENT_FAIL:
+            self.disks[diskId].state = Disk.STATE_FAILED
+            self.racks[rackId].failed_disks[diskId] = 1
+            self.failed_disks[diskId] = 1
+            # logging.info("rack {} after add: {}".format(rackId, self.racks[rackId].failed_disks))
+
+
+
+
+    def update_disk_priority(self, event_type, diskId):
+        if event_type == Disk.EVENT_REPAIR:
+            disk = self.disks[diskId]
+            self.sys.metrics.total_net_traffic += disk.repair_data * (self.sys.top_k + 1)
+            self.sys.metrics.total_rebuild_io_per_year += disk.repair_data * (self.sys.top_k + 1)
+            stripesetId = disk.stripesetId
+            failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(stripesetId)
+            for diskId in failed_disks_per_stripeset:
+                self.update_disk_repair_time(diskId)
 
         if event_type == Disk.EVENT_FAIL:
-            logging.info("  update_priority_raid_net event: {} diskset: {}".format(event_type, diskset))
-            for diskId in diskset:
-                disk = self.disks[diskId]
-                disk.repair_start_time = self.curr_time
+            disk = self.disks[diskId]
+            disk.repair_start_time = self.curr_time
 
-                failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(disk.stripesetId)
-                logging.info("  update_priority_raid_net event: {} stripesetId: {} failed_disks_per_stripeset: {}".format(
-                                event_type, disk.stripesetId, failed_disks_per_stripeset))
-                for diskId_per_stripeset in failed_disks_per_stripeset:
-                    self.update_disk_repair_time(diskId_per_stripeset)
+            failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(disk.stripesetId)
+            logging.info("  update_disk_priority_raid_net event: {} stripesetId: {} failed_disks_per_stripeset: {}".format(
+                            event_type, disk.stripesetId, failed_disks_per_stripeset))
+            for diskId_per_stripeset in failed_disks_per_stripeset:
+                self.update_disk_repair_time(diskId_per_stripeset)
     
     
     def update_disk_repair_time(self, diskId):
