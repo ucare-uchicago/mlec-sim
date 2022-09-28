@@ -75,12 +75,7 @@ class RAID:
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
         repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_rack)
-        # if repaired_percent > 0 and (fail_per_rack > 1  or 
-        #     disk.repair_time[0] != float(disk.curr_repair_data_remaining)/self.sys.diskIO):
-        #     print("fail_per_rack {}  old repair time: {}  old repair time:{}  new repair time: {} new finish time {}".format(
-        #         fail_per_rack, disk.repair_time[0], disk.repair_time[0] + disk.repair_start_time, repair_time / 3600 / 24,
-        #         repair_time / 3600 / 24 + self.curr_time
-        #     ))
+
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
@@ -93,12 +88,7 @@ class RAID:
         rack = self.racks[rackId]
         stripesetId = (diskId % self.sys.num_disks_per_rack) // self.n
         repair_time = float(disk.repair_data)/(self.sys.diskIO)
-        # if repaired_percent > 0 and (fail_per_rack > 1  or 
-        #     disk.repair_time[0] != float(disk.curr_repair_data_remaining)/self.sys.diskIO):
-        #     print("fail_per_rack {}  old repair time: {}  old repair time:{}  new repair time: {} new finish time {}".format(
-        #         fail_per_rack, disk.repair_time[0], disk.repair_time[0] + disk.repair_start_time, repair_time / 3600 / 24,
-        #         repair_time / 3600 / 24 + self.curr_time
-        #     ))
+
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = max(self.curr_time, rack.stripesets_repair_finish[stripesetId])
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
