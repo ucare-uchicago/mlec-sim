@@ -518,9 +518,9 @@ if __name__ == "__main__":
     parser.add_argument('-io_speed', type=int, help="disk repair rate (MB/s).", default=30)
     parser.add_argument('-cap', type=int, help="disk capacity (TB)", default=20)
     parser.add_argument('-adapt', type=bool, help="assume seagate adapt or not", default=False)
-    parser.add_argument('-n_local', type=int, help="number of data chunks in local EC", default=7)
+    parser.add_argument('-k_local', type=int, help="number of data chunks in local EC", default=7)
     parser.add_argument('-p_local', type=int, help="number of parity chunks in local EC", default=1)
-    parser.add_argument('-n_net', type=int, help="number of data chunks in network EC", default=7)
+    parser.add_argument('-k_net', type=int, help="number of data chunks in network EC", default=7)
     parser.add_argument('-p_net', type=int, help="number of parity chunks in network EC", default=1)
     parser.add_argument('-total_drives', type=int, help="number of total drives in the system", default=-1)
     parser.add_argument('-drives_per_rack', type=int, help="number of drives per rack", default=-1)
@@ -534,9 +534,9 @@ if __name__ == "__main__":
     io_speed = args.io_speed
     cap = args.cap
     adapt = args.adapt
-    k_local = args.n_local
+    k_local = args.k_local
     p_local = args.p_local
-    k_net = args.n_net
+    k_net = args.k_net
     p_net = args.p_net
 
     total_drives = args.total_drives
