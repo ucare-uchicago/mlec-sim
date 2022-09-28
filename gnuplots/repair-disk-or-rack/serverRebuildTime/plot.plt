@@ -7,7 +7,7 @@ set boxwidth 1
 set style fill pattern border
 set key top right horizontal outside
 
-set ylabel "Server repair time (days)"
+set ylabel "Rack repair time (days)"
 
 set yrange [0 : 6]
 #set xtics 3
