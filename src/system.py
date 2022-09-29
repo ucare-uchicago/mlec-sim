@@ -110,7 +110,10 @@ class System:
         self.top_n = self.top_k + self.top_m
         self.num_rack_stripesets = self.num_racks // self.top_n
         for i in range(self.num_rack_stripesets):
-            rack_stripeset  = self.racks[i*self.top_n :(i+1)*self.top_n]
+            # rack_stripeset  = self.racks[i*self.top_n :(i+1)*self.top_n]
+            rack_stripeset = []
+            for j in range(self.top_n):
+                rack_stripeset.append(i+j*self.num_rack_stripesets)
             self.rack_stripesets.append(rack_stripeset)
         
 
@@ -138,8 +141,8 @@ class System:
                 # logging.info(" stripesetId: {} diskId: {}".format(i, diskId))
             sets[i] = stripeset
         self.net_raid_stripesets_layout = sets
-        # logging.info("* there are {} stripesets:\n{}".format(
-        #         num_stripesets, sets))
+        logging.info("* there are {} stripesets:\n{}".format(
+                num_stripesets, sets))
 
 
 

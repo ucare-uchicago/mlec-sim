@@ -46,6 +46,7 @@ class Simulate:
 
         if failureGenerator.is_burst:
             failures = failureGenerator.gen_failure_burst(self.sys.num_disks_per_rack, self.sys.num_racks)
+            # failures = failureGenerator.gen_failure_burst(50, 50)
         else:
             initialFailures = failureGenerator.gen_failure_times(self.sys.num_disks)
             failure_times = initialFailures[initialFailures < self.mission_time]

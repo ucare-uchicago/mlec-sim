@@ -514,7 +514,7 @@ def metric_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 # -----------------------------
 def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution):
-    logging.basicConfig(level=logging.INFO)
+    # logging.basicConfig(level=logging.INFO)
     
     mission = YEAR
     failureGenerator = FailureGenerator(afr, GoogleBurst(50, 50), is_burst=True)
@@ -528,8 +528,8 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     total_iters = 0
     metrics = Metrics()
 
-    res = simulate(failureGenerator, sys, iters=100, epochs=1, concur=1, mission=mission)
-    return
+    # res = simulate(failureGenerator, sys, iters=100, epochs=1, concur=1, mission=mission)
+    # return
 
     # We need to get enough failures in order to compute accurate nines #
     while failed_iters < 20:
