@@ -36,23 +36,21 @@ class Simulate:
     # repair queue: the queue of repair events (including rack repair and disk repair)
     # element in the queue follows this format: (event_time, event_type, disk/rack ID)
     #------------------------------------------
-    def reset(self, initialFailures, mytimer):
+    def reset(self, failureGenerator, mytimer):
         self.failure_queue = []
         self.repair_queue = []
 
         self.sys.priority_per_set = {}
 
-        temp = time.time()
         self.state = State(self.sys, mytimer)
-        resetStateEndTime = time.time()
-        mytimer.resetStateInitTime += resetStateEndTime - temp
 
-        temp = time.time()
-        failure_times = initialFailures[initialFailures < self.mission_time]
-        failure_idxs = np.where(initialFailures < self.mission_time)[0]
-        failures = list(zip(failure_times, failure_idxs))
-        resetGenFailEndTime = time.time()
-        mytimer.resetGenFailTime += resetGenFailEndTime - temp
+        if failureGenerator.is_burst:
+            failures = failureGenerator.gen_failure_burst(self.sys.num_disks_per_rack, self.sys.num_racks)
+        else:
+            initialFailures = failureGenerator.gen_failure_times(self.sys.num_disks)
+            failure_times = initialFailures[initialFailures < self.mission_time]
+            failure_idxs = np.where(initialFailures < self.mission_time)[0]
+            failures = list(zip(failure_times, failure_idxs))
         #-----------------------------------------------------
         # generate disks failures events from failure traces
         #-----------------------------------------------------
@@ -66,7 +64,7 @@ class Simulate:
 
         for disk_fail_time, diskId in failures:
             heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
-            # logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Disk.EVENT_FAIL, diskId))
+            logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Disk.EVENT_FAIL, diskId))
             self.sys.metrics.failure_count += 1
             
         
@@ -77,8 +75,6 @@ class Simulate:
                 # logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Rack.EVENT_FAIL, diskId))
 
 
-        heapEndTime = time.time()
-        mytimer.resetHeapTime += heapEndTime - resetGenFailEndTime
         #-----------------------------------------------------
 
 
@@ -115,9 +111,8 @@ class Simulate:
 
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
         
-        initialFailures = failureGenerator.gen_failure_times(self.sys.num_disks)
         
-        self.reset(initialFailures, mytimer)
+        self.reset(failureGenerator, mytimer)
 
         curr_time = 0
         prob = 0
@@ -129,7 +124,7 @@ class Simulate:
             (event_time, event_type, diskId) = self.get_next_event()
             getEventEndTime = time.time()
 
-            logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
+            # logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
             
             if event_time == None:
                 break
@@ -161,7 +156,7 @@ class Simulate:
             #---------------------------
             # new failure should be generated
             #---------------------------
-            if event_type == Disk.EVENT_FAIL:
+            if event_type == Disk.EVENT_FAIL and not failureGenerator.is_burst:
                 new_failure_intervals = failureGenerator.gen_new_failures(1)
                 disk_fail_time = new_failure_intervals[0] + curr_time
                 if disk_fail_time < self.mission_time:
