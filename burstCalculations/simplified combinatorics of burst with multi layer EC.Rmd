@@ -1,0 +1,327 @@
+---
+title: "Simplified combinatorical analysis of burst failures"
+categories: ["Reliability"]
+tags: ["Reliability","Erasure coding"]
+date: "2022-2-24"
+author: Serkay Ölmez
+output:
+    bookdown::pdf_book:
+      keep_tex: yes
+      latex_engine: pdflatex 
+      template: ./IEEE_format_single_col.tex
+      toc: false
+    blogdown::html_page:
+      toc_depth: 2
+header-includes: 
+  - \usepackage{hyperref}
+  - \usepackage{caption} 
+  - \usepackage{float} 
+  - \usepackage{graphicx} 
+always_allow_html: true     
+endnote: no
+keywords: combinatorics
+biblio-style: apsr
+site: bookdown::bookdown_site
+thanks1: "email: serkay.olmez@seagate.com  \n"
+abstract: Calculating data loss probability under bursts of failures.
+  
+---
+
+
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.pos = 'H')
+knitr::opts_chunk$set(fig.pos = 'H')
+knitr::opts_chunk$set(fig.align="center")
+is_html<-knitr::is_html_output()
+is_pdf<-!is_html
+print(is_html)
+```
+
+<div id="TOC" class="tocify" ></div>
+<script async src="./jsfiles/math602.js"></script>
+# The set up
+
+Consider $N$ drives such that $N=n_\text{i}\times n_\text{o}$, where the subscript *o* is the short for *outer* and *i* is the short for *inner*. Take $n_\text{i}$ drives and apply an erasure coding with $n_\text{i}=d_\text{i}+p_\text{i}$, where $d_\text{i}$ stands for data drives and $p_\text{i}$ stands for parity drives. This inner layer of  erasure coding in this group of drives is capable of recovering from $p_\text{i}$ simultaneous failures. Note that the number of such groups is  $n_\text{o}$. We can now that this already erasure coded groups and create another erasure coding on top with $n_\text{o}=d_\text{o}+p_\text{o}$. With this set up, we would like to study the resiliency of the data against failure bursts, i.e., will the data survive if $N_\text{f}$ drives fail all at the same time? 
+
+It will take at least $p_\text{i}+1$ simultaneous failures for the inner layer to lose data. And we have to lose $p_\text{o}+1$ inner layers for the outer layer to lose data. Therefore the minimum number of failures that can cause data loss is:
+\begin{eqnarray}
+n_\text{min}=(p_\text{i}+1)\times (p_\text{o}+1)
+(\#eq:nmindef)
+\end{eqnarray}
+
+
+
+# Counting combinations 
+
+Consider the first of the erasure coded inner layer group that consists of   $n_\text{i}$ drives, and assume there are $f_0$ failed drives in this group where $0\leq f_0\leq n_\text{i}$. The total number of creating a configuration with $f_0$ failed  and $n_\text{i}-f_0$ healthy drives is: 
+\begin{eqnarray}
+\mathcal{C}(f_0)=\frac{n_\text{i}!}{(n_\text{i}-f_0)!f_0!} .
+(\#eq:pb0)
+\end{eqnarray}
+We need to repeat this for all inner groups and multiply them together to get the total number of combinations
+
+\begin{eqnarray}
+\mathcal{C}(f_0,f_1,\cdots, f_{n_\text{o}-1})&=& {\displaystyle \prod_{k=0}^{n_\text{o}-1}} \mathcal{C}(f_k)={\displaystyle \prod_{k=0}^{n_\text{o}-1}} \frac{n_\text{i}!}{(n_\text{i}-f_k)!f_k!}
+=\left(n_\text{i}!\right)^{n_\text{o}}{\displaystyle \prod_{k=0}^{n_\text{o}-1}} \frac{1}{(n_\text{i}-f_k)!f_k!}.
+(\#eq:tcf)
+\end{eqnarray}
+Equation \@ref(eq:tcf) is the total number of combinations for an arbitrary collection of failures per inner layer, i.e., $\{f_0,f_1,\cdots, f_{n_\text{o}-1}\}$ with the only constraint being $0\leq f_k\leq n_\text{i}$. We want to consider cases where the total number of failed drives is a fixed number by imposing the following condition on  $f_k$: 
+\begin{eqnarray}
+ \sum_{k=0}^{n_\text{o}-1}f_k= N_\text{f}.
+(\#eq:fsum)
+\end{eqnarray}
+We can now sum over every possible value of $f_k$ satisfying Eq. \@ref(eq:fsum) to get the total number of combinations with total $N_\text{f}$ failed drives.
+\begin{eqnarray}
+\mathcal{C}&=& \sum_{f_0}\sum_{f_1}\cdots \sum_{f_{n_\text{o}-1}} \mathcal{C}(f_0,f_1,\cdots, f_{n_\text{o}-1}) \delta\left(  \sum_{l=0}^{n_\text{o}-1}f_l- N_\text{f}\right)\nonumber\\
+&=& \left(n_\text{i}!\right)^{n_\text{o}}  \sum_{f_0}\sum_{f_1}\cdots \sum_{f_{n_\text{o}-1}} {\displaystyle \prod_{k=0}^{n_\text{o}-1}} \frac{1}{(n_\text{i}-f_k)!f_k!} \delta\left(  \sum_{l=0}^{n_\text{o}-1}f_l- N_\text{f}\right),
+(\#eq:tcfs)
+\end{eqnarray}
+where we imposed the condition in Eq. \@ref(eq:fsum) using the Kronecker delta function, $\delta$. 
+
+
+For computational purposes, we can eliminate the eliminate  Kronecker delta function by carefully defining the range of the summation indices, i.e., $f_k$ so that Eq. \@ref(eq:fsum) is satisfied by definition:
+\begin{eqnarray}
+\mathcal{C}&=& \left(n_\text{i}!\right)^{n_\text{o}}  \sum_{f_0=0}^{N_\text{f}}\sum_{f_1=0}^{N_\text{f}-f_0}\cdots \sum_{f_{n_\text{o}-2}=0}^{N_\text{f}-\sum_{l=0}^{n_\text{o}-3}f_l} {\displaystyle \prod_{k=0}^{n_\text{o}-1}} \frac{1}{(n_\text{i}-f_k)!f_k!}\bigg\rvert_{f_{ n_\text{o}-1=N_\text{f}-\sum_{l=0}^{n_\text{o}-2}f_l}}.
+(\#eq:tcfs2)
+\end{eqnarray}
+Note that we can use this equation as is  although the summation indices $f_k$  may exceed $n_\text{i}$. For those cases we will get $0$ from the product term since negative factorials  ,$f_k>n_\text{i}$, become infinite. For numeric computations, the upper range of the summation $f_k$ can be truncated at $\min(N_\text{f}-\sum_{l=0}^{k-1}f_l, n_\text{i})$.
+
+# Counting data loss instances
+
+Not all of these combinations result in data loss. If $f_k>p_\text{i}$ then the inner layer $k$ has lost data. And if the number of inner layers that lost data is larger than $p_\text{o}$, the overall system has lost data. We can put this in using nested $\Theta$ functions:
+
+\begin{eqnarray}
+\text{Data Loss}&=& \Theta\left[  \sum_{l=0}^{n_\text{o}-1}  \Theta \left[f_l-p_\text{i} \right]-p_\text{o}     \right],
+(\#eq:theta)
+\end{eqnarray}
+where $\Theta[m]$ returns $1$ for $m\geq 1$ and $0$ otherwise. 
+
+# Probability of data loss
+
+We have been counting the combinations that give data loss cases. We need to normalize that against total number of combinations with $N_\text{f}$ failed  and $N-N_\text{f}$ healthy drives which is simply:
+
+\begin{eqnarray}
+\mathcal{C}_\text{T}=\frac{N!}{(N-N_\text{f})!N_\text{f}!}.
+(\#eq:pb0)
+\end{eqnarray}
+
+And finally, the probability of losing data becomes:
+
+\begin{eqnarray}
+\mathcal{P}&=&\frac{\mathcal{C}_\text{DL}}{\mathcal{C}_\text{T}}\nonumber\\
+&=& \frac{(N-N_\text{f})!N_\text{f}! \left(n_\text{i}!\right)^{n_\text{o}}}{ N!}  \sum_{f_0=0}^{N_\text{f}}\sum_{f_1=0}^{N_\text{f}-f_0}\cdots \sum_{f_{n_\text{o}-2}=0}^{N_\text{f}-\sum_{l=0}^{n_\text{o}-3}f_l} {\displaystyle \prod_{k=0}^{n_\text{o}-1}} \frac{\Theta\left[  \sum_{l=0}^{n_\text{o}-1}  \Theta \left[f_l-p_\text{i} \right]-p_\text{o}     \right]}{(n_\text{i}-f_k)!f_k!}\bigg\rvert_{f_{ n_\text{o}-1=N_\text{f}-\sum_{l=0}^{n_\text{o}-2}f_l}}.
+(\#eq:ploss)
+\end{eqnarray}
+
+Numerically evaluating Eq. \@ref(eq:ploss) is somewhat convoluted due to the changing number of summations as $n_\text{o}$ changes. Below are the result for probability of losing data vs number of failures for selected erasure coding as shown in the title. Two traces (which are on top of each other) show the results from brute force counting and the formula. The code is somewhat hard coded to handle $n_\text{o}=3$ case.
+
+```{r 2161,echo=FALSE,out.width=if (knitr:::is_latex_output()) '0.65\\linewidth' else "30%", echo=FALSE, message=FALSE, error=FALSE,warning = FALSE,fig.cap="EC:(2+1)/(6+1)"}
+  knitr::include_graphics('2161.png', error = FALSE)
+```
+
+```{r 2162,echo=FALSE,out.width=if (knitr:::is_latex_output()) '0.65\\linewidth' else "30%", echo=FALSE, message=FALSE, error=FALSE,warning = FALSE,fig.cap="EC:(2+1)/(6+2)"}
+  knitr::include_graphics('2162.png', error = FALSE)
+```
+
+
+```{r 3061,echo=FALSE,out.width=if (knitr:::is_latex_output()) '0.65\\linewidth' else "30%", echo=FALSE, message=FALSE, error=FALSE,warning = FALSE,fig.cap="EC:(3+0)/(6+1)"}
+  knitr::include_graphics('3061.png', error = FALSE)
+```
+
+
+```{r 3062,echo=FALSE,out.width=if (knitr:::is_latex_output()) '0.65\\linewidth' else "30%", echo=FALSE, message=FALSE, error=FALSE,warning = FALSE,fig.cap="EC:(3+0)/(6+2)"}
+  knitr::include_graphics('3062.png', error = FALSE)
+```
+
+
+
+
+
+
+
+
+<script>
+   window.PlotlyConfig = {MathJaxConfig: 'local'}
+</script>
+
+
+  
+
+<script src="./jsfiles/jquery-1.11.3/jquery.min.js"></script>
+<script src="./jsfiles/jqueryui-1.11.4/jquery-ui.min.js"></script>
+<script src="./jsfiles/tocify-1.9.1/jquery.tocify_modif.js"></script>
+<script async src="./jsfiles/math-code.js"> </script>
+
+<script src="./jsfiles/nouislider.min.js"></script>
+<script src="./jsfiles/wNumb.js"></script>
+<script src="./jsfiles/raphael.min.js"></script>
+<script src="./jsfiles/flowchart-latest.js"></script>
+
+
+
+
+
+
+
+
+<script id="rendered-js">
+    $(document).ready(function () {
+        
+        $(".js--btn-more").click(function () {
+        $(this).parent().toggleClass("is--expanded");
+        $(this).toggleClass("is--visible");
+        $(this).next().toggleClass("is--visible");
+    
+        });
+        $(".js--btn-less").click(function () {
+        $(this).parent().toggleClass("is--expanded");
+        $(this).toggleClass("is--visible");
+        $(this).prev().toggleClass("is--visible");
+        });
+        
+    });
+</script>
+
+<script>
+  
+  function myFunction(inputid) {
+    const copyText = document.getElementById(inputid).textContent;
+    const textArea = document.createElement('textarea');
+    textArea.textContent = copyText;
+    document.body.append(textArea);
+    textArea.select();
+    document.execCommand("copy");
+    document.getElementsByTagName("textarea")[0].remove();
+    
+    var div2 = document.getElementById(inputid.concat("copied"));
+    div2.className = "show";div2.style = "block";
+
+    setTimeout(function () {div2.className = 'hide';div2.style = "none"}, 1000);
+    
+  }
+</script>
+
+
+
+
+
+<link rel="stylesheet" href="./css/style.css"/>
+<link href="./css/fontawesome-free-5.13.0-web/css/all.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="./css/nouislider.min.css"/> 
+<link href="./css/jquery.tocify_modified.css" rel="stylesheet" />
+
+
+
+
+
+
+<script type="text/javascript" async
+  src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_SVG">
+</script>
+
+<script>
+   window.PlotlyConfig = {MathJaxConfig: 'local'}
+</script>
+
+<script src="./jsfiles/plotly-1.52.3.min.js"></script>
+            
+
+
+
+<script>
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+    // establish options
+    var options = {
+      selectors: "h1,h2",
+      theme: "bootstrap3",
+      context: '.article-container',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = true;
+    options.smoothScroll = true;
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+</script>
+
+
+
+
+<script>
+
+
+function choosenk(n, k) {
+     if ((typeof n !== 'number') || (typeof k !== 'number')) 
+  return false; 
+    var coeff = 1;
+    for (var x = n-k+1; x <= n; x++) coeff *= x;
+    for (x = 1; x <= k; x++) coeff /= x;
+    return coeff;
+}
+
+function update_fields() {
+
+di=parseInt(document.getElementById('datai').value)
+pi=parseInt(document.getElementById('parityi').value)
+ni=di+pi
+innercomb=choosenk(ni,pi+1)
+$('#innercomb').text(innercomb)
+
+dout=parseInt(document.getElementById('datao').value)
+pout=parseInt(document.getElementById('parityo').value)
+nout=dout+pout
+
+
+$('#ndrives').text(ni*nout)
+
+outercomb=choosenk(nout,pout+1)
+$('#outercomb').text(outercomb)
+
+
+ndl=outercomb*math.pow(innercomb,pout+1)
+
+
+$('#theresultnmin').text(ndl)
+
+nf=(pi+1)*(pout+1)
+
+$('#nfailures').text(nf)
+ndrives=ni*nout
+console.log("ndrives:"+ndrives+", nf:"+nf)
+ntotal=choosenk(ndrives,nf)
+$('#ntotal').text(ntotal)
+
+$('#prob').text(math.round(10000*ndl/ntotal)/100+"%")
+
+
+}
+
+
+
+
+$(".myinputclass").on("change", function(){
+
+  
+update_fields()
+  
+
+});
+
+</script>
+
+
+<script>
+setTimeout(function () {
+
+
+update_fields()  
+}, 1000); 
+</script>
+    
