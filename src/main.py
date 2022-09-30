@@ -133,7 +133,7 @@ def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
             # print(metrics)
             simulationTime = time.time() - start
             print("simulation time: {}".format(simulationTime))
-            print("failed_iters: {}  failed_iters: {}".format(failed_iters, total_iters))
+            print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
 
         total_iters *= mission/YEAR
 
