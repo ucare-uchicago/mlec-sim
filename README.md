@@ -26,6 +26,8 @@ and analyze their performance including durability, rebuild IO, network traffic,
    - `numpy`
    - `matplotlib`
    - `math`
+   - `mpmath`
+   - `pandas`
 
 ## Usage
 ```

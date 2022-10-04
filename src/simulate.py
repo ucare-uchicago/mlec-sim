@@ -156,6 +156,8 @@ class Simulate:
                 break
             #---------------------------
             # new failure should be generated
+            #  Note: this is to generate the failure time for the disk that we are going to 
+            #        use to replace the failed disk
             #---------------------------
             if event_type == Disk.EVENT_FAIL and not failureGenerator.is_burst:
                 new_failure_intervals = failureGenerator.gen_new_failures(1)
