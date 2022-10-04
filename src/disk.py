@@ -1,5 +1,3 @@
-from mpmath import mpf
-
 class Disk:
     #----------------------------------
     # The 2 possible state
