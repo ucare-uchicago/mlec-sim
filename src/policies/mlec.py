@@ -6,6 +6,7 @@ from functools import reduce
 from rack import Rack
 import time
 from diskgroup import Diskgroup
+from heapq import *
 
 class MLEC:
     #--------------------------------------
@@ -15,16 +16,18 @@ class MLEC:
         self.state = state
         self.sys = state.sys
         self.n = state.n
+        self.top_n = self.sys.top_k + self.sys.top_m
         self.racks = state.racks
         self.disks = state.disks
         self.curr_time = state.curr_time
         self.failed_disks = state.failed_disks
-        self.failed_diskgroups = state.failed_racks
+        self.failed_diskgroups = {}
         self.mytimer = state.mytimer
 
         self.failed_diskgroups_per_stripeset = []
-        for i in range(self.sys.num_rack_stripesets):
-            self.failed_racks_per_stripeset.append({})
+        self.num_diskgroup_stripesets = self.sys.num_disks // self.n // self.top_n
+        for i in range(self.num_diskgroup_stripesets):
+            self.failed_diskgroups_per_stripeset.append({})
         
         self.num_diskgroups = self.sys.num_disks // self.n
         diskgroup_repair_data = self.sys.diskSize * self.n  # when disk group fails, we repair the whole disk group
@@ -33,7 +36,6 @@ class MLEC:
             self.diskgroups[diskgroupId] = Diskgroup(diskgroupId, diskgroup_repair_data)
 
     def update_disk_state(self, event_type, diskId):
-        # rackId = diskId // self.sys.num_disks_per_rack
         diskgroupId = diskId // self.n
         if event_type == Disk.EVENT_REPAIR:
             self.disks[diskId].state = Disk.STATE_NORMAL
@@ -54,7 +56,6 @@ class MLEC:
             diskgroupId = diskId // self.n
 
             if self.diskgroups[diskgroupId].state == Diskgroup.STATE_FAILED:
-                # logging.info("update_disk_priority(): rack {} is failed".format(rackId))
                 return
             
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
@@ -105,8 +106,6 @@ class MLEC:
 
         end = time.time()
         self.mytimer.updateDiskRepairTime += end - start
-        logging.info("  update_disk_repair_time for disk {} fail_per_rack {} repair time {}".format(
-                        diskId, fail_per_diskgroup, disk.repair_time[0]))
 
 
     #----------------------------------------------
@@ -133,44 +132,44 @@ class MLEC:
             # if diskgroup already fails, we don't need to fail it again.
             if self.diskgroups[diskgroupId].state == Diskgroup.STATE_FAILED:
                 return None
-            # otherwise, we need to check if a new rack fails
-            fail_per_diskgroup = self.state.get_failed_disks_per_diskgroup(diskgroupId)
+            # otherwise, we need to check if a new diskgroup fails
+            fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
             if len(fail_per_diskgroup) > self.sys.m:
-                self.diskgroups[diskgroupId].state = Rack.STATE_FAILED
+                self.diskgroups[diskgroupId].state = Diskgroup.STATE_FAILED
                 self.failed_diskgroups[diskgroupId] = 1
-                self.failed_diskgroup_per_stripeset[diskgroupStripesetId][diskgroupId] = 1
+                self.failed_diskgroups_per_stripeset[diskgroupStripesetId][diskgroupId] = 1
                 return diskgroupId
 
         if event_type == Diskgroup.EVENT_FAIL:
             diskgroupId = diskId
             num_diskgroup_per_rack = self.sys.num_disks_per_rack // self.n
             diskgroupStripesetId = (diskgroupId % num_diskgroup_per_rack) + (diskgroupId // (num_diskgroup_per_rack * self.sys.top_n)) * num_diskgroup_per_rack
-            self.diskgroups[diskgroupId].state = Rack.STATE_FAILED
+            self.diskgroups[diskgroupId].state = Diskgroup.STATE_FAILED
             self.failed_diskgroups[diskgroupId] = 1
-            self.failed_diskgroup_per_stripeset[diskgroupStripesetId][diskgroupId] = 1
+            self.failed_diskgroups_per_stripeset[diskgroupStripesetId][diskgroupId] = 1
             return diskgroupId
 
-        if event_type == Rack.EVENT_REPAIR:
-            rackId = diskId
-            rackStripesetId = rackId // self.sys.top_n
-            self.racks[rackId].state = Rack.STATE_NORMAL
-            self.failed_racks.pop(rackId, None)
-            self.failed_racks_per_stripeset[rackStripesetId].pop(rackId, None)
+        if event_type == Diskgroup.EVENT_REPAIR:
+            diskgroupId = diskId
+            num_diskgroup_per_rack = self.sys.num_disks_per_rack // self.n
+            diskgroupStripesetId = (diskgroupId % num_diskgroup_per_rack) + (diskgroupId // (num_diskgroup_per_rack * self.sys.top_n)) * num_diskgroup_per_rack
+            self.diskgroups[diskgroupId].state = Diskgroup.STATE_NORMAL
+            self.failed_diskgroups.pop(diskgroupId, None)
+            self.failed_diskgroups_per_stripeset[diskgroupStripesetId].pop(diskgroupId, None)
             
-            fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
-            for diskId in fail_per_rack:
-                self.failed_disks.pop(diskId, None)
+            fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
+            for dId in fail_per_diskgroup:
+                self.failed_disks.pop(dId, None)
                 
-            self.racks[rackId].failed_disks.clear()
+            self.diskgroups[diskgroupId].failed_disks.clear()
             
-            for diskId in self.sys.disks_per_rack[rackId]:
+            for dId in range(diskgroupId*self.n, (diskgroupId+1)*self.n):
                 self.disks[diskId].state = Disk.STATE_NORMAL 
             
-            self.sys.metrics.total_net_traffic += self.racks[rackId].repair_data * (self.sys.top_k + 1)
-            self.sys.metrics.total_net_repair_time += self.curr_time - self.racks[rackId].init_repair_start_time
+            self.sys.metrics.total_net_traffic += self.diskgroups[diskgroupId].repair_data * (self.sys.top_k + 1)
+            self.sys.metrics.total_net_repair_time += self.curr_time - self.diskgroups[diskgroupId].init_repair_start_time
             self.sys.metrics.total_net_repair_count += 1
-            return rackId
-
+            return diskgroupId
         return None
 
 
@@ -194,7 +193,7 @@ class MLEC:
                 for dgId in failed_diskgroups_per_stripeset:
                     self.update_diskgroup_repair_time(dgId, len(failed_diskgroups_per_stripeset))
 
-        if event_type == Rack.EVENT_REPAIR:
+        if event_type == Diskgroup.EVENT_REPAIR:
                 failed_diskgroups_per_stripeset = self.get_failed_diskgroups_per_stripeset(diskgroupStripesetId)
                 for dgId in failed_diskgroups_per_stripeset:
                     self.update_diskgroup_repair_time(dgId, len(failed_diskgroups_per_stripeset))
@@ -212,7 +211,7 @@ class MLEC:
             diskgroup.curr_repair_data_remaining = diskgroup.repair_data
         else:
             
-            repaired_percent = repaired_time / rack.repair_time[0]
+            repaired_percent = repaired_time / diskgroup.repair_time[0]
             diskgroup.curr_repair_data_remaining = diskgroup.curr_repair_data_remaining * (1 - repaired_percent)
         repair_time = float(diskgroup.curr_repair_data_remaining)/(self.sys.diskIO * self.n / failed_diskgroups_per_stripeset)
         diskgroup.repair_time[0] = repair_time / 3600 / 24
@@ -228,8 +227,28 @@ class MLEC:
         return list(self.failed_racks_per_stripeset[rackStripesetId].keys())
     
     def get_failed_disks_per_diskgroup(self, diskgroupId):
-        # logging.info("sedrver {} get: {}".format(rackId, list(self.racks[rackId].failed_disks.keys())))
         return list(self.diskgroups[diskgroupId].failed_disks.keys())
     
     def get_failed_diskgroups_per_stripeset(self, diskgroupStripesetId):
-        return list(self.failed_diskgroup_per_stripeset[diskgroupStripesetId].keys())
+        return list(self.failed_diskgroups_per_stripeset[diskgroupStripesetId].keys())
+
+    def get_failed_diskgroups(self):
+        return list(self.failed_diskgroups.keys())
+
+    # update the repair event queue
+    def update_repair_event(self, curr_time, repair_queue):
+        repair_queue.clear()
+        for diskgroupId in self.get_failed_diskgroups():
+            heappush(repair_queue, (self.diskgroups[diskgroupId].estimate_repair_time, Diskgroup.EVENT_REPAIR, diskgroupId))
+        for diskId in self.state.get_failed_disks():
+            diskgroupId = diskId // self.sys.n
+            if self.diskgroups[diskgroupId].state == Diskgroup.STATE_NORMAL:
+                heappush(repair_queue, (self.disks[diskId].estimate_repair_time, Disk.EVENT_REPAIR, diskId))
+        if len(repair_queue) > 0:
+            if not self.state.repairing:
+                self.state.repairing = True
+                self.state.repair_start_time = curr_time
+        else:
+            if self.state.repairing:
+                self.state.repairing = False
+                self.state.sys.metrics.total_rebuild_time += curr_time - self.state.repair_start_time
