@@ -1,10 +1,9 @@
 from concurrent.futures import ProcessPoolExecutor
+
 import numpy as np
 import math
 import copy
 import traceback
-import os
-import heapq
 import logging
 
 # Custom stuff
@@ -106,7 +105,7 @@ def get_placement_index(placement):
 # normal Monte Carlo simulation
 # -----------------------------
 def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
-                total_drives, drives_per_rack, placement, distribution):
+                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
         # logging.basicConfig(level=logging.INFO)
     
     # for afr in range(2, 11):
@@ -128,7 +127,7 @@ def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
         # We need to get enough failures in order to compute accurate nines #
         while failed_iters < 20:
             start  = time.time()
-            res = simulate(failureGenerator, sys, iters=50000, epochs=16, concur=16, mission=mission)
+            res = simulate(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
             failed_iters += res[0]
             total_iters += res[1]
             metrics += res[2]
@@ -581,6 +580,9 @@ if __name__ == "__main__":
     parser.add_argument('-drives_per_rack', type=int, help="number of drives per rack", default=-1)
     parser.add_argument('-placement', type=str, help="placement policy. Can be RAID/DP/MLEC/LRC", default='MLEC')
     parser.add_argument('-dist', type=str, help="disk failure distribution. Can be exp/weibull", default='exp')
+    parser.add_argument('-concur', type=int, help="how many threads to use concurrently", default=200)
+    parser.add_argument('-epoch', type=int, help="how many epochs to run", default=20)
+    parser.add_argument('-iter', type=int, help="how many iterations in a epoch in a thread to run", default=50000)
     args = parser.parse_args()
 
     sim_mode = args.sim_mode
@@ -593,6 +595,11 @@ if __name__ == "__main__":
     p_local = args.p_local
     k_net = args.k_net
     p_net = args.p_net
+    
+    # Multi-threading stuff
+    concur = args.concur
+    epoch = args.epoch
+    iters = args.iter
 
     total_drives = args.total_drives
     if total_drives == -1:
@@ -617,7 +624,7 @@ if __name__ == "__main__":
 
     if sim_mode == 0:
         normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
-                    total_drives, drives_per_rack, placement, dist)
+                    total_drives, drives_per_rack, placement, dist, concur, epoch, iters)
     elif sim_mode == 1:
         manual_1_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
                     total_drives, drives_per_rack, placement, dist)

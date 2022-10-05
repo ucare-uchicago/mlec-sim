@@ -53,16 +53,18 @@ class System:
         self.place_type = place_type
         if place_type == 0:
             self.flat_cluster_layout()
-        if place_type == 1:
+        elif place_type == 1:
             self.flat_decluster_layout()
-        if place_type == 2:
+        elif place_type == 2:
             self.mlec_cluster_layout()
-        if place_type == 3:
+        elif place_type == 3:
             self.net_raid_layout()
-        if place_type == 4:
+        elif place_type == 4:
             self.mlec_dp_layout()
-        if place_type == 5:
+        elif place_type == 5:
             self.net_dp_layout()
+        else:
+            raise NotImplementedError("The placment type does not have a defined layout")
         #--------------------------------------------
         self.diskSize = diskCap
         self.diskIO = rebuildRate
