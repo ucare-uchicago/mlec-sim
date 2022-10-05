@@ -85,7 +85,7 @@ For computational purposes, we can eliminate the eliminate  Kronecker delta func
 \mathcal{C}&=& \left(n_\text{i}!\right)^{n_\text{o}}  \sum_{f_0=0}^{N_\text{f}}\sum_{f_1=0}^{N_\text{f}-f_0}\cdots \sum_{f_{n_\text{o}-2}=0}^{N_\text{f}-\sum_{l=0}^{n_\text{o}-3}f_l} {\displaystyle \prod_{k=0}^{n_\text{o}-1}} \frac{1}{(n_\text{i}-f_k)!f_k!}\bigg\rvert_{f_{ n_\text{o}-1=N_\text{f}-\sum_{l=0}^{n_\text{o}-2}f_l}}.
 (\#eq:tcfs2)
 \end{eqnarray}
-Note that we can use this equation as is  although the summation indices $f_k$  may exceed $n_\text{i}$. For those cases we will get $0$ from the product term since negative factorials  ,$f_k>n_\text{i}$, become infinite. For numeric computations, the upper range of the summation $f_k$ can be truncated at $\min(N_\text{f}-\sum_{l=0}^{k-1}f_l, n_\text{i})$.
+Note that we can use this equation as is  although the summation indices $f_k$  may exceed $n_\text{i}$. For those cases we will get $0$ from the product term since negative factorials  ,$f_k>n_\text{i}$, become infinite. For numeric computations, the upper limit of the summation $f_k$ can be truncated at $\min(N_\text{f}-\sum_{l=0}^{k-1}f_l, n_\text{i})$.
 
 # Counting data loss instances
 
@@ -99,7 +99,7 @@ where $\Theta[m]$ returns $1$ for $m\geq 1$ and $0$ otherwise.
 
 # Probability of data loss
 
-We have been counting the combinations that give data loss cases. We need to normalize that against total number of combinations with $N_\text{f}$ failed  and $N-N_\text{f}$ healthy drives which is simply:
+We have been counting the combinations that give data loss cases. We need to normalize that against the total number of combinations with $N_\text{f}$ failed  and $N-N_\text{f}$ healthy drives which is simply:
 
 \begin{eqnarray}
 \mathcal{C}_\text{T}=\frac{N!}{(N-N_\text{f})!N_\text{f}!}.
