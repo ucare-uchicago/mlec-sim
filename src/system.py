@@ -61,6 +61,8 @@ class System:
             self.net_raid_layout()
         if place_type == 4:
             self.mlec_dp_layout()
+        if place_type == 5:
+            self.net_dp_layout()
         #--------------------------------------------
         self.diskSize = diskCap
         self.diskIO = rebuildRate
@@ -99,8 +101,12 @@ class System:
             disks_per_rack = self.disks_per_rack[rackId]
             self.flat_decluster_rack_layout[rackId] = disks_per_rack
 
-
-
+    def net_dp_layout(self):
+        # Same as flat decluster
+        self.flat_decluster_rack_layout = {}
+        for rackId in self.racks:
+            disks_per_rack = self.disks_per_rack[rackId]
+            self.flat_decluster_rack_layout[rackId] = disks_per_rack
 
 
 
@@ -144,13 +150,7 @@ class System:
         logging.info("* there are {} stripesets:\n{}".format(
                 num_stripesets, sets))
 
-
-
-
-
-
-
-
+ 
 
 
 if __name__ == "__main__":

@@ -1,14 +1,16 @@
 from typing import List
 
-from state import State
 from system import System
 from disk import Disk
 from rack import Rack
 from disk import Disk
 
+import operator as op
+from functools import reduce
+
 class NetDP:
     
-    state: State
+    state: any # State
     sys: System
     n: int
     racks: List[Rack]
@@ -17,7 +19,7 @@ class NetDP:
     failed_disks = List[Disk]
     failed_racks: List[Rack]
     
-    def __init__(self, state: State):
+    def __init__(self, state):
         self.state = state
         self.sys = state.sys
         self.n = state.n
@@ -42,28 +44,60 @@ class NetDP:
     
     def update_disk_priority(self, event_type, diskId: int):
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
+            disk = self.disks[diskId]
             # Get the current priority of the disk
-            curr_priority = self.disks[diskId].priority
+            curr_priority = disk.priority
             # Remove the priority's repair time in case we need to yield
             #  to a repair with higher priority
-            del self.disks[diskId].repair_time[curr_priority]
+            del disk.repair_time[curr_priority]
             # Reduce priority because the disk has been repaired
-            self.disks[diskId].priority -= 1
+            disk.priority -= 1
             # QUESTION: Why mark the repair start time when its a repair event?
-            self.disks[diskId].repair_start_time = self.curr_time
+            disk.repair_start_time = self.curr_time
             
-            rackId = diskId // self.sys.num_disks_per_rack
-            # If the rack has already failed, there is no priority update we can do anyways
-            if self.racks[rackId].state == Rack.STATE_FAILED:
-                return
+            # Note: since we are considering all the disks as a flat logical pool
+            #   we should consider all failed disks in the system
+            #   max priority should be the max for all failures in each rack
+            #   because we ensure one chunk per stripe placed in distinct rack
             
-            fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
-            if len(fail_per_rack) > 0:
-                # Ignore ADAPT for now
-                for dId in fail_per_rack:
-                    self.update_disk_repair_time(dId, self.disks[dId].priority, fail_per_rack)
+            # Get all the failed disks out from the current stripeset and the disk's current priority
+            #  update the repair time
+            failed_disk_system_tuple = self.state.get_failed_disks_each_rack()
+            failed_disk_per_rack = failed_disk_system_tuple[0]
+            max_per_rack_priority = failed_disk_system_tuple[1]
+            all_failed_disks = list(dId for v in failed_disk_per_rack.values() for dId in v)
+            for dId in all_failed_disks:
+                # Do not do ADAPT for now
+                self.update_disk_repair_time(dId, disk.priority, max_per_rack_priority)
+                
+        if event_type == Disk.EVENT_FAIL:
+            disk = self.disks[diskId]
+            
+            failed_disk_system_tuple = self.state.get_failed_disks_each_rack()
+            failed_disk_per_rack = failed_disk_system_tuple[0]
+            max_per_rack_priority = failed_disk_system_tuple[1]
+            all_failed_disks = list(dId for v in failed_disk_per_rack.values() for dId in v)
+            
+            fail_num = len(all_failed_disks)
+            good_num = self.sys.num_disks - fail_num
+            
+            # If the stripeset contains a disk with n priority, and now we have one more disk failure in the stripset
+            #  (if the system survives), the new disk is the one that puts the stripe on the critical path, and hence
+            #  we make the new disk to have the highest priority, and then give it more bandwidth        
+            curr_priority = disk.priority
+            max_priority = max_per_rack_priority + 1
+            
+            disk.priority = max_priority
+            disk.repair_start_time = self.curr_time
+            disk.good_num = good_num
+            disk.fail_num = fail_num
+            
+            # Ignore ADAPT for now
+            for dId in all_failed_disks:
+                self.update_disk_repair_time(dId, disk.priority, max_per_rack_priority)
+            
     
-    def update_disk_repair_time(self, diskId, priority, fail_per_rack):
+    def update_disk_repair_time(self, diskId, priority, fail_per_stripe):
         disk = self.disks[diskId]
         good_num = disk.good_num
         fail_num = disk.fail_num
@@ -81,11 +115,30 @@ class NetDP:
             
             # QUESTION: why minus the data amount?
             # Data remaining amplified by reading from k chunks, and writing to (priority - 1) chunks
-            if priority > 1:
-                self.sys.metrics.total_rebuild_io_per_year -= disk.curr_repair_data_remaining * (priority - 1) * self.sys.k
+            # if priority > 1:
+            #     self.sys.metrics.total_rebuild_io_per_year -= disk.curr_repair_data_remaining * (priority - 1) * self.sys.k
                 
         else:
             # We calculate the repair data remaining from itself because we iteratively 
-            #  "restart" the repair every iteration
+            #  "restart" the repair every iteration by setting new repair start time to curr_time
             repaired_percent = repaired_time / disk.repair_time[priority]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
+
+        parallelism = good_num        
+        amplification = self.sys.k + priority
+        
+        if priority < fail_per_stripe:
+            # This means that we need to yield bandwidth to the disks with higher priority
+            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_stripe)
+        else:
+            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism)
+            
+        disk.repair_time[priority] = repair_time / 3600 / 24
+        disk.repair_start_time = self.curr_time
+        disk.estimate_repair_time = self.curr_time + disk.repair_time[priority]
+        
+    def ncr(self, n, r):
+        r = min(r, n-r)
+        numer = reduce(op.mul, range(n, n-r, -1), 1)
+        denom = reduce(op.mul, range(1, r+1), 1)
+        return numer / denom
