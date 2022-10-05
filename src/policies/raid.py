@@ -54,7 +54,10 @@ class RAID:
                 return
             fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
             #--------------------------------------------
-            # calculate repair time for cluster placement
+            # calculate repair time for disk failures
+            # all the failed disks need to read data from other surviving disks in the group to rebuild data
+            # so the rebuild IO is shared by all failed disks
+            # we need to update the repair rate for all failed disks, because every failed disk gets less share now
             #--------------------------------------------
             self.disks[diskId].repair_start_time = self.curr_time
             if self.sys.adapt:
