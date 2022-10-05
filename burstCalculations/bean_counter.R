@@ -72,25 +72,18 @@ if(outer_size==3){ ## hard coded loops for now for outer EC size=3;  will make i
     f1m=min(thisFC-f0,inner_size)
     for(f1 in c(0:f1m )){ 
      
-      fgroups=0;dataloss<-0
-       f2=thisFC-f0-f1
-      if(f0>inner_m){fgroups<-fgroups+1}
-      if(f1>inner_m){fgroups<-fgroups+1}
-      if(f2>inner_m){fgroups<-fgroups+1}
+      fgroups=0;dataloss<-0; f2=thisFC-f0-f1
+      if(f0>inner_m){fgroups<-fgroups+1};if(f1>inner_m){fgroups<-fgroups+1}; if(f2>inner_m){fgroups<-fgroups+1}
       if(fgroups>outer_m){dataloss<-1}
      
       ft=f0+f1+f2
       if(f2<=inner_size ){
-        
         combin=factorial(inner_size)^outer_size/(factorial(f0)*factorial(inner_size-f0)* factorial(f1)*factorial(inner_size-f1)* factorial(f2)*factorial(inner_size-f2))
         norm=factorial(Ndrives)/( factorial(Ndrives-thisFC)* factorial(thisFC))
-        totalprobDL=totalprobDL+dataloss*combin/norm
-        totalprob=totalprob+combin/norm
-        combintotal=combintotal+combin
+        totalprobDL=totalprobDL+dataloss*combin/norm;  totalprob=totalprob+combin/norm;  combintotal=combintotal+combin;
         
         dfs=dffc[dffc$grp1f==f0 & dffc$grp2f==f1 & dffc$grp3f==f2,]
         df_aggx<- as.data.frame(dfs %>% group_by(totalDF)%>%summarise(ndata = n(),dataLost_pct = mean(dataLost)))
-
         nrowcounted=nrow(dfs)
         
         print(paste0('thisFC:',thisFC,  '--->f0:',f0,", f1:",f1,",f2:",f2, ', ft:',ft, ',fgroups:',fgroups,', dataloss:',dataloss, ", prob:",combin/norm, ", combin:",combin, ',  nrowcounted:',nrowcounted, ", avg loss:", df_aggx$dataLost_pct[1]))
@@ -101,10 +94,8 @@ if(outer_size==3){ ## hard coded loops for now for outer EC size=3;  will make i
   if(totalprobDL==1){ hundredreached=1}
      }else{totalprobDL=1}
    thv<-c(thv,100*totalprobDL)
-          print(paste0('thisFC:',thisFC, '; totalprobDL:',100*totalprobDL, "%"))
-          print(paste0('totalprob:',100*totalprob, "%"))
-          # print(paste0('combintotal:',combintotal))
-          
+          print(paste0('thisFC:',thisFC, '; totalprobDL:',100*totalprobDL, "%")); print(paste0('totalprob:',100*totalprob, "%"))
+
 }
   
   
