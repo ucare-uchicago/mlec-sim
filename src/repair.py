@@ -46,7 +46,7 @@ class Repair:
                     heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
                     # logging.debug("--------> push ", repair_time, estimate_time, Disk.EVENT_REPAIR, 
                     #             "D-",diskId,"-", "S-",diskId/84, "R-",diskId/504)
-                if self.place_type == 1:
+                elif self.place_type == 1:
                     disk = state.disks[diskId]
                     estimate_time = disk.repair_start_time
                     priority = disk.priority
@@ -59,19 +59,19 @@ class Repair:
                         heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
                         # print("push to repair queue  finish time{} {} {}".format(estimate_time, 
                         #           Disk.EVENT_REPAIR, diskId))
-                if self.place_type == 2:
+                elif self.place_type == 2:
                     #-----------------------------------------------------
                     # FIFO reconstruct, utilize the hot spares
                     #-----------------------------------------------------
                     heappush(repair_queue, (state.disks[diskId].estimate_repair_time, Disk.EVENT_REPAIR, diskId))
-                if self.place_type == 3:
+                elif self.place_type == 3:
                     # logging.info("  update_repair_event. diskId: {}".format(diskId))
                     repair_time = state.disks[diskId].repair_time[0]
                     #-----------------------------------------------------
                     estimate_time = state.disks[diskId].repair_start_time
                     estimate_time  += repair_time
                     heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
-                if self.place_type == 4:
+                elif self.place_type == 4:
                     #-----------------------------------------------------
                     # FIFO reconstruct, utilize the hot spares
                     #-----------------------------------------------------
@@ -84,6 +84,23 @@ class Repair:
                         #           Disk.EVENT_FASTREBUILD, diskId))
                     if priority == 1:
                         heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+                elif self.place_type == 5:
+                    # This should be the same as flat decluster
+                    disk = state.disks[diskId]
+                    estimate_time = disk.repair_start_time
+                    priority = disk.priority
+                    estimate_time  += disk.repair_time[priority]
+                    if priority > 1:
+                        heappush(repair_queue, (estimate_time, Disk.EVENT_FASTREBUILD, diskId))
+                        # print("push to repair queue  finish time{} {} {}".format(estimate_time, 
+                        #           Disk.EVENT_FASTREBUILD, diskId))
+                    if priority == 1:
+                        heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+                        # print("push to repair queue  finish time{} {} {}".format(estimate_time, 
+                        #           Disk.EVENT_REPAIR, diskId))
+                else:
+                    raise NotImplementedError("The placement type does not have a repair strategy")
+        
         if len(repair_queue) > 0:
             if not state.repairing:
                 state.repairing = True

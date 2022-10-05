@@ -43,6 +43,10 @@ class Disk:
 
     def update_disk_state(self, state):
         self.state = state
+        
+    # Override toString()
+    def __str__(self):
+        return "[dId: {}, rId: {}, sId: {}, state: {}, prio: {}]".format(self.diskId, self.rackId, self.stripesetId, self.state, self.priority)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ from disk import Disk
 from rack import Rack
 from disk import Disk
 
+import logging
 import operator as op
 from functools import reduce
 
@@ -43,6 +44,8 @@ class NetDP:
             self.failed_disks[diskId] = 1
     
     def update_disk_priority(self, event_type, diskId: int):
+        logging.info("Event %s, dID %s", event_type, diskId)
+        
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
             disk = self.disks[diskId]
             # Get the current priority of the disk
@@ -68,7 +71,7 @@ class NetDP:
             all_failed_disks = list(dId for v in failed_disk_per_rack.values() for dId in v)
             for dId in all_failed_disks:
                 # Do not do ADAPT for now
-                self.update_disk_repair_time(dId, disk.priority, max_per_rack_priority)
+                self.update_disk_repair_time(dId, self.disks[dId].priority, max_per_rack_priority)
                 
         if event_type == Disk.EVENT_FAIL:
             disk = self.disks[diskId]
@@ -76,10 +79,22 @@ class NetDP:
             failed_disk_system_tuple = self.state.get_failed_disks_each_rack()
             failed_disk_per_rack = failed_disk_system_tuple[0]
             max_per_rack_priority = failed_disk_system_tuple[1]
+            
+            logging.info("Failed disk system: %s", failed_disk_per_rack)
+            logging.info("Max prio: %s", max_per_rack_priority)
             all_failed_disks = list(dId for v in failed_disk_per_rack.values() for dId in v)
             
-            fail_num = len(all_failed_disks)
-            good_num = self.sys.num_disks - fail_num
+            # Note that we have disjoint rack placement for NET_DP
+            #  - failure number should exclude the failures of the current rack
+            #      failures in the current rack could not be of the same stripe
+            #  - good number should only include the good ones in other rack
+            fail_num = 0
+            for rackId in failed_disk_per_rack.keys():
+                if (rackId != disk.rackId):
+                    fail_num += len(failed_disk_per_rack[rackId])
+            good_num = self.sys.num_disks - len(self.sys.disks_per_rack[disk.rackId]) - fail_num
+            
+            logging.info("good_num %s, fail num %s", good_num, fail_num)
             
             # If the stripeset contains a disk with n priority, and now we have one more disk failure in the stripset
             #  (if the system survives), the new disk is the one that puts the stripe on the critical path, and hence
@@ -94,10 +109,13 @@ class NetDP:
             
             # Ignore ADAPT for now
             for dId in all_failed_disks:
-                self.update_disk_repair_time(dId, disk.priority, max_per_rack_priority)
-            
+                self.update_disk_repair_time(dId, self.disks[dId].priority, max_per_rack_priority)
+        
+        logging.info("-----")
     
     def update_disk_repair_time(self, diskId, priority, fail_per_stripe):
+        logging.info("Updating repair time for diskId %d, prio %d", diskId, priority)
+        logging.info("Disk %s", str(self.disks[diskId]))
         disk = self.disks[diskId]
         good_num = disk.good_num
         fail_num = disk.fail_num
@@ -121,6 +139,7 @@ class NetDP:
         else:
             # We calculate the repair data remaining from itself because we iteratively 
             #  "restart" the repair every iteration by setting new repair start time to curr_time
+            # print(disk.repair_time)
             repaired_percent = repaired_time / disk.repair_time[priority]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
 
