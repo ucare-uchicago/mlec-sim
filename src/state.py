@@ -99,9 +99,11 @@ class State:
 
 
 
+    def update_diskgroup_state(self, event_type, diskId):
+        return self.policy.update_diskgroup_state(event_type, diskId)
 
-
-
+    def update_diskgroup_priority(self, event_type, new_failed_rack, diskId):
+        self.policy.update_diskgroup_priority(event_type, new_failed_rack, diskId)
 
 
 

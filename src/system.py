@@ -47,8 +47,10 @@ class System:
         #--------------------------------------------
         self.k = k
         self.m = m
+        self.n = m + k
         self.top_k = top_k
         self.top_m = top_m
+        self.top_n = top_m + top_k
         #--------------------------------------------
         self.place_type = place_type
         if place_type == 0:
@@ -104,17 +106,25 @@ class System:
 
 
 
-    # same as flat_cluster_layout
+    # layout for mlec cluster raid
     def mlec_cluster_layout(self):
-        self.rack_stripesets = []
+        # In network level, we form top_n diskgroups into a diskgroup_stripeset
+        # 
         self.top_n = self.top_k + self.top_m
-        self.num_rack_stripesets = self.num_racks // self.top_n
-        for i in range(self.num_rack_stripesets):
-            # rack_stripeset  = self.racks[i*self.top_n :(i+1)*self.top_n]
-            rack_stripeset = []
-            for j in range(self.top_n):
-                rack_stripeset.append(i+j*self.num_rack_stripesets)
-            self.rack_stripesets.append(rack_stripeset)
+        self.num_diskgroups = self.num_disks // self.n
+        self.num_diskgroup_stripesets = self.num_diskgroups // self.top_n
+        self.diskgroup_stripesets = []
+        
+
+
+
+        # print(self.rack_stripesets)
+        # print(self.stripesets_per_racks)
+        
+
+
+
+        
         
 
 
@@ -156,5 +166,7 @@ class System:
 if __name__ == "__main__":
     logger = logging.getLogger()
     logging.basicConfig(level=logging.INFO)
-    sys = System(100, 10, 4, 1, 2,2,1,1)
+        # __init__(self, num_disks, num_disks_per_rack, k, m, place_type, diskCap, rebuildRate,
+        #             utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = False):
+    sys = System(100, 10, 4, 1, 2,2,1,1, 4, 1)
 
