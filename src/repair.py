@@ -24,21 +24,17 @@ class Repair:
 
 
     def update_repair_event(self, state, curr_time, repair_queue):
-        # logging.debug("updating repair",diskset)
+        if self.place_type == 2:
+            return state.policy.update_repair_event(curr_time, repair_queue)
         repair_queue.clear()
-        checked_racks = {}
-        for rackId in state.get_failed_racks():
-            if self.place_type in [2,4]:
+        if self.place_type == 4:
+            for rackId in state.get_failed_racks():
                 repair_time = state.racks[rackId].repair_time[0]
-                #-----------------------------------------------------
                 heappush(repair_queue, (state.racks[rackId].estimate_repair_time, Rack.EVENT_REPAIR, rackId))
         for diskId in state.get_failed_disks():
             rackId = diskId // self.sys.num_disks_per_rack
             if state.racks[rackId].state == Rack.STATE_NORMAL:
                 if self.place_type == 0:
-                    #-----------------------------------------------------
-                    # FIFO reconstruct, utilize the hot spares
-                    #-----------------------------------------------------
                     repair_time = state.disks[diskId].repair_time[0]
                     #-----------------------------------------------------
                     estimate_time = state.disks[diskId].repair_start_time
@@ -60,9 +56,6 @@ class Repair:
                         # print("push to repair queue  finish time{} {} {}".format(estimate_time, 
                         #           Disk.EVENT_REPAIR, diskId))
                 if self.place_type == 2:
-                    #-----------------------------------------------------
-                    # FIFO reconstruct, utilize the hot spares
-                    #-----------------------------------------------------
                     heappush(repair_queue, (state.disks[diskId].estimate_repair_time, Disk.EVENT_REPAIR, diskId))
                 if self.place_type == 3:
                     # logging.info("  update_repair_event. diskId: {}".format(diskId))
@@ -72,9 +65,6 @@ class Repair:
                     estimate_time  += repair_time
                     heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
                 if self.place_type == 4:
-                    #-----------------------------------------------------
-                    # FIFO reconstruct, utilize the hot spares
-                    #-----------------------------------------------------
                     disk = state.disks[diskId]
                     priority = disk.priority
                     estimate_time = disk.estimate_repair_time
