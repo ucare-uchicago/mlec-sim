@@ -40,6 +40,8 @@ class FailureGenerator:
         return new_failures
 
     def gen_failure_burst(self, disks_per_rack, num_total_racks):
+        if hasattr(self.distribution, 'gen_failure_burst'):
+            return self.distribution.gen_failure_burst(disks_per_rack, num_total_racks)
         failures = []
         (num_fail_racks, num_fail_disks) = self.distribution.sample()
         assert (num_fail_racks <= num_fail_disks), 'have more failed racks than failed disks which is impossible!'
@@ -88,7 +90,7 @@ class Weibull:
         return np.random.weibull(self.beta, n) * self.alpha * 365.25
 
 class GoogleBurst:
-    def __init__(self, num_racks, disks_per_rack):
+    def __init__(self, disks_per_rack, num_racks):
         self.num_racks = num_racks
         self.disks_per_rack = disks_per_rack
         googleOccurances = pd.read_csv("failures/google/{}-rack-{}-node.csv".format(num_racks, disks_per_rack))
