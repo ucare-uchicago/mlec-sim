@@ -157,3 +157,6 @@ figT
 
 #figT%>% config(mathjax = "cdn")
 
+for (i in seq(1,length(df_th$totalDF))) {
+  print(paste0(' ', df_th$totalDF[i], ' ', df_th$dataLost_pct[i], ' '))
+}
