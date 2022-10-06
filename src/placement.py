@@ -90,11 +90,10 @@ class Placement:
     def net_dp_simulate(self, state):
         prob = 0
         
-        rack_with_failures = 0
-        failures_per_rack = state.get_failed_disks_each_rack()[0]
-        for failures in failures_per_rack.values():
-            if (len(failures) > 0):
-                rack_with_failures += 1
+        # If there are more than m racks that contains failures
+        #  there has to be a stripe that has m failed chunks
+        #  therefore the system fails
+        rack_with_failures = state.get_failed_disks_each_rack()[1]
         
         if (rack_with_failures > self.sys.m):
             logging.info("SYSTEM FAILS!")

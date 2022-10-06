@@ -99,18 +99,17 @@ class State:
 
 
     
-    # This returns array [{rackId: failedDisks}, maxPriorityPerRack]
+    # This returns array [{rackId: failedDisks}, numRacksWithFailure]
     def get_failed_disks_each_rack(self):
         failures = {}
-        max_prio = 0
+        num_racks_with_failure = 0
         for rackId in self.sys.racks:
             failures[rackId] = self.get_failed_disks_per_rack(rackId)
             
-            for dId in failures[rackId]:
-                if self.disks[dId].priority > max_prio:
-                    max_prio = self.disks[dId].priority
+            if (len(failures[rackId]) > 0):
+                num_racks_with_failure += 1
     
-        return [failures, max_prio]
+        return [failures, num_racks_with_failure]
         
 
     def get_failed_disks_per_rack(self, rackId):
