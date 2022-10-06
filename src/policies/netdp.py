@@ -127,6 +127,7 @@ class NetDP:
             priority_sets = self.ncr(good_num, self.n-priority) * self.ncr(fail_num-1, priority-1)
             total_sets = self.ncr(good_num + fail_num - 1, self.n - 1)
             priority_percent = float(priority_sets) / total_sets
+            logging.info("Good num %s, Fail num %s, prio %s, n %s, Prio perc %s",good_num, fail_num, priority, self.n, priority_percent)
             repaired_percent = 0
             # Disk capacity * percentage of chunks/data in this disk that we need to repair (for this priority)
             disk.curr_repair_data_remaining = disk.repair_data * priority_percent
@@ -146,6 +147,7 @@ class NetDP:
         parallelism = good_num        
         amplification = self.sys.k + priority
         
+        logging.info("Fail per stripe %s", fail_per_stripe)
         if priority < fail_per_stripe:
             # This means that we need to yield bandwidth to the disks with higher priority
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_stripe)
