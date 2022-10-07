@@ -147,7 +147,14 @@ Plugging this in, we get the following:
 \end{eqnarray}
 
 
+
 # Plots
+
+```{r racks,echo=FALSE,out.width=if (knitr:::is_latex_output()) '0.65\\linewidth' else "30%", echo=FALSE, message=FALSE, error=FALSE,warning = FALSE,fig.cap="Data loss probability  with 2 racks affected. Stars show the results from formula and the dots are from brute force counting.)"}
+  knitr::include_graphics('racks.png', error = FALSE)
+```
+
+
 
 ```{r combined,echo=FALSE,out.width=if (knitr:::is_latex_output()) '0.65\\linewidth' else "30%", echo=FALSE, message=FALSE, error=FALSE,warning = FALSE,fig.cap="Data loss probability for various ECs. Stars show the results from formula and the dots are from brute force counting.)"}
   knitr::include_graphics('combined.png', error = FALSE)
