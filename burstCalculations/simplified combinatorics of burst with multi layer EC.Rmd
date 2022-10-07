@@ -103,7 +103,7 @@ We have been counting the combinations that give data loss cases. We need to nor
 
 \begin{eqnarray}
 \mathcal{C}_\text{T}=\frac{N!}{(N-N_\text{f})!N_\text{f}!}.
-(\#eq:pb0)
+(\#eq:pb0r)
 \end{eqnarray}
 
 And finally, the probability of losing data becomes:
