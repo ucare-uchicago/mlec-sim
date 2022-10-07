@@ -1,3 +1,7 @@
+#How to run this code ? "python3 lrc_decode.py -k=6 -l=2 -r=2 -R=4"
+#where k=number of data blocks, l=number of local parities
+#r=number of global parities, R=number of failures
+
 from math import comb
 import itertools
 import argparse
