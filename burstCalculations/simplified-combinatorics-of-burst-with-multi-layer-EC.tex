@@ -235,6 +235,48 @@ And finally, the probability of losing data becomes:
 
 Numerically evaluating Eq. \eqref{eq:ploss} is somewhat convoluted due to the changing number of summations as \(n_\text{o}\) changes. Below are the result for probability of losing data vs number of failures for selected erasure coding as shown in the title. Two traces (which are on top of each other) show the results from brute force counting and the formula. The code is somewhat hard coded to handle \(n_\text{o}=3\) case.
 
+\hypertarget{probability-of-data-loss-with-fixed-number-of-failed-racks}{%
+\section{Probability of data loss with fixed number of failed racks}\label{probability-of-data-loss-with-fixed-number-of-failed-racks}}
+
+Assume that in addition to fixing the number of failure, we want to fix the number of racks that failed. We can do this easily by modifying Eq. \eqref{eq:ploss} where we multiplied combinations from \(1\) to \(n_\text{o}\). We should truncate this at \(n_\text{r}\), i.e., the number of failing racks. All we need to do is to replace \(n_\text{o}\) with \(n_\text{r}\).
+
+Since we are looking at \(n_\text{r}\) racks, the number of drives we are considering is now \(N^r=n_\text{i}\times n_\text{r}\). The normalization factor becomes:
+
+\begin{eqnarray}
+\mathcal{C}^r_\text{T}=\frac{N^r!}{(N^r-N_\text{f})!N_\text{f}!}.
+\label{eq:pb0c}
+\end{eqnarray}
+Equation \eqref{eq:pb0c} is almost correct. However it includes the cases where failures don't span \(n_\text{r}\) racks.
+For example, for \(n_\text{r}=2\), if all failures fall into a single rack, we need to subtract them out. The number of such configurations is:
+\begin{eqnarray}
+\mathcal{C}^\text{omit}_\text{T}=2\times \frac{n_\text{i}!}{(n_\text{i}-N_\text{f})!N_\text{f}!}.
+\label{eq:pb0co}
+\end{eqnarray}
+Therefore the correct normalization for \(n_\text{r}=2\) is:
+\begin{eqnarray}
+\mathcal{C}^r_\text{T}=\frac{N^r!}{(N^r-N_\text{f})!N_\text{f}!}-2\times \frac{n_\text{i}!}{(n_\text{i}-N_\text{f})!N_\text{f}!}.
+\label{eq:pb0cw}
+\end{eqnarray}
+We need to extend this to generic \(n_\text{r}\) case, which is a work in progress.
+Plugging this in, we get the following:
+\begin{eqnarray}
+\mathcal{P}^r&=&\frac{\mathcal{C}_\text{DL}}{\mathcal{C}^r_\text{T}}\nonumber\\
+&=& \frac{\left(n_\text{i}!\right)^{n_\text{r}}}{ \mathcal{C}^r_\text{T}}  \sum_{f_0=0}^{N_\text{f}}\sum_{f_1=0}^{N_\text{f}-f_0}\cdots \sum_{f_{n_\text{r}-2}=0}^{N_\text{f}-\sum_{l=0}^{n_\text{r}-3}f_l} {\displaystyle \prod_{k=0}^{n_\text{r}-1}} \frac{\Theta\left[  \sum_{l=0}^{n_\text{r}-1}  \Theta \left[f_l-p_\text{i} \right]-p_\text{o}     \right]}{(n_\text{i}-f_k)!f_k!}\bigg\rvert_{f_{ n_\text{r}-1=N_\text{f}-\sum_{l=0}^{n_\text{r}-2}f_l}}.
+\label{eq:plossR}
+\end{eqnarray}
+
+\hypertarget{plots}{%
+\section{Plots}\label{plots}}
+
+\begin{figure}[H]
+
+{\centering \includegraphics[width=0.65\linewidth]{combined} 
+
+}
+
+\caption{Data loss probability for various ECs. Stars show the results from formula and the dots are from brute force counting.)}\label{fig:combined}
+\end{figure}
+
 \begin{figure}[H]
 
 {\centering \includegraphics[width=0.65\linewidth]{2161} 
