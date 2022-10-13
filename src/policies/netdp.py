@@ -127,6 +127,8 @@ class NetDP:
             priority_sets = self.ncr(good_num, self.n-priority) * self.ncr(fail_num-1, priority-1)
             total_sets = self.ncr(good_num + fail_num - 1, self.n - 1)
             priority_percent = float(priority_sets) / total_sets
+            logging.info("ncr(%s,%s)*ncr(%s,%s) %s*%s", good_num, self.n-priority, fail_num-1, priority-1, self.ncr(good_num, self.n-priority), self.ncr(fail_num-1, priority-1))
+            logging.info("ncr(%s,%s), %s", good_num + fail_num - 1, self.n -1, self.ncr(good_num + fail_num - 1, self.n - 1))
             logging.info("Good num %s, Fail num %s, prio %s, n %s, Prio perc %s",good_num, fail_num, priority, self.n, priority_percent)
             repaired_percent = 0
             # Disk capacity * percentage of chunks/data in this disk that we need to repair (for this priority)
