@@ -181,8 +181,8 @@ def get_placement_index(placement):
 def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution):
     # logging.basicConfig(level=logging.INFO)
-    for num_failed_racks in range(1,21):
-        for num_failed_disks in range(num_failed_racks,21):
+    for num_failed_racks in range(2,20):
+        for num_failed_disks in range(20, 21):
             mission = YEAR
             # failureGenerator = FailureGenerator(afr, GoogleBurst(50, 50), is_burst=True)
             # failureGenerator = FailureGenerator(afr, ArbitraryBurst(num_failed_disks), is_burst=True)
@@ -202,7 +202,7 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 
 
             start  = time.time()
-            res = simulate(failureGenerator, sys, iters=50, epochs=200, concur=200, mission=mission)
+            res = simulate(failureGenerator, sys, iters=500, epochs=200, concur=200, mission=mission)
             failed_iters += res[0]
             total_iters += res[1]
 
