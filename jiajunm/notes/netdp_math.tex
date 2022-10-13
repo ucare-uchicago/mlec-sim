@@ -1,0 +1,235 @@
+\documentclass[journal]{IEEEtran}
+
+%\documentclass[10pt]{beamer}
+%\usepackage[left=1in,top=1in,right=1in,bottom=1in]{geometry}
+\newcommand*{\authorfont}{\fontfamily{phv}\selectfont}
+\usepackage{lmodern}
+
+\usepackage{animate}
+\usepackage[T1]{fontenc}
+\usepackage{blindtext}
+\usepackage{graphicx}
+\usepackage{booktabs} % For formal tables
+\usepackage{amsbsy}
+\usepackage[ruled]{algorithm2e} % For algorithms
+\usepackage{multirow}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{tikz}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{color}
+\usepackage{soul}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{hyperref} 
+
+\usepackage{amsthm}
+\usepackage{mathtools}
+\usepackage{xcolor}
+\usepackage{pgfplots}
+\usepackage{pdfpages}
+
+\usepackage{verbatim}
+\DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
+\makeatletter
+\def\thm@space@setup{%
+  \thm@preskip=8pt plus 2pt minus 4pt
+  \thm@postskip=\thm@preskip
+}
+\makeatother
+
+
+%\newtheorem{theorem}{Theorem}[section]
+%\newtheorem{corollary}{Corollary}[theorem]
+%\newtheorem{lemma}[theorem]{Lemma}
+%\newtheorem{definition}{Definition}[section]
+\usetikzlibrary{automata, positioning}
+\renewcommand{\algorithmcfname}{ALGORITHM}
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+\fancypagestyle{firstpage}{% Page style for first page
+  \fancyhf{}% Clear header/footer
+  \renewcommand{\headrulewidth}{0.0pt}% Header rule
+  \renewcommand{\footrulewidth}{0.0pt}% Footer rule
+  \fancyhead[R]{\footnotesize{\thepage}}
+  % Header
+  %\fancyfoot[C]{-~\thepage~-}% Footer
+}
+
+
+\usepackage{setspace}
+
+
+% set default figure placement to htbp
+
+\usepackage{hyperref}
+\usepackage{amsmath,tabu}
+\usepackage{type1cm}
+
+% add some other packages ----------
+
+% \usepackage{multicol}
+% This should regulate where figures float
+% See: https://tex.stackexchange.com/questions/2275/keeping-tables-figures-close-to-where-they-are-mentioned
+\usepackage[section]{placeins}
+
+
+
+\begin{document}
+\onecolumn
+% \pagenumbering{arabic}% resets `page` counter to 1 
+%
+% \maketitle
+
+% \textbf{----------------------------------------}
+
+% \textbf{Network SLEC DP Definitions}
+
+% Assume that we have $r$ racks, and each rack has $v$ disks. We still have $n=k+m$ where k is the data chunks and m is the parity chunks. To differentiate the difference between network speed and local disk speed, we introduce $S_{net_R}$ and $S_{net_W}$ as the network read write speed.
+
+% We also assume that there is only single enclosure per rack, as there is no implementation that differentiate rack and enclosure in \verb|mlec-sim|. Therefore, Network SLEC DP ensures that each rack will contain at most 1 chunk out of a $n=k+m$ stripe.\\
+
+
+% \textbf{Repair Rate of single damaged stripes in Network SLEC DP}
+
+% When there is a single drive failure, we know that for all the impacted stripes, the other $n-1$ chunks are going to reside on other racks. Therefore, the number of disks that might contain stripes affected by this single failure is $(r-1)*v$, and these disks are going to participate in the repair of the failed disk.
+
+% Therefore we have the following conditions
+% \begin{itemize}
+%     \item We have declustered parallelism of $(r-1)*v$
+%     \item We read $\mathcal{CAP}(n-1)$ amount of data
+%     \item We write $\mathcal{CAP}*1$ amount of data
+% \end{itemize}
+
+% We can then calculate the duration as the sum of duration to read and write as following. We assume that $S_{net_W}=S_{net_R}=S_{net}$
+% \begin{equation*}
+%     Duration=\frac{(n-1)\mathcal{CAP}}{(r-1)*v*S_{net}}+\frac{\mathcal{CAP}}{(r-1)*v*S_{net}}=\frac{n\mathcal{CAP}}{(r-1)*v*S_{net}}
+% \end{equation*}
+
+% Comparing with the standard repair rate of RAID which is $\mu=\frac{\mathcal{CAP}}{S_{disk}}$, we can get
+% \begin{equation*}
+%     \mu_1=\mu\frac{nS_{disk}}{(r-1)*v*S_{net}}
+% \end{equation*}
+
+\textbf{----------------------------------------}
+
+\textbf{Priority Percent Calculation Notes}
+
+
+\section{When there is a single failure [distinct rack], this means that}
+\begin{itemize}
+  \item All the affected stripes must not have another drive on the same rack
+  \item The remaining good drives to select affected stripes out of are $(r-1)B$
+  \item The number of failed drive is 1 and has priority of 1
+  \item The priority percent equation then becomes
+\end{itemize}
+
+\begin{equation*}
+  \frac{ncr((r-1)B, n-1)*ncr(1-1, 1-1)}{ncr((r-1)B+1-1, n-1)}=\frac{ncr((r-1)B, n-1)}{ncr((r-1)B, n-1)}=1
+\end{equation*}
+
+We can see that in terms of parallel repair of DP, we can only read/write from and to the disks that do not reside on the same rack. Therefore we will have the parallelism as $(r-1)B$. 
+
+The amplification is reading from $k$ chunks and writing to $f$ chunk.
+
+Therefore the time needed for repair calculation is as follows
+\begin{equation*}
+  \frac{\mathcal{CAP}(k+f)}{S_{net}(r-1)B/f}
+\end{equation*}
+
+\textbf{When there are two failures [same rack], this means that the \textit{priority 1 stripe} works as follows}
+\begin{itemize}
+  \item All the affected stripes must not have another drive on the same rack
+  \item The remaining good drives to select affected stripes out of are \textbf{still} $(r-1)B$ because damaged stripes will have other chunks sitting on other racks, and the damaged chunk be sitting on either one of the failed drive
+  \item The number of failed drive is 2 and both still has priority of 1
+  \item The priority percent equation then becomes
+\end{itemize}
+
+\begin{equation*}
+  \frac{ncr((r-1)B, n-1)*ncr(2-1, 1-1)}{ncr((r-1)B+2-1, n-1)}=\frac{(r-1)B-n+2}{(r-1)B+1}
+\end{equation*}
+
+Making an example with 10 racks, 10 drives per rack, and (8+2) config, and there are two failures on the same rack, the priority percent would be
+\begin{equation*}
+  \frac{(10-1)*10-10+2}{(10-1)10+1}=\frac{82}{91}\approx 0.901
+\end{equation*}
+
+\textbf{When there are two failures [same rack], this means that \textit{priority 2 stripe} works as follows}
+\begin{itemize}
+  \item Basically same as two failures same rack, priority 1 stripe, except priority
+  \item The remaining good drive is $(r-1)B$
+  \item The number of failed drive is 2
+  \item The priority percent equation then becomes
+\end{itemize}
+
+\begin{equation*}
+  \frac{ncr((r-1)B, n-2)*ncr(2-1, 2-1)}{ncr((r-1)B+2-1, n-1)}=\frac{n-1}{(r-1)B+1}
+\end{equation*}
+
+Using the same $r=10, B=10, n=10$ example, we have priority percent equals $\frac{9}{91}\approx 0.0989$
+
+
+\textbf{When there are two failures [distinct rack], this means that \textit{priority 1 stripe} works a follows}
+\begin{itemize}
+  \item The remaining good drive is still $(r-1)B-1$ because the priority 1 stripe will have all surviving chunks in all racks except the one that contains the failed chunk. The minus 1 is because in one of the rack containing one of the surviving chunk, there is one failed disk that happens to not impact this stripe.
+  \item The number of failed drive is 2
+  \item The priority percent equation then becomes
+\end{itemize}
+
+\begin{equation*}
+  \frac{ncr((r-1)B-1, n-1)*ncr(2-1, 1-1)}{ncr((r-1)B-1+2-1, n-1)}=\frac{(r-1)B-n+1}{(r-1)B}
+\end{equation*}
+
+Using the same $r=10, B=10, n=10$ example, we have priority percent equals $\frac{81}{90}=0.9$
+
+\textbf{When there are two failures [distinct rack], this means that \textit{priority 2 stripe} works a follows}
+\begin{itemize}
+  \item All the stripes with priority 2 have both of the chunks sitting on each of the failed drive residing in two racks. This means that the remaining good drives to select from is $(r-2)B$.
+  \item The number of failed disk is 2
+  \item The priority of the stripes is 2
+  \item The priority percent equation then becomes
+\end{itemize}
+
+\begin{equation*}
+  \frac{ncr((r-2)B, n-2)*ncr(2-1, 2-1)}{ncr((r-2)B+2-1, n-1)}=\frac{n-1}{(r-2)B+1}
+\end{equation*}
+
+\textbf{When there are three failures [distinct rack], this means that \textit{pirority 3 stripe} works as follows}
+\begin{itemize}
+  \item The remaining good drive is $(r-3)B$
+  \item The number of failed disk is 3
+  \item The priority of the stripe is 3
+  \item The priority perent equation then becomes
+\end{itemize}
+
+\begin{equation*}
+  \frac{ncr((r-3)B, n-3)*ncr(3-1, 3-1)}{ncr((r-3)B+3-1, n-1)}=\frac{(n-1)(n-2)}{[(r-3)B+1][(r-3)B+2]}
+\end{equation*}
+
+\textbf{When there are four failures [distinct rack], this means that \textit{priority 4 stripe} works as follows}
+\begin{itemize}
+  \item The remaining good drive is $(r-4)B$
+  \item The number of failed disk is 4
+  \item The priority of the stripe is 4
+  \item The priority percent equation then becomes
+\end{itemize}
+
+\begin{equation*}
+  \frac{ncr((r-4)B, n-4)*ncr(4-1, 4-1)}{ncr((r-4)B+4-1, n-1)}=\frac{(n-1)(n-2)(n-3)}{[(r-4)B+1][(r-4)B+2][(r-4)B+3]}
+\end{equation*}
+
+\textbf{When there are n failures across n distinct racks, the stripes with priority n}
+
+The priority percent calculation should be the following. First we let the number of failures be $f$
+\begin{equation*}
+  \prod_{i=1}^{f-1}\frac{(n-i)}{[(r-f)B+i]}
+\end{equation*}
+
+\newpage
+\singlespacing 
+
+
+
+\end{document}
