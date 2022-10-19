@@ -16,7 +16,7 @@ class State:
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
-    def __init__(self, sys, mytimer):
+    def __init__(self, sys, mytimer=None):
         #----------------------------------
         self.sys = sys
         self.n = sys.k + sys.m
