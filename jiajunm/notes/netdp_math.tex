@@ -115,7 +115,21 @@
 
 \textbf{----------------------------------------}
 
-\textbf{Priority Percent Calculation Notes}
+\textbf{Priority Percent Calculation Notes [WIP]}
+
+The math note is an expansion on the combinatorics calculation implemented in the MLEC sim's flat DP mode. The concept is simple - when we have a disk failure, we are interested in how many data on the drive (priority percent) belongs to the disk's priority and then we can calculate the time needed for repair in relation to normal RAID. Knowing the repair time in relation to normal RAID, we can then calculate the MTTDL of network SLEC DP in relation to normal RAID and mathematically calculate the number of nines for network SLEC DP durability.\
+
+The notations used in the note is as follows
+\begin{itemize}
+  \item $r$: number of racks
+  \item $B$: number of disks per rack
+  \item $k$: number of data chunks
+  \item $m$: number of parity chunks
+  \item $n$: stripe width $(k+m)$
+  \item $f$: number of failures in the stripe (number of disks that we need to repair)
+  \item $\mathcal{CAP}$: capacity of the disk
+  \item $S_{net_W}=S_{net_R}=S_{net}$: speed of network IO
+\end{itemize}
 
 
 \section{When there is a single failure [distinct rack], this means that}

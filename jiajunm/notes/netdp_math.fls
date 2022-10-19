@@ -434,7 +434,6 @@ INPUT /usr/share/texlive/texmf-dist/tex/latex/pdflscape/pdflscape.sty
 INPUT /usr/share/texlive/texmf-dist/tex/latex/pdflscape/pdflscape.sty
 INPUT /usr/share/texlive/texmf-dist/tex/latex/graphics/lscape.sty
 INPUT /usr/share/texlive/texmf-dist/tex/latex/graphics/lscape.sty
-INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmcsc10.tfm
 INPUT /usr/share/texmf/tex/latex/lm/ot1lmr.fd
 INPUT /usr/share/texmf/tex/latex/lm/ot1lmr.fd
 INPUT /usr/share/texmf/fonts/tfm/public/lm/rm-lmr10.tfm
@@ -459,6 +458,7 @@ INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam5.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
+INPUT /usr/share/texmf/fonts/tfm/public/lm/ec-lmcsc10.tfm
 INPUT /var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map
 INPUT /home/aaronmao/programming/mlec-sim/jiajunm/notes/netdp_math.aux
 INPUT /home/aaronmao/programming/mlec-sim/jiajunm/notes/netdp_math.out
@@ -473,6 +473,7 @@ INPUT /usr/share/texmf/fonts/type1/public/lm/lmbxi10.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmcsc10.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmex10.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmmi10.pfb
+INPUT /usr/share/texmf/fonts/type1/public/lm/lmmi5.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmmi7.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmr10.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmr7.pfb
