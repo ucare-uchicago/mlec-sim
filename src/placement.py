@@ -91,7 +91,7 @@ class Placement:
 if __name__ == "__main__":
     #-----------------------------------------------------------------------------------
     sys = System(100, 10, 8, 2,0,2,1,2)
-    placement = Placement(sys, 1)
+    placement = Placement(sys, 0)
     state = State(sys)
     print("at the beginning, data loss: {}".format(placement.flat_cluster_simulate(state)))
 
