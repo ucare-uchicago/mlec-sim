@@ -30,6 +30,16 @@
 \usepackage{pgfplots}
 \usepackage{pdfpages}
 
+\usepackage{xcolor}
+\usepackage{listings}
+
+\usepackage{xparse}
+
+\NewDocumentCommand{\codeword}{v}{%
+\texttt{\textcolor{blue}{#1}}%
+}
+
+
 \usepackage{verbatim}
 \DeclarePairedDelimiter{\ceil}{\lceil}{\rceil}
 \makeatletter
@@ -115,7 +125,7 @@
 
 \textbf{----------------------------------------}
 
-\textbf{Priority Percent Calculation Notes [WIP]}
+\textbf{SLEC Priority Percent Calculation [WIP]}
 
 The math note is an expansion on the combinatorics calculation implemented in the MLEC sim's flat DP mode. The concept is simple - when we have a disk failure, we are interested in how many data on the drive (priority percent) belongs to the disk's priority and then we can calculate the time needed for repair in relation to normal RAID. Knowing the repair time in relation to normal RAID, we can then calculate the MTTDL of network SLEC DP in relation to normal RAID and mathematically calculate the number of nines for network SLEC DP durability.\
 
@@ -126,11 +136,70 @@ The notations used in the note is as follows
   \item $k$: number of data chunks
   \item $m$: number of parity chunks
   \item $n$: stripe width $(k+m)$
-  \item $f$: number of failures in the stripe (number of disks that we need to repair)
+  \item $f$: total number of failed disk
+  \item $f_s$: number of failures in the stripe (number of disks that we need to repair)
+  \item $f_r$: number of failures in the rack
   \item $\mathcal{CAP}$: capacity of the disk
   \item $S_{net_W}=S_{net_R}=S_{net}$: speed of network IO
+  \item $S_{disk_W}=S_{disk_R}=S_{disk}$: speed of disk
 \end{itemize}
 
+\hspace*{1cm}
+
+\textbf{Discussion on Speed Bottleneck}
+
+We can see that due to the unique property of network SLEC DP, out of the $(k+m)$ chunks, there are at most 1 chunk per rack. We are then interested in the bottleneck during repair, whether its network bound, or disk bound, or both. Lets define the following notations
+\begin{itemize}
+  \item $S_{net}$: network speed
+  \item $S_{disk}$: disk speed
+  \item $B$: number of drives in the rack
+  \item $f_r$: number of failures in the same rack
+\end{itemize}
+
+First we start by assuming that $S_{net}=\infty$, then the bottleneck is surely disk IO. We then have \textbf{per rack} r/w bandwidth of $(B-f_r)S_{disk}$(we read from all the disks on the rack concurrently). If we then set the network bandwidth back to $S_{net}$, we can see that if the collective bandwidth for all disks in the rack is smaller than the network bandwidth ($(B-f_r)S_{disk}<S_{net}$), then diskIO would become a bottleneck.
+
+On the otherhand, if the collective disk bandwidth in a rack is greater than the network bandwidth ($(B-f_r)S_{disk}>S_{net}$), then network would become the bottleneck.
+
+Therefore, by moving terms across the inequality, we can characterize the \textbf{\textit{per rack bottle neck}} as following
+\begin{equation*}
+  \text{bottleneck}=
+  \begin{cases}
+    disk, & \text{if}\ \frac{S_{net}}{S_{disk}}>B-f_r \\
+    network, & \text{if}\ \frac{S_{net}}{S_{disk}}<B-f_r \\
+    both, & \text{if}\ \frac{S_{net}}{S_{disk}}=B-f_r
+  \end{cases}
+\end{equation*}
+
+And thus the \textbf{per rack repair speed}
+\begin{equation*}
+  \text{per rack repair speed}=
+  \begin{cases}
+    S_{disk}(B-f_r), & \text{if}\ \frac{S_{net}}{S_{disk}}>B-f_r \\
+    S_{net}, & \text{if}\ \frac{S_{net}}{S_{disk}}<B-f_r \\
+  \end{cases}
+\end{equation*}
+
+\hspace*{1cm}
+
+\textbf{Discussion on Parallelism}
+
+Due to the constraint that network SLEC DP places on chunk placement, when there is failure, we read from one node per rack for all other racks ($k$ in total). We use the following notation
+\begin{itemize}
+  \item $f$: total number of failed disk
+\end{itemize}
+
+\begin{equation*}
+  \text{read parallelism}=(r-1)B
+\end{equation*}
+
+When writing the reconstructed chunk to the \textit{virtual reserved space}, we still want to utilize all of the virutal reserved spaces on all the surviving disks to maximize reconstruction. Therefore,
+\begin{equation*}
+  \text{write parallelism}=rB-f
+\end{equation*}
+
+\hspace*{1cm}
+
+\textbf{Discussion on Priority Percent Calculation}
 
 \section{When there is a single failure [distinct rack], this means that}
 \begin{itemize}
@@ -150,10 +219,10 @@ The amplification is reading from $k$ chunks and writing to $f$ chunk.
 
 Therefore the time needed for repair calculation is as follows
 \begin{equation*}
-  \frac{\mathcal{CAP}(k+f)}{S_{net}(r-1)B/f}
+  \frac{\mathcal{CAP}(k+f_s)}{S_{net}(r-1)B/f_s}
 \end{equation*}
 
-\textbf{When there are two failures [same rack], this means that the \textit{priority 1 stripe} works as follows}
+\section{When there are two failures [same rack], this means that the \textbf{priority 1 stripes} }
 \begin{itemize}
   \item All the affected stripes must not have another drive on the same rack
   \item The remaining good drives to select affected stripes out of are \textbf{still} $(r-1)B$ because damaged stripes will have other chunks sitting on other racks, and the damaged chunk be sitting on either one of the failed drive
@@ -170,7 +239,7 @@ Making an example with 10 racks, 10 drives per rack, and (8+2) config, and there
   \frac{(10-1)*10-10+2}{(10-1)10+1}=\frac{82}{91}\approx 0.901
 \end{equation*}
 
-\textbf{When there are two failures [same rack], this means that \textit{priority 2 stripe} works as follows}
+\section{When there are two failures [same rack], this means that \textbf{priority 2 stripe} }
 \begin{itemize}
   \item Basically same as two failures same rack, priority 1 stripe, except priority
   \item The remaining good drive is $(r-1)B$
@@ -185,7 +254,7 @@ Making an example with 10 racks, 10 drives per rack, and (8+2) config, and there
 Using the same $r=10, B=10, n=10$ example, we have priority percent equals $\frac{9}{91}\approx 0.0989$
 
 
-\textbf{When there are two failures [distinct rack], this means that \textit{priority 1 stripe} works a follows}
+\section{When there are two failures [distinct rack], this means that \textbf{priority 1 stripe}}
 \begin{itemize}
   \item The remaining good drive is still $(r-1)B-1$ because the priority 1 stripe will have all surviving chunks in all racks except the one that contains the failed chunk. The minus 1 is because in one of the rack containing one of the surviving chunk, there is one failed disk that happens to not impact this stripe.
   \item The number of failed drive is 2
@@ -198,7 +267,7 @@ Using the same $r=10, B=10, n=10$ example, we have priority percent equals $\fra
 
 Using the same $r=10, B=10, n=10$ example, we have priority percent equals $\frac{81}{90}=0.9$
 
-\textbf{When there are two failures [distinct rack], this means that \textit{priority 2 stripe} works a follows}
+\section{When there are two failures [distinct rack], this means that \textbf{priority 2 stripe}}
 \begin{itemize}
   \item All the stripes with priority 2 have both of the chunks sitting on each of the failed drive residing in two racks. This means that the remaining good drives to select from is $(r-2)B$.
   \item The number of failed disk is 2
@@ -210,7 +279,7 @@ Using the same $r=10, B=10, n=10$ example, we have priority percent equals $\fra
   \frac{ncr((r-2)B, n-2)*ncr(2-1, 2-1)}{ncr((r-2)B+2-1, n-1)}=\frac{n-1}{(r-2)B+1}
 \end{equation*}
 
-\textbf{When there are three failures [distinct rack], this means that \textit{pirority 3 stripe} works as follows}
+\section{When there are three failures [distinct rack], this means that \textbf{pirority 3 stripe} }
 \begin{itemize}
   \item The remaining good drive is $(r-3)B$
   \item The number of failed disk is 3
@@ -222,7 +291,7 @@ Using the same $r=10, B=10, n=10$ example, we have priority percent equals $\fra
   \frac{ncr((r-3)B, n-3)*ncr(3-1, 3-1)}{ncr((r-3)B+3-1, n-1)}=\frac{(n-1)(n-2)}{[(r-3)B+1][(r-3)B+2]}
 \end{equation*}
 
-\textbf{When there are four failures [distinct rack], this means that \textit{priority 4 stripe} works as follows}
+\section{When there are four failures [distinct rack], this means that \textbf{priority 4 stripe} }
 \begin{itemize}
   \item The remaining good drive is $(r-4)B$
   \item The number of failed disk is 4
@@ -234,7 +303,7 @@ Using the same $r=10, B=10, n=10$ example, we have priority percent equals $\fra
   \frac{ncr((r-4)B, n-4)*ncr(4-1, 4-1)}{ncr((r-4)B+4-1, n-1)}=\frac{(n-1)(n-2)(n-3)}{[(r-4)B+1][(r-4)B+2][(r-4)B+3]}
 \end{equation*}
 
-\textbf{When there are n failures across n distinct racks, the stripes with priority n}
+\section{When there are n failures across n distinct racks, the stripes with priority n}
 
 The priority percent calculation should be the following. First we let the number of failures be $f$
 \begin{equation*}
