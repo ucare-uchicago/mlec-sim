@@ -10,5 +10,5 @@ def ncr(n, r):
         return numer / denom
 
 if __name__ == "__main__":
-    print(ncr(1,0))
-    print(ncr(2,2))
+    print(ncr(89,8)/ncr(90,9))
+    print(ncr(90,9))
