@@ -1,8 +1,7 @@
 \BOOKMARK [1][-]{section.1}{When there is a single failure [distinct rack], this means that}{}% 1
 \BOOKMARK [1][-]{section.2}{When there are two failures [same rack], this means that the priority 1 stripes }{}% 2
-\BOOKMARK [1][-]{section.3}{When there are two failures [same rack], this means that priority 2 stripe }{}% 3
-\BOOKMARK [1][-]{section.4}{When there are two failures [distinct rack], this means that priority 1 stripe}{}% 4
-\BOOKMARK [1][-]{section.5}{When there are two failures [distinct rack], this means that priority 2 stripe}{}% 5
-\BOOKMARK [1][-]{section.6}{When there are three failures [distinct rack], this means that pirority 3 stripe }{}% 6
-\BOOKMARK [1][-]{section.7}{When there are four failures [distinct rack], this means that priority 4 stripe }{}% 7
-\BOOKMARK [1][-]{section.8}{When there are n failures across n distinct racks, the stripes with priority n}{}% 8
+\BOOKMARK [1][-]{section.3}{When there are two failures [distinct rack], this means that priority 1 stripe}{}% 3
+\BOOKMARK [1][-]{section.4}{When there are two failures [distinct rack], this means that priority 2 stripe}{}% 4
+\BOOKMARK [1][-]{section.5}{When there are three failures [distinct rack], this means that pirority 3 stripe }{}% 5
+\BOOKMARK [1][-]{section.6}{When there are four failures [distinct rack], this means that priority 4 stripe }{}% 6
+\BOOKMARK [1][-]{section.7}{When there are n failures across n distinct racks, the stripes with priority n}{}% 7
