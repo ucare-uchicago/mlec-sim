@@ -202,36 +202,41 @@ Combining the three equations above, we can get the priority percentage calculat
 
 \textbf{Discussion on Priority Percent Calculation for SLEC network DP}
 
-For priority percent calculation of SLEC network DP, we are going to follow a similar concept, but make adjustments according to the constraint of one chunk per rack placement. Due to this constraint, we can see that
-\begin{itemize}
-  \item fail\_num should not be the total number of failed disks, but rather the number of failed disks in the stripe
-  \item good\_num should not be the total number of surviving disks, but rather the number of surviving drives on unimpacted racks (stripe level)
-  \item note that for the denominator, we still use $ncr(s+f-1, n-1)$ instead of $ncr(s+f_s-1, n-1)$ because we are calculating all the degraded stripes
-\end{itemize}
-
-Given these two modifications, the priority percent calculation becomes
-\begin{equation*}
-  \text{good\_num(SLEC)}=s=\sum_{\substack{i=0 \\ i\not\subset \text{impacted racks}}}^{r} (B-f_{r_i})
-\end{equation*}
-\begin{equation*}
-  \text{prio percent}==\frac{ncr(s, (n-p))*ncr(f_s-1, p-1)}{ncr(s+f-1, n-1)}
-\end{equation*}
+Working on finding a good looking model. See enumerated cases below.
 
 \hspace*{1cm}
+
+% For priority percent calculation of SLEC network DP, we are going to follow a similar concept, but make adjustments according to the constraint of one chunk per rack placement. Due to this constraint, we can see that
+% \begin{itemize}
+%   \item fail\_num should not be the total number of failed disks, but rather the number of failed disks in the stripe
+%   \item good\_num should not be the total number of surviving disks, but rather the number of surviving drives on unimpacted racks (stripe level)
+%   \item note that for the denominator, we still use $ncr(s+f-1, n-1)$ instead of $ncr(s+f_s-1, n-1)$ because we are calculating all the degraded stripes
+% \end{itemize}
+
+% Given these two modifications, the priority percent calculation becomes
+% \begin{equation*}
+%   \text{good\_num(SLEC)}=s=\sum_{\substack{i=0 \\ i\not\subset \text{impacted racks}}}^{r} (B-f_{r_i})
+% \end{equation*}
+% \begin{equation*}
+%   \text{prio percent}==\frac{ncr(s, (n-p))*ncr(f_s-1, p-1)}{ncr(s+f-1, n-1)}
+% \end{equation*}
+
+% \hspace*{1cm}
 
 \textbf{Enumerate Some Cases}
 
 \section{When there is a single failure [distinct rack], this means that}
 \begin{itemize}
-  \item All the affected stripes must not have another drive on the same rack
-  \item The remaining good drives to select affected stripes out of are $(r-1)B$
+  \item All the affected stripes must not have another drive on the same rack due to the placement constraint
   \item The number of failed drive is 1 and has priority of 1
-  \item The priority percent equation then becomes
+  \item The percent of stripes of priority 1 out of all the affected stripes is
 \end{itemize}
 
 \begin{equation*}
-  \frac{ncr((r-1)B, n-1)*ncr(1-1, 1-1)}{ncr((r-1)B+1-1, n-1)}=\frac{ncr((r-1)B, n-1)}{ncr((r-1)B, n-1)}=1
+  \text{prio percent}=\frac{ncr(r-1,n-1)B^{n-1}}{ncr(r-1,n-1)B^{n-1}}=1
 \end{equation*}
+
+Explaning the equation: for the numerator, we know that there is a single failed disk. Therefore, we select the surviving chunks $(n-1)$ of stripes from the surviving \textbf{racks} (not disk because of the placement constraint) $(r-1)$. However, we also have the choice of $B$ disks in each of the surviving racks. Therefore, we add the multiplier of $B^{r-1}$. For the denomenator, we have the total number of stripes that have at least one failed chunk. Therefore, the equation is identical to the numerator.
 
 % We can see that in terms of parallel repair of DP, we can only read/write from and to the disks that do not reside on the same rack. Therefore we will have the parallelism as $(r-1)B$. 
 
@@ -244,82 +249,88 @@ Given these two modifications, the priority percent calculation becomes
 
 \section{When there are two failures [same rack], this means that the \textbf{priority 1 stripes} }
 \begin{itemize}
-  \item All the affected stripes must not have another drive on the same rack
-  \item The remaining good drives to select affected stripes out of are $s=(r-1)B$ because damaged stripes will have other chunks sitting on other racks, and the damaged chunk be sitting on either one of the failed drive
-  \item The the total number of failed drive is 2. However, failures with in stripe $f_s$ is 1 for all degraded stripes due to SLEC property.
-  \item The priority percent equation then becomes
+  \item We will \textbf{only} have priority 1 stripes because there cannot be any stripes that contains both of the failed disk on the same rack. This means that the percent of priority 1 stripe out of all the affected stripe should be 1.
+  \item The percent of stripes of priority 1 out of all the affected stripes is
 \end{itemize}
 
 \begin{equation*}
-  \frac{ncr((r-1)B, n-1)*ncr(2-1, 1-1)}{ncr((r-1)B+1-1, n-1)}=\frac{ncr((r-1)B, n-1)}{ncr((r-1)B, n-1)}=1
+  \text{prio percent}=\frac{ncr(r-1, n-1)B^{n-1}}{ncr(r-1, n-1)B^{n-1}}=1
 \end{equation*}
 
 \section{When there are two failures [distinct rack], this means that \textbf{priority 1 stripe}}
 \begin{itemize}
-  \item The remaining good drive is still $(r-1)B-1$ because the priority 1 stripe will have all surviving chunks in all racks except the one that contains the failed chunk. The minus 1 is because in one of the rack containing one of the surviving chunk, there is one failed disk that happens to not impact this stripe.
-  \item The number of failed drive is 2
-  \item The priority percent equation then becomes
+  \item For the numerator, there are two conditions.
+  \begin{itemize}
+    \item stripes that have chunks sitting on both of the impacted racks (however does not contain both failed disk).
+    \item stripes that have the failed chunk sitting on either of the impacted chunks.
+  \end{itemize}
+  \item The percent of stripes of priority 1 out of all the affected stripes is
 \end{itemize}
 
 \begin{equation*}
-  \frac{ncr((r-1)B-1, n-1)*ncr(2-1, 1-1)}{ncr((r-1)B-1+2-1, n-1)}=\frac{(r-1)B-n+1}{(r-1)B}
+  \text{prio percent}=\frac{ncr(r-2,n-2)B^{n-2}(B-1)+ncr(r-2,n-1)B^{n-1}}{ncr(r-1,n-1)B^{n-1}}=\frac{B-1}{B}\frac{n-1}{r-1}+\frac{r-n}{r-1}
 \end{equation*}
 
-Using the same $r=10, B=10, n=10$ example, we have priority percent equals $\frac{81}{90}=0.9$
+Using an example of $r=10,B=10,n=9$, we can see that the priority percent would be
+\begin{equation*}
+  \text{prio percent}=\frac{ncr(8,7)*10^7*9+ncr(8,8)*10^8}{ncr(9,8)*10^8}=\frac{82}{90}
+\end{equation*}
 
 \section{When there are two failures [distinct rack], this means that \textbf{priority 2 stripe}}
 \begin{itemize}
-  \item All the stripes with priority 2 have both of the chunks sitting on each of the failed drive residing in two racks. This means that the remaining good drives to select from is $(r-2)B$.
-  \item The number of failed disk is 2
-  \item The priority of the stripes is 2
-  \item The priority percent equation then becomes
+  \item This means that all the priority 2 stripes contains both of the failed disks
+  \item The percent of priority 2 stripes out of all the affected stripe is
 \end{itemize}
 
 \begin{equation*}
-  \frac{ncr((r-2)B, n-2)*ncr(2-1, 2-1)}{ncr((r-2)B+2-1, n-1)}=\frac{n-1}{(r-2)B+1}
+  \text{prio percent}=\frac{ncr(r-2,n-2)B^{n-2}}{ncr(r-1,n-1)B^{n-1}}=\frac{1}{B}\frac{n-1}{r-1}
 \end{equation*}
 
-Using the same $r=10$, $B=10$, $n=10$ example, we have priority percent equals $\frac{9}{81}$
+Using the example of $r=10,B=10,n=9$, we can see that the priority percent would be
+\begin{equation*}
+  \text{prio percent}=\frac{ncr(8,7)*10^7}{ncr(9,8)*10^8}=\frac{8}{90}
+\end{equation*}
 
-\section*{When there are three failures [1, 2], this means that \textbf{priority 1 stripe} containing failed drive on rack 1}
+We can see that this prio percent, combined with the prio percent of priority 1 stripes, addes up to 1. Which means that our model is correct.
+
+\section{When there are three failures [same rack], this means that \textbf{priority 1 stripes}}
 \begin{itemize}
-  \item 
+  \item There will still be only priority 1 stripes
+  \item This then makes the formula identical to single failure priority percent calculation
 \end{itemize}
 
-\section{When there are three failures [distinct rack], this means that \textbf{pirority 3 stripe} }
+\begin{equation*}
+  \text{prio percent}=\frac{ncr(r-1, n-1)B^{n-1}}{ncr(r-1, n-1)B^{n-1}}=1
+\end{equation*}
+
+\section{When there are three failures [1, 2]}
+
+This graph shows an example of the failure pattern.
+\begin{figure}[H]
+  \includegraphics{img/3-1-2.png}
+  \centering
+\end{figure}
+As we can see, due to the asymmetrical layout, we would have to discuss priority percent for each drive.
+
+\subsection*{For priority 1 stripes on disk A}
+
 \begin{itemize}
-  \item The remaining good drive is $(r-3)B$
-  \item The number of failed disk is 3
-  \item The priority of the stripe is 3
-  \item The priority perent equation then becomes
+  \item It can either include a chunk on the rack with two failures, or only include chunks on unimpacted racks
+  \item Therefore, the percentage of priority 1 stripes out of all the stripes that are impacted by disk A is
 \end{itemize}
 
 \begin{equation*}
-  \frac{ncr((r-3)B, n-3)*ncr(3-1, 3-1)}{ncr((r-3)B+3-1, n-1)}=\frac{(n-1)(n-2)}{[(r-3)B+1][(r-3)B+2]}
+  \text{prio percent}=\frac{ncr(r-2,n-2)B^{n-2}(B-2)+ncr(r-2,n-1)B^{n-1}}{ncr(r-1,n-1)B^{n-1}}=\frac{n-1}{r-1}\frac{B-2}{B}+\frac{r-n}{r-1}
 \end{equation*}
 
-\section{When there are four failures [distinct rack], this means that \textbf{priority 4 stripe} }
+\subsection*{For priority 2 stripes on disk A}
 \begin{itemize}
-  \item The remaining good drive is $(r-4)B$
-  \item The number of failed disk is 4
-  \item The priority of the stripe is 4
-  \item The priority percent equation then becomes
+  \item It can include either disk B or C as the second failed chunk, and it has to have failed chunks sitting on both of the rack.
+  \item Therefore, the percentage of priority 2 stripes out of all the stripes that are impacted by disk A is
 \end{itemize}
 
 \begin{equation*}
-  \frac{ncr((r-4)B, n-4)*ncr(4-1, 4-1)}{ncr((r-4)B+4-1, n-1)}=\frac{(n-1)(n-2)(n-3)}{[(r-4)B+1][(r-4)B+2][(r-4)B+3]}
+  \text{prio percent}=\frac{ncr(r-2,n-2)B^{n-2}*2}{ncr(r-1,n-1)B^{n-1}}=\frac{n-1}{r-1}\frac{2}{B}
 \end{equation*}
-
-\section{When there are n failures across n distinct racks, the stripes with priority n}
-
-The priority percent calculation should be the following. First we let the number of failures be $f$
-\begin{equation*}
-  \prod_{i=1}^{f-1}\frac{(n-i)}{[(r-f)B+i]}
-\end{equation*}
-
-\newpage
-\singlespacing 
-
-
 
 \end{document}
