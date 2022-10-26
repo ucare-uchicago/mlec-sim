@@ -104,7 +104,7 @@ plt.xscale("log")
 plt.ylabel('Number of drives affected', fontsize=14)
 plt.yscale("log")
 # plt.title('Frequency of failure bursts sorted by racks and drives affected')
-plt.title(occuranceDataLoss.iloc[1]['config'] + ' Declustered\nProbability to survive all ORNL bursts:{:.4f} Nines:{}\n'
+plt.title(occuranceDataLoss.iloc[1]['config'] + ' Declustered network-only SLEC\nProbability to survive all ORNL bursts:{:.4f} Nines:{}\n'
                 'Probability to survive a random burst:{:.4f} Nines:{}'.
                 format(survival_prob, round(abs(math.log10(1-survival_prob)),1), 
                         single_burst_survival_prob, str(round(-math.log10(1-single_burst_survival_prob),1))), fontsize=16)

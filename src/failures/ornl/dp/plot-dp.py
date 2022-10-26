@@ -9,7 +9,7 @@ occuranceDataLoss = pd.read_csv(sys.argv[1], sep=' ')
 # prob[i,j] means the probability 
 print(occuranceDataLoss)
 
-df = pd.read_csv ('burst_node_enclosure.csv')
+df = pd.read_csv ('../burst_node_enclosure.csv')
 groupeddf = df.set_index(['enclosures', 'drives'])
 print(groupeddf)
 
@@ -52,6 +52,8 @@ def coloring(x):
         return 'red'
 
 survival_prob = 1
+total_count = 0
+single_burst_survival_prob = 0
 
 for index, row in occuranceDataLoss.iterrows():
     disks = row['failed_disks']
@@ -64,13 +66,23 @@ for index, row in occuranceDataLoss.iterrows():
             survival_prob *= (1-dl)
     else:
         count = 0
+    total_count += count
     radius = cal_radius(count)
     if count == 0:
         axes.plot(enclosures, disks,1,marker='o',ms=radius,mfc=dl_color,mec=dl_color, mew=0.1)
     else:
         axes.plot(enclosures, disks,1,marker='o',ms=radius,mfc=dl_color,mec='black', mew=0.6)
     
-
+for index, row in occuranceDataLoss.iterrows():
+    disks = row['failed_disks']
+    enclosures = row['affected_racks']
+    dl = float(row['dl_prob'])
+    dl_color = coloring(dl)
+    if (enclosures, disks) in groupeddf.index:
+        count = groupeddf.loc[enclosures, disks]['count']
+    else:
+        count = 0
+    single_burst_survival_prob += (1-dl) * count / total_count
 
 
 
@@ -92,7 +104,10 @@ plt.xscale("log")
 plt.ylabel('Number of drives affected', fontsize=14)
 plt.yscale("log")
 # plt.title('Frequency of failure bursts sorted by racks and drives affected')
-plt.title(occuranceDataLoss.iloc[1]['config'] + ' Declustered\nSurvival Probability:{}'.format(survival_prob), fontsize=16)
+plt.title(occuranceDataLoss.iloc[1]['config'] + ' Declustered\nProbability to survive all ORNL bursts:{:.4f} Nines:{}\n'
+                'Probability to survive a random burst:{:.4f} Nines:{}'.
+                format(survival_prob, round(abs(math.log10(1-survival_prob)),1), 
+                        single_burst_survival_prob, str(round(-math.log10(1-single_burst_survival_prob),1))), fontsize=16)
 axes.set_xticks([1,2,5,10,20,50,100,200,500])
 axes.set_yticks([1,2,5,10,20,50,100,200,500])
 plt.xticks(fontsize=12)
@@ -111,8 +126,8 @@ import matplotlib as mpl
 import matplotlib.colors as colors
 
 dd = 10**(-16)  # a number that is very close to 0
-hc = ['lightgreen', 'green', 'green', 'lightblue', 'lightblue', 'blue', 'blue', 'orange',  'orange', 'purple', 'purple',  'red', 'red']
-th = [0,       0+dd, 0.2,  0.2+dd,  0.4, 0.4+dd,  0.6,      0.6+dd,   0.8,      0.8+dd,       0.99-dd,         0.99, 1]
+hc = ['lightgreen', 'lightgreen','green', 'green', 'lightblue', 'lightblue', 'blue', 'blue', 'orange',  'orange', 'purple', 'purple',  'red', 'red']
+th = [0,       0.01,  0.01+dd, 0.2,  0.2+dd,  0.4, 0.4+dd,  0.6,      0.6+dd,   0.8,      0.8+dd,       0.99-dd,         0.99, 1]
 
 mycolors=list(zip(th, hc))
 cm = colors.LinearSegmentedColormap.from_list('test', mycolors)

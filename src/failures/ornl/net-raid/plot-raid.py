@@ -38,15 +38,15 @@ def cal_radius(count):
 def coloring(x):
     if x == 0:
         return 'lightgreen'
-    elif x <= 0.0001:
+    elif x < 0.2:
         return 'green'
-    elif x <= 0.001:
+    elif x < 0.4:
         return 'lightblue'
-    elif x <= 0.01:
+    elif x < 0.6:
         return 'blue'
-    elif x <= 0.1:
+    elif x < 0.8:
         return 'orange'
-    elif x <= 0.9999:
+    elif x < 0.99:
         return 'purple'
     else:
         return 'red'
@@ -104,7 +104,7 @@ plt.xscale("log")
 plt.ylabel('Number of drives affected', fontsize=14)
 plt.yscale("log")
 # plt.title('Frequency of failure bursts sorted by racks and drives affected')
-plt.title(occuranceDataLoss.iloc[1]['config'] + ' Declustered\nProbability to survive all ORNL bursts:{:.4f} Nines:{}\n'
+plt.title(occuranceDataLoss.iloc[1]['config'] + ' Clustered network-only SLEC\nProbability to survive all ORNL bursts:{:.4f} Nines:{}\n'
                 'Probability to survive a random burst:{:.4f} Nines:{}'.
                 format(survival_prob, round(abs(math.log10(1-survival_prob)),1), 
                         single_burst_survival_prob, str(round(-math.log10(1-single_burst_survival_prob),1))), fontsize=16)
@@ -116,10 +116,10 @@ axes.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 axes.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
 plt.text(1, 350, 'PDL: 0.0')
-plt.text(3.5, 350, '0.0001')
-plt.text(10, 350, '0.001')
-plt.text(25, 350, '0.01')
-plt.text(80, 350, '0.1')
+plt.text(3.5, 350, '0.2')
+plt.text(10, 350, '0.4')
+plt.text(25, 350, '0.6')
+plt.text(80, 350, '0.8')
 plt.text(200, 350, '1.0')
 
 import matplotlib as mpl
@@ -144,4 +144,4 @@ figure.set_size_inches(8, 8)
 figure.set_dpi(500)
 plt.show()
 
-plt.savefig(sys.argv[1] + '.log.png')
+plt.savefig(sys.argv[1] + '.png')

@@ -85,6 +85,15 @@ for index, row in occuranceDataLoss.iterrows():
     single_burst_survival_prob += (1-dl) * count / total_count
 
 
+if survival_prob == 1:
+    survival_prob_nines = 100
+else:
+    survival_prob_nines = round(abs(math.log10(1-survival_prob)),1)
+
+if single_burst_survival_prob == 1:
+    single_burst_survival_prob_nines = 100
+else:
+    single_burst_survival_prob_nines = round(-math.log10(1-single_burst_survival_prob),1)
 
 plt.plot(x_range, y_range, linewidth=0.4, color='green')
 
@@ -104,10 +113,10 @@ plt.xscale("log")
 plt.ylabel('Number of drives affected', fontsize=14)
 plt.yscale("log")
 # plt.title('Frequency of failure bursts sorted by racks and drives affected')
-plt.title(occuranceDataLoss.iloc[1]['config'] + ' Declustered\nProbability to survive all ORNL bursts:{:.4f} Nines:{}\n'
-                'Probability to survive a random burst:{:.4f} Nines:{}'.
-                format(survival_prob, round(abs(math.log10(1-survival_prob)),1), 
-                        single_burst_survival_prob, str(round(-math.log10(1-single_burst_survival_prob),1))), fontsize=16)
+plt.title(occuranceDataLoss.iloc[1]['config'] + ' Declustered\nProbability to survive all ORNL bursts:{:.5f} Nines:{}\n'
+                'Probability to survive a random burst:{:.5f} Nines:{}'.
+                format(survival_prob, survival_prob_nines, 
+                        single_burst_survival_prob, single_burst_survival_prob_nines), fontsize=16)
 axes.set_xticks([1,2,5,10,20,50,100,200,500])
 axes.set_yticks([1,2,5,10,20,50,100,200,500])
 plt.xticks(fontsize=12)
