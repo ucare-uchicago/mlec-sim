@@ -15,7 +15,7 @@ from placement import Placement
 from system import System
 from repair import Repair
 
-from simulate import Simulate
+from simulate_burst import Simulate
 from mytimer import Mytimer
 from metrics import Metrics
 import time
@@ -118,20 +118,32 @@ class CorrelatedBurst:
 def iter(afr, num_failed_disks,num_failed_racks, drives_per_rack, iters, mission, *arg):
     try:
         res = 0
+        # start = time.time()
         failureGenerator = FailureGenerator(afr, CorrelatedBurst(num_failed_disks,num_failed_racks, drives_per_rack), is_burst=True)
-        
+        # print(time.time()-start)
         sys = System(*arg)
         
         mytimer = Mytimer()
         repair = Repair(sys, sys.place_type)
         placement = Placement(sys, sys.place_type)
 
-        start = time.time()
+        
+
+        # start = time.time()
+        # init_time = 0
+        # sim_time = 0
         for iter in range(0, iters):
+            # temp = time.time()
             sim = Simulate(mission, sys.num_disks, sys, repair, placement)
+            # init_time += time.time() - temp
+            # temp = time.time()
             res += sim.run_simulation(failureGenerator, mytimer)
-        one_iter_time = time.time() - start
-        print(one_iter_time)
+            # sim_time += time.time() - temp
+        # print(init_time)
+        # print("sim time:{}".format(sim_time))
+        # one_iter_time = time.time() - start
+        # print(one_iter_time)
+        # print(mytimer)
         return (res, mytimer, sys.metrics)
     except Exception as e:
         print(traceback.format_exc())
@@ -153,7 +165,7 @@ def simulate(afr, num_failed_disks,num_failed_racks, drives_per_rack, iters, epo
         futures.append(executor.submit(iter, afr, num_failed_disks,num_failed_racks, drives_per_rack, iters, mission, *arg))
     ress = wait_futures(futures)
     
-    executor.shutdown()
+    executor.shutdown(wait=False)
     for res in ress:
         failed_instances += res[0]
         metrics += res[2]
@@ -186,19 +198,23 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     # logging.basicConfig(level=logging.INFO)
     df = pd.read_csv ('failures/ornl/burst_node_enclosure.csv')
     print(df)
+    failure_list = []
     # for index, row in df.iterrows():
     #         num_failed_racks = row['enclosures']
     #         num_failed_disks = row['drives']
-    # for num_failed_racks in range(1,2):
-    #     for num_failed_disks in range(1, 101):
-    # for num_failed_racks in range(2,3):
-    #     for num_failed_disks in range(2, 55):
-    # for num_failed_racks in range(3,4):
-    #     for num_failed_disks in range(3, 30):
-    # for num_failed_racks in range(4,7):
-    #     for num_failed_disks in range(num_failed_racks, max(20,num_failed_racks+5)):
-    for num_failed_racks in range(10,11):
-        for num_failed_disks in range(19, 20):
+    for num_failed_racks in range(1,2):
+        for num_failed_disks in range(1, 101):
+            failure_list.append((num_failed_racks, num_failed_disks))
+    for num_failed_racks in range(2,3):
+        for num_failed_disks in range(2, 55):
+            failure_list.append((num_failed_racks, num_failed_disks))
+    for num_failed_racks in range(3,4):
+        for num_failed_disks in range(3, 30):
+            failure_list.append((num_failed_racks, num_failed_disks))
+    for num_failed_racks in range(4,26):
+        for num_failed_disks in range(num_failed_racks, max(20,num_failed_racks+5)):
+            failure_list.append((num_failed_racks, num_failed_disks))
+    for num_failed_racks, num_failed_disks in failure_list:
             if placement == 'NET_DP':
                 if num_failed_racks <= p_net:
                     failed_iters = 0
@@ -220,21 +236,8 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_iters = 100000
             else:
                 mission = YEAR
-                # failureGenerator = FailureGenerator(afr, GoogleBurst(50, 50), is_burst=True)
-                # failureGenerator = FailureGenerator(afr, ArbitraryBurst(num_failed_disks), is_burst=True)
-
-                
-                failureGenerator = FailureGenerator(afr, CorrelatedBurst(num_failed_disks,num_failed_racks, drives_per_rack), is_burst=True)
-                
-                
 
                 place_type = get_placement_index(placement)
-
-                temp = time.time()
-                sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
-                        io_speed, 1, k_net, p_net, adapt)
-                failureGeneratorCreateTime = time.time() - temp
-                print(failureGeneratorCreateTime)
 
                 failed_iters = 0
                 total_iters = 0
@@ -245,7 +248,7 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 
 
                 start  = time.time()
-                res = simulate(afr, num_failed_disks,num_failed_racks, drives_per_rack, 50, 1, 1, mission, 
+                res = simulate(afr, num_failed_disks,num_failed_racks, drives_per_rack, 50, 200, 200, mission, 
                                 total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
                                 io_speed, 1, k_net, p_net, adapt)
                 failed_iters += res[0]
@@ -253,7 +256,8 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 
                 simulationTime = time.time() - start
                 print("simulation time: {}".format(simulationTime))
-                print("failed_iters: {}  failed_iters: {}".format(failed_iters, total_iters))
+                print("num_failed_racks: {}  num_failed_disks: {}  failed_iters: {}  failed_iters: {}".format(
+                                num_failed_racks, num_failed_disks, failed_iters, total_iters))
 
                 total_iters *= mission/YEAR
 
@@ -268,8 +272,8 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
             
 
             print("probability of data loss: {}".format(prob_dl))
-            print("Num of Nine: {}".format(nines))
-            print("error sigma: {}".format(sigma))
+            # print("Num of Nine: {}".format(nines))
+            # print("error sigma: {}".format(sigma))
             print()
 
             output = open("s-burst-{}.log".format(placement), "a")
