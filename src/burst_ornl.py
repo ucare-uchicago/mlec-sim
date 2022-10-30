@@ -64,7 +64,6 @@ def find_all_lists(num_fail_disks, num_fail_racks, disks_per_rack):
 
 class CorrelatedBurst:
     def __init__(self, num_fail_disks, num_affect_racks, disks_per_rack):
-        print("num_fail_disks: {}  num_affect_racks: {}".format(num_fail_disks, num_affect_racks))
         self.num_fail_disks = num_fail_disks
         self.num_fail_racks = num_affect_racks
         all_possible_fail_disks_per_rack = find_all_lists(num_fail_disks, num_affect_racks, disks_per_rack)
@@ -81,7 +80,6 @@ class CorrelatedBurst:
         sum_combinations = sum(all_num_combinations)
         prob = [i / sum_combinations for i in all_num_combinations]
         # print("probability for each possible fail_disks_per_rack:\n {}".format(prob))
-        print()
         assert (num_affect_racks <= num_fail_disks), 'have more affected racks than failed disks which is impossible!'
 
         self.all_possible_fail_disks_per_rack = all_possible_fail_disks_per_rack
@@ -117,25 +115,23 @@ class CorrelatedBurst:
 
 
 
-def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
+def iter(afr, num_failed_disks,num_failed_racks, drives_per_rack, iters, mission, *arg):
     try:
         res = 0
-        temp = time.time()
-        failureGenerator = copy.deepcopy(failureGenerator_)
+        failureGenerator = FailureGenerator(afr, CorrelatedBurst(num_failed_disks,num_failed_racks, drives_per_rack), is_burst=True)
         
-        sys = copy.deepcopy(sys_)
+        sys = System(*arg)
         
         mytimer = Mytimer()
         repair = Repair(sys, sys.place_type)
         placement = Placement(sys, sys.place_type)
 
-        copy_time = time.time() - temp
-        print(copy_time)
-
         start = time.time()
         for iter in range(0, iters):
             sim = Simulate(mission, sys.num_disks, sys, repair, placement)
             res += sim.run_simulation(failureGenerator, mytimer)
+        one_iter_time = time.time() - start
+        print(one_iter_time)
         return (res, mytimer, sys.metrics)
     except Exception as e:
         print(traceback.format_exc())
@@ -145,7 +141,7 @@ def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
 # This is a parallel/multi-iter wrapper around iter() function
 # We run X threads in parallel to run the simulation. X = concur.
 # ----------------------------
-def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
+def simulate(afr, num_failed_disks,num_failed_racks, drives_per_rack, iters, epochs, concur=10, mission=YEAR, *arg):
     # So tick(state) is for a single system, and we want to simulate multiple systems
     executor = ProcessPoolExecutor(concur)
     
@@ -154,7 +150,7 @@ def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
     metrics = Metrics()
 
     for epoch in range(0, epochs):
-        futures.append(executor.submit(iter, failureGenerator, sys, iters, mission))
+        futures.append(executor.submit(iter, afr, num_failed_disks,num_failed_racks, drives_per_rack, iters, mission, *arg))
     ress = wait_futures(futures)
     
     executor.shutdown()
@@ -201,7 +197,7 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     #     for num_failed_disks in range(3, 30):
     # for num_failed_racks in range(4,7):
     #     for num_failed_disks in range(num_failed_racks, max(20,num_failed_racks+5)):
-    for num_failed_racks in range(6,7):
+    for num_failed_racks in range(10,11):
         for num_failed_disks in range(19, 20):
             if placement == 'NET_DP':
                 if num_failed_racks <= p_net:
@@ -229,13 +225,16 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 
                 
                 failureGenerator = FailureGenerator(afr, CorrelatedBurst(num_failed_disks,num_failed_racks, drives_per_rack), is_burst=True)
-
+                
+                
 
                 place_type = get_placement_index(placement)
-                
+
                 temp = time.time()
                 sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
-                        io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
+                        io_speed, 1, k_net, p_net, adapt)
+                failureGeneratorCreateTime = time.time() - temp
+                print(failureGeneratorCreateTime)
 
                 failed_iters = 0
                 total_iters = 0
@@ -246,7 +245,9 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 
 
                 start  = time.time()
-                res = simulate(failureGenerator, sys, iters=50, epochs=200, concur=200, mission=mission)
+                res = simulate(afr, num_failed_disks,num_failed_racks, drives_per_rack, 50, 1, 1, mission, 
+                                total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
+                                io_speed, 1, k_net, p_net, adapt)
                 failed_iters += res[0]
                 total_iters += res[1]
 
