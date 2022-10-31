@@ -20,12 +20,12 @@ import random
 #----------------------------
 
 class Simulate:
-    def __init__(self, mission_time, num_disks, sys = None, repair = None, placement = None):
-        self.mission_time = mission_time
+    def __init__(self, num_disks, sys = None, repair = None, placement = None):
         #---------------------------------------
         self.sys = sys
         self.repair = repair
         self.placement = placement
+        self.place_type = sys.place_type
         #---------------------------------------
         self.num_disks = num_disks
 
@@ -39,14 +39,33 @@ class Simulate:
 
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
         failures = failureGenerator.gen_failure_burst(self.sys.num_disks_per_rack, self.sys.num_racks)
-        prob = self.mlec_check_burst(failures)
+        if self.place_type == 0:
+            return self.flat_cluster_check_burst(failures)
+        if self.place_type == 1:
+            return self.mlec_check_burst(failures)
+        if self.place_type == 2:
+            return self.mlec_check_burst(failures)
+        if self.place_type == 3:
+            return self.mlec_cluster_check_burst(failures)
+        if self.place_type == 4:
+            return self.mlec_check_burst(failures)
 
-        return prob
 
-    
-    def mlec_check_burst(self, failures):
+    def flat_cluster_check_burst(self, failures):
         num_diskgroups = self.sys.num_disks // self.sys.n
         failed_disks_per_diskgroup = [0] * num_diskgroups
+        for _, diskId in failures:
+            diskgroupId = diskId // self.sys.n
+            failed_disks_per_diskgroup[diskgroupId] += 1
+            if failed_disks_per_diskgroup[diskgroupId] > self.sys.m:
+                return 1
+        return 0
+
+    
+    def mlec_cluster_check_burst(self, failures):
+        num_diskgroups = self.sys.num_disks // self.sys.n
+        failed_disks_per_diskgroup = [0] * num_diskgroups
+        # print(self.sys.num_disks)
 
         num_diskgroup_stripesets = self.sys.num_disks // self.sys.n // self.sys.top_n
         failed_diskgroups_per_stripeset = [0] * num_diskgroup_stripesets
@@ -55,6 +74,7 @@ class Simulate:
 
         for _, diskId in failures:
             diskgroupId = diskId // self.sys.n
+            # print('diskgroupId:{}'.format(diskgroupId))
             failed_disks_per_diskgroup[diskgroupId] += 1
             # print('{} {}'.format(diskgroupId, failed_disks_per_diskgroup[diskgroupId]))
             # we only increment failed_diskgroups_per_stripeset once when failed_disks_per_diskgroup first reaches m+1
