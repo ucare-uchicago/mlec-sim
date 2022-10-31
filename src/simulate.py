@@ -143,12 +143,23 @@ class Simulate:
 
             self.state.update_disk_priority(event_type, diskId)
 
-            if self.sys.place_type in [2,4]:
+            #--------------------------------------
+            # In MLEC-RAID, each disk group contains n=k+m disks. A rack can have multiple diskgroups
+            # If this disk group has m+1 or more disk failures, then we need to repair the 
+            # disk group using network erasure.
+            # Note that other disk groups in this rack can be healthy and don't need repair
+            #--------------------------------------
+            if self.sys.place_type in [2]:
+                new_diskgroup_failure = self.state.update_diskgroup_state(event_type, diskId)
+                if new_diskgroup_failure != None:
+                    self.state.update_diskgroup_priority(event_type, new_diskgroup_failure, diskId)
+
+            #--------------------------------------
+            # In MLEC-DP, a rack can have more disks
+            # If the rack has m+1 or more disk failures, then we need to repair the rack
+            #--------------------------------------
+            if self.sys.place_type in [4]:
                 new_rack_failure = self.state.update_rack_state(event_type, diskId)
-
-
-
-            if self.sys.place_type in [2,4]:
                 if new_rack_failure != None:
                     self.state.update_rack_priority(event_type, new_rack_failure, diskId)
 

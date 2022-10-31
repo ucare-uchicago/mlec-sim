@@ -59,6 +59,12 @@ class NetRAID:
             failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(disk.stripesetId)
             logging.info("  update_disk_priority_raid_net event: {} stripesetId: {} failed_disks_per_stripeset: {}".format(
                             event_type, disk.stripesetId, failed_disks_per_stripeset))
+            #--------------------------------------------
+            # calculate repair time for disk failures
+            # all the failed disks need to read data from other surviving disks in the group to rebuild data
+            # so the rebuild IO is shared by all failed disks
+            # we need to update the repair rate for all failed disks, because every failed disk gets less share now
+            #--------------------------------------------
             for diskId_per_stripeset in failed_disks_per_stripeset:
                 self.update_disk_repair_time(diskId_per_stripeset)
     

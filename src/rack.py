@@ -37,6 +37,6 @@ class Rack:
         for i in range(stripeset_num):
             self.stripesets_repair_finish.append(0)
         
-        # self.stripeset_failed_disks = []
-        # for i in range(stripeset_num):
-        #     self.stripeset_failed_disks.append({})
+        self.stripeset_failed_disks = []
+        for i in range(stripeset_num):
+            self.stripeset_failed_disks.append({})
