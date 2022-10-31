@@ -12,7 +12,7 @@ class State:
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
-    def __init__(self, sys, mytimer):
+    def __init__(self, sys, mytimer=None):
         #----------------------------------
         self.sys = sys
         self.n = sys.k + sys.m
@@ -97,6 +97,8 @@ class State:
 
 
 
+    def update_diskgroup_state(self, event_type, diskId):
+        return self.policy.update_diskgroup_state(event_type, diskId)
 
     
     # This returns array [{rackId: failedDisks}, numRacksWithFailure]
@@ -111,6 +113,9 @@ class State:
     
         return [failures, num_racks_with_failure]
         
+    def update_diskgroup_priority(self, event_type, new_failed_rack, diskId):
+        self.policy.update_diskgroup_priority(event_type, new_failed_rack, diskId)
+
 
     def get_failed_disks_per_rack(self, rackId):
         # logging.info("sedrver {} get: {}".format(rackId, list(self.racks[rackId].failed_disks.keys())))

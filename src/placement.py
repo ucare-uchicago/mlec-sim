@@ -2,6 +2,7 @@ from system import System
 from disk import Disk
 import logging
 from rack import Rack
+from state import State
 
 class Placement:
     def __init__(self, sys, place_type):
@@ -51,17 +52,18 @@ class Placement:
 
     def mlec_cluster_simulate(self, state):
         prob = 0
-        for i in range(self.sys.num_rack_stripesets):
-            failed_racks_per_stripeset = state.policy.get_failed_racks_per_stripeset(i)
-            if len(failed_racks_per_stripeset) > self.sys.top_m:
+        for i in range(state.policy.num_diskgroup_stripesets):
+            failed_diskgroups_per_stripeset = state.policy.get_failed_diskgroups_per_stripeset(i)
+            if len(failed_diskgroups_per_stripeset) > self.sys.top_m:
                 prob = 1
         return prob
 
     def mlec_dp_simulate(self, state):
         prob = 0
-        failed_racks = state.get_failed_racks()
-        if len(failed_racks) > self.sys.top_m:
-            prob = 1
+        for i in range(state.policy.num_rack_groups):
+            if state.policy.rack_group_failures[i] > self.sys.top_m:
+                prob = 1
+                return prob
         return prob
 
 
@@ -105,11 +107,16 @@ class Placement:
 
 if __name__ == "__main__":
     #-----------------------------------------------------------------------------------
-    sys = System(6, 1, 9, 2,1,2,1,2,1)
-    sim = Placement(sys, 1)
-    failures = [2,3,4,6]
-    
-    logging.debug(sim.flat_decluster_simulate(failures))
-    logging.debug(sim.flat_stripeset_simulate(failures))
-            
+    sys = System(100, 10, 8, 2,0,2,1,2)
+    placement = Placement(sys, 0)
+    state = State(sys)
+    print("at the beginning, data loss: {}".format(placement.flat_cluster_simulate(state)))
+
+    state.racks[0].failed_disks[0] = 1
+    print("after disk 0 fails, data loss? : {}".format(placement.flat_cluster_simulate(state)))
+    state.racks[0].failed_disks[1] = 1
+    print("after disk 1 fails, data loss? : {}".format(placement.flat_cluster_simulate(state)))
+    state.racks[0].failed_disks[2] = 1
+    print("after disk 2 fails, data loss? : {}".format(placement.flat_cluster_simulate(state)))
+
 
