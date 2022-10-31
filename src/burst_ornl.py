@@ -115,36 +115,54 @@ class CorrelatedBurst:
 
 
 
-def iter(afr, num_failed_disks,num_failed_racks, drives_per_rack, iters, mission, *arg):
+def iter(afr, failure_list, placement, drives_per_rack, iters, *arg):
     try:
-        res = 0
-        # start = time.time()
-        failureGenerator = FailureGenerator(afr, CorrelatedBurst(num_failed_disks,num_failed_racks, drives_per_rack), is_burst=True)
-        # print(time.time()-start)
-        sys = System(*arg)
-        
-        mytimer = Mytimer()
-        repair = Repair(sys, sys.place_type)
-        placement = Placement(sys, sys.place_type)
+        results = []
+        for num_failed_racks, num_failed_disks in failure_list:
+            if placement == 'NET_DP':
+                if num_failed_racks <= p_net:
+                    res = 0
+                else:
+                    res = iters
+            elif num_failed_racks <= p_net:
+                res = 0
+            elif placement == 'DP' and math.ceil(num_failed_disks / num_failed_racks) > p_local:
+                res = iters
+            elif placement == 'RAID' and math.ceil(num_failed_disks / num_failed_racks) > p_local * (drives_per_rack // (k_local+p_local))+1:
+                res = iters
+            elif num_failed_disks <= p_local:
+                res = 0
+            else:
+                res = 0
+                # start = time.time()
+                failureGenerator = FailureGenerator(afr, CorrelatedBurst(num_failed_disks,num_failed_racks, drives_per_rack), is_burst=True)
+                # print(time.time()-start)
+                sys = System(*arg)
+                
+                mytimer = Mytimer()
+                repair = Repair(sys, sys.place_type)
+                placement = Placement(sys, sys.place_type)
 
-        
+                
 
-        # start = time.time()
-        # init_time = 0
-        # sim_time = 0
-        for iter in range(0, iters):
-            # temp = time.time()
-            sim = Simulate(mission, sys.num_disks, sys, repair, placement)
-            # init_time += time.time() - temp
-            # temp = time.time()
-            res += sim.run_simulation(failureGenerator, mytimer)
-            # sim_time += time.time() - temp
-        # print(init_time)
-        # print("sim time:{}".format(sim_time))
-        # one_iter_time = time.time() - start
-        # print(one_iter_time)
-        # print(mytimer)
-        return (res, mytimer, sys.metrics)
+                # start = time.time()
+                # init_time = 0
+                # sim_time = 0
+                for iter in range(0, iters):
+                    # temp = time.time()
+                    sim = Simulate(sys.num_disks, sys, repair, placement)
+                    # init_time += time.time() - temp
+                    # temp = time.time()
+                    res += sim.run_simulation(failureGenerator, mytimer)
+                    # sim_time += time.time() - temp
+                # print(init_time)
+                # print("sim time:{}".format(sim_time))
+                # one_iter_time = time.time() - start
+                # print(one_iter_time)
+                # print(mytimer)
+            results.append(res)
+        return np.array(results)
+        
     except Exception as e:
         print(traceback.format_exc())
         return None
@@ -153,7 +171,7 @@ def iter(afr, num_failed_disks,num_failed_racks, drives_per_rack, iters, mission
 # This is a parallel/multi-iter wrapper around iter() function
 # We run X threads in parallel to run the simulation. X = concur.
 # ----------------------------
-def simulate(afr, num_failed_disks,num_failed_racks, drives_per_rack, iters, epochs, concur=10, mission=YEAR, *arg):
+def simulate(afr, failure_list, placement, drives_per_rack, iters, epochs, concur=10, *arg):
     # So tick(state) is for a single system, and we want to simulate multiple systems
     executor = ProcessPoolExecutor(concur)
     
@@ -162,16 +180,14 @@ def simulate(afr, num_failed_disks,num_failed_racks, drives_per_rack, iters, epo
     metrics = Metrics()
 
     for epoch in range(0, epochs):
-        futures.append(executor.submit(iter, afr, num_failed_disks,num_failed_racks, drives_per_rack, iters, mission, *arg))
+        futures.append(executor.submit(iter, afr, failure_list, placement, drives_per_rack, iters, *arg))
     ress = wait_futures(futures)
     
     executor.shutdown(wait=False)
-    for res in ress:
-        failed_instances += res[0]
-        metrics += res[2]
+
+    combined_results = sum(ress)
     
-    # logging.info("  failed_instances: {}".format(failed_instances))
-    return [failed_instances, epochs * iters, metrics]
+    return combined_results
 
 
 
@@ -199,9 +215,9 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     df = pd.read_csv ('failures/ornl/burst_node_enclosure.csv')
     print(df)
     failure_list = []
-    # for index, row in df.iterrows():
-    #         num_failed_racks = row['enclosures']
-    #         num_failed_disks = row['drives']
+    for index, row in df.iterrows():
+            num_failed_racks = row['enclosures']
+            num_failed_disks = row['drives']
     for num_failed_racks in range(1,2):
         for num_failed_disks in range(1, 101):
             failure_list.append((num_failed_racks, num_failed_disks))
@@ -214,74 +230,37 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     for num_failed_racks in range(4,26):
         for num_failed_disks in range(num_failed_racks, max(20,num_failed_racks+5)):
             failure_list.append((num_failed_racks, num_failed_disks))
-    for num_failed_racks, num_failed_disks in failure_list:
-            if placement == 'NET_DP':
-                if num_failed_racks <= p_net:
-                    failed_iters = 0
-                    total_iters = 100000
-                else:
-                    failed_iters = 100000
-                    total_iters = 100000
-            elif num_failed_racks <= p_net:
-                failed_iters = 0
-                total_iters = 100000
-            elif placement == 'DP' and math.ceil(num_failed_disks / num_failed_racks) > p_local:
-                failed_iters = 100000
-                total_iters = 100000
-            elif placement == 'RAID' and math.ceil(num_failed_disks / num_failed_racks) > p_local * (drives_per_rack // (k_local+p_local))+1:
-                failed_iters = 100000
-                total_iters = 100000
-            elif num_failed_disks <= p_local:
-                failed_iters = 0
-                total_iters = 100000
-            else:
-                mission = YEAR
 
-                place_type = get_placement_index(placement)
+    # failure_list.append((2,4))
+    iters = 50
+    epochs = 200
+    place_type = get_placement_index(placement)
+    start  = time.time()
 
-                failed_iters = 0
-                total_iters = 0
-                metrics = Metrics()
+    results = simulate(afr, failure_list, placement, drives_per_rack, iters, epochs, epochs, 
+                        total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
+                        io_speed, 1, k_net, p_net, adapt)
+    simulationTime = time.time() - start
+    print("simulation time: {}".format(simulationTime))
 
-                # res = simulate(failureGenerator, sys, iters=100, epochs=1, concur=1, mission=mission)
-                # return
+    print(results)
+    total_iters = iters * epochs
+    for i in range(len(failure_list)):
+        failed_iters = results[i]
+        num_failed_racks, num_failed_disks = failure_list[i]
+        # print("num_failed_racks: {}  num_failed_disks: {}  failed_iters: {}  total_iters: {}".format(
+        #                 num_failed_racks, num_failed_disks, failed_iters, total_iters))
 
+        prob_dl = str(failed_iters/total_iters)
+        # print("probability of data loss: {}".format(prob_dl))
+        # print()
 
-                start  = time.time()
-                res = simulate(afr, num_failed_disks,num_failed_racks, drives_per_rack, 50, 200, 200, mission, 
-                                total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
-                                io_speed, 1, k_net, p_net, adapt)
-                failed_iters += res[0]
-                total_iters += res[1]
-
-                simulationTime = time.time() - start
-                print("simulation time: {}".format(simulationTime))
-                print("num_failed_racks: {}  num_failed_disks: {}  failed_iters: {}  failed_iters: {}".format(
-                                num_failed_racks, num_failed_disks, failed_iters, total_iters))
-
-                total_iters *= mission/YEAR
-
-            # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
-            prob_dl = str(failed_iters/total_iters)
-            if float(prob_dl) > 0:
-                nines = str(round(-math.log10(failed_iters/total_iters),3))
-                sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
-            else:
-                nines = 0
-                sigma = 0
-            
-
-            print("probability of data loss: {}".format(prob_dl))
-            # print("Num of Nine: {}".format(nines))
-            # print("error sigma: {}".format(sigma))
-            print()
-
-            output = open("s-burst-{}.log".format(placement), "a")
-            output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
-                k_net, p_net, k_local, p_local, total_drives,
-                num_failed_disks, num_failed_racks, prob_dl,
-                nines, sigma, failed_iters, total_iters, "adapt" if adapt else "notadapt"))
-            output.close()
+        output = open("s-burst-{}.log".format(placement), "a")
+        output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
+            k_net, p_net, k_local, p_local, total_drives,
+            num_failed_disks, num_failed_racks, prob_dl,
+            'nines', 'sigma', failed_iters, total_iters, "adapt" if adapt else "notadapt"))
+        output.close()
 
 
 
