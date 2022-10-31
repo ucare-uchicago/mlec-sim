@@ -474,12 +474,14 @@ INPUT /home/aaronmao/programming/mlec-sim/jiajunm/slec_net_dp_assume_inf_net/img
 INPUT /home/aaronmao/programming/mlec-sim/jiajunm/slec_net_dp_assume_inf_net/netdp_math.aux
 INPUT /home/aaronmao/programming/mlec-sim/jiajunm/slec_net_dp_assume_inf_net/netdp_math.out
 INPUT /home/aaronmao/programming/mlec-sim/jiajunm/slec_net_dp_assume_inf_net/netdp_math.out
+INPUT /usr/share/texmf/fonts/enc/dvips/lm/lm-mathex.enc
 INPUT /usr/share/texmf/fonts/enc/dvips/lm/lm-ec.enc
 INPUT /usr/share/texmf/fonts/enc/dvips/lm/lm-mathit.enc
 INPUT /usr/share/texmf/fonts/enc/dvips/lm/lm-mathsy.enc
 INPUT /usr/share/texmf/fonts/enc/dvips/lm/lm-rm.enc
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmbx10.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmcsc10.pfb
+INPUT /usr/share/texmf/fonts/type1/public/lm/lmex10.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmmi10.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmmi5.pfb
 INPUT /usr/share/texmf/fonts/type1/public/lm/lmmi7.pfb

@@ -333,4 +333,78 @@ As we can see, due to the asymmetrical layout, we would have to discuss priority
   \text{prio percent}=\frac{ncr(r-2,n-2)B^{n-2}*2}{ncr(r-1,n-1)B^{n-1}}=\frac{n-1}{r-1}\frac{2}{B}
 \end{equation*}
 
+\subsection*{For priority 1 stripes on disk B/C}
+\begin{itemize}
+  \item It can include a chunk on rack of disk A, or have all other chunks sitting on unimpacted racks
+  \item Therefore, the percentage of priority 1 stripes out of all the stripes that are impacted by disk B is
+\end{itemize}
+
+\begin{equation*}
+  \text{prio percent}=\frac{ncr(r-2,n-2)B^{n-2}(B-1)+ncr(r-2,n-1)B^{n-1}}{ncr(r-1,n-1)B^{n-1}}=\frac{n-1}{r-1}\frac{B-1}{B}+\frac{r-n}{r-1}
+\end{equation*}
+
+\subsection*{For priority 2 stripes on disk B/C}
+\begin{itemize}
+  \item It has to include disk A
+  \item Therefore, the percentage of priority 2 stripe sout of all the stripes that are impacted by disk B is
+\end{itemize}
+
+\begin{equation*}
+  \text{prio percent}=\frac{ncr(r-2,n-2)B^{n-2}}{ncr(r-1,n-1)B^{n-1}}=\frac{n-1}{r-1}\frac{1}{B}
+\end{equation*}
+
+\section{When there are three failures [distinct rack], this means \textbf{priority 1 stripes}}
+\begin{itemize}
+  \item We have three scenarios to select good ones out of
+  \item \begin{itemize}
+    \item All the other chunks are sitting on unimpacted racks
+    \item One chunk is sitting on any of the other two impacted racks
+    \item Two chunks are sitting on the other two impacted racks
+  \end{itemize}
+  \item Therefore, the percentage of priority 1 stripes out of all the stripes that are impacted by one of the failed disks is
+\end{itemize}
+
+\begin{equation*}
+  \begin{split}
+    \text{prio percent} 
+    & =\frac{ncr(r-3,n-1)B^{n-1}+ncr(r-3,n-2)B^{n-2}(B-1)+ncr(r-3,n-3)B^{n-3}(B-1)^2}{ncr(r-1,n-1)B^{n-1}} \\
+    & =\frac{(r-n)(r-n-1)}{(r-1)(r-2)}+2\frac{(r-n)(n-1)}{(r-1)(r-2)}\frac{B(B-1)}{B^2}+\frac{(n-1)(n-2)}{(r-1)(r-2)}\frac{(B-1)^2}{B^2}
+  \end{split}
+\end{equation*}
+
+\section{When there are three failures [distinct] rack, this means \textbf{priority 2 stripes}}
+\begin{itemize}
+  \item Note that in all the previous priority percent calculation, we only select the good chunks out of the surviving disks (given the rack constraint). However, note that we derive our intuition from the priority percent calculation for flat DP, which involves selecting failed chunks out of all the failed disks as well. This was not needed in all the previous calculations because it would all result in 1, but it starts to matter now.
+  \item There are two scenarios we need to consider
+  \item \begin{itemize}
+    \item Stripe containing two failed chunks on two of the impacted racks, and all other chunks reside on unimpacted racks
+    \item Stripe containing two failed chunks on two of the impacted racks, and one of the surviving chunk reside on the other impacted rack
+  \end{itemize}
+  \item For each of the above scenario, we can see that we have $ncr(2,1)=2$ ways of choosing the two failed chunks out of the three failed disks.
+  \item Therefore, the percentage of priority 2 stripes out of all the stripes that are impacted by one of the failed disks is
+\end{itemize}
+
+\begin{equation*}
+  \begin{split}
+    \text{prio percent}
+    & =\frac{ncr(r-3,n-2)B^{n-2}ncr(2,1)+ncr(r-3,n-3)B^{n-3}(B-1)ncr(2,1)}{ncr(r-1,n-1)B^{n-1}}\\
+    & =\frac{(r-n)(n-1)}{(r-1)(r-2)}\frac{2B}{B^2}+\frac{(n-1)(n-2)}{(r-1)(r-2)}\frac{2(B-1)}{B^2}
+  \end{split}
+\end{equation*}
+
+\section{When there are three failures [distinct] rack, this means \textbf{priority 3 stripes}}
+\begin{itemize}
+  \item Have 3 failed chunks sitting on each of the impacted racks
+  \item Therefore, the percentage of priority 3 stripes out of all the stripes that are impacted by one of the failed disks is
+\end{itemize}
+
+\begin{equation*}
+  \text{prio percent}=\frac{ncr(r-3,n-3)B^{n-3}}{ncr(r-1,n-1)B^{n-1}}=\frac{(n-1)(n-2)}{(r-1)(r-2)}\frac{1}{B^2}
+\end{equation*}
+
+\section{When there are $\mathcal{N}$ failures, this means that priority $\mathcal{N}$ stripe}
+\begin{equation*}
+  \text{prio percent}=\frac{1}{B^{\mathcal{N}-1}}\frac{\prod_{i=1}^{\mathcal{N}-1}(n-i)}{\prod_{i=1}^{\mathcal{N}-1}(r-i)}
+\end{equation*}
+
 \end{document}

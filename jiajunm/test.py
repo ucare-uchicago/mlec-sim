@@ -9,6 +9,9 @@ def ncr(n, r):
         # print(numer, denom)
         return numer / denom
 
-if __name__ == "__main__":
-    print(ncr(8,7))
-    print(ncr(9,8))
+def p31(s, d):
+        first = 3*s/d
+        second = (3*s*(s-1))/(d*(d-1))
+        third = 2*(3*s*(s-1)*(s-2))/(d*(d-1)*(d-2))
+        
+        return first-second+third
