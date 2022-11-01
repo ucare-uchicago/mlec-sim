@@ -26,6 +26,8 @@ and analyze their performance including durability, rebuild IO, network traffic,
    - `numpy`
    - `matplotlib`
    - `math`
+   - `mpmath`
+   - `pandas`
 
 ## Usage
 ```
@@ -50,7 +52,7 @@ optional arguments:
                         number of total drives in the system
   -drives_per_rack DRIVES_PER_SERVER
                         number of drives per rack
-  -placement PLACEMENT  placement policy. Can be RAID/DP/MLEC/LRC
+  -placement PLACEMENT  placement policy. Can be RAID/DP/MLEC/LRC/DP_NET/RAID_NET
   -dist DIST            disk failure distribution. Can be exp/weibull
 ```
 

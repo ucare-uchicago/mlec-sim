@@ -151,6 +151,10 @@ class Decluster:
             total_sets = self.ncr((good_num+fail_num-1), (self.n-1)) 
             priority_percent = float(priority_sets)/total_sets
             repaired_percent = 0
+            logging.info("ncr(%s,%s)*ncr(%s,%s) %s*%s", good_num, self.n-priority, fail_num-1, priority-1, self.ncr(good_num, self.n-priority), self.ncr(fail_num-1, priority-1))
+            logging.info("ncr(%s,%s), %s", good_num + fail_num - 1, self.n -1, self.ncr(good_num + fail_num - 1, self.n - 1))
+            logging.info("Good num %s, Fail num %s, prio %s, n %s, Prio perc %s",good_num, fail_num, priority, self.n, priority_percent)
+            
             disk.curr_repair_data_remaining = disk.repair_data * priority_percent
         else:
             # print("disk {}  priority {}  repair time {}".format(diskId, priority, disk.repair_time))

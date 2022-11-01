@@ -1,8 +1,4 @@
 from disk import Disk
-import operator as op
-import numpy as np
-import logging
-from functools import reduce
 from rack import Rack
 from policies import *
 
@@ -55,6 +51,8 @@ class State:
             self.policy = NetRAID(self)
         elif self.sys.place_type == 4:
             self.policy = MLECDP(self)
+        elif self.sys.place_type == 5:
+            self.policy = NetDP(self)
         #----------------------------------
         
 
@@ -102,9 +100,21 @@ class State:
     def update_diskgroup_state(self, event_type, diskId):
         return self.policy.update_diskgroup_state(event_type, diskId)
 
+    
+    # This returns array [{rackId: failedDisks}, numRacksWithFailure]
+    def get_failed_disks_each_rack(self):
+        failures = {}
+        num_racks_with_failure = 0
+        for rackId in self.sys.racks:
+            failures[rackId] = self.get_failed_disks_per_rack(rackId)
+            
+            if (len(failures[rackId]) > 0):
+                num_racks_with_failure += 1
+    
+        return [failures, num_racks_with_failure]
+        
     def update_diskgroup_priority(self, event_type, new_failed_rack, diskId):
         self.policy.update_diskgroup_priority(event_type, new_failed_rack, diskId)
-
 
 
     def get_failed_disks_per_rack(self, rackId):

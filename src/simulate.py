@@ -65,8 +65,11 @@ class Simulate:
 
         for disk_fail_time, diskId in failures:
             heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
-            logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Disk.EVENT_FAIL, diskId))
             self.sys.metrics.failure_count += 1
+            
+        # debug print after heapsort, clearer for debug
+        for disk_fail_time, _, diskId in self.failure_queue:
+            logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Disk.EVENT_FAIL, diskId))
             
         
         if self.sys.rack_fail > 0:
@@ -167,6 +170,8 @@ class Simulate:
                 break
             #---------------------------
             # new failure should be generated
+            #  Note: this is to generate the failure time for the disk that we are going to 
+            #        use to replace the failed disk
             #---------------------------
             if event_type == Disk.EVENT_FAIL and not failureGenerator.is_burst:
                 new_failure_intervals = failureGenerator.gen_new_failures(1)
