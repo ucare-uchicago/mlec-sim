@@ -13,7 +13,7 @@ from disk import Disk
 
 class System:
     def __init__(self, num_disks, num_disks_per_rack, k, m, place_type, diskCap, rebuildRate,
-                    utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = False):
+                    utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = False, num_disks_per_enclosure = -1):
         #--------------------------------------------
         # Set up the system parameters
         #--------------------------------------------
@@ -74,6 +74,11 @@ class System:
         self.adapt = adapt
         self.rack_fail = rack_fail
         self.metrics = Metrics()
+        # ----------
+        if num_disks_per_enclosure == -1:
+            self.num_disks_per_enclosure = self.num_disks_per_rack
+        else:
+            self.num_disks_per_enclosure = num_disks_per_enclosure
 
 
     def flat_cluster_layout(self):

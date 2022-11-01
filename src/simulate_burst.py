@@ -62,11 +62,12 @@ class Simulate:
         return 0
 
     def flat_decluster_check_burst(self, failures):
-        failed_disks_per_rack = [0] * self.sys.num_racks
+        num_enclosures = self.sys.num_disks // self.sys.num_disks_per_enclosure
+        failed_disks_per_enclosure = [0] * num_enclosures
         for _, diskId in failures:
-            rackId = diskId // self.sys.num_disks_per_rack
-            failed_disks_per_rack[rackId] += 1
-            if failed_disks_per_rack[rackId] > self.sys.m:
+            enclosureId = diskId // self.sys.num_disks_per_enclosure
+            failed_disks_per_enclosure[enclosureId] += 1
+            if failed_disks_per_enclosure[enclosureId] > self.sys.m:
                 return 1
         return 0
 
@@ -124,15 +125,17 @@ class Simulate:
         return 0
 
     def mlec_decluster_check_burst(self, failures):
-        failed_disks_per_rack = [0] * self.sys.num_racks
-        failed_racks_per_rackgroup = [0] * (self.sys.num_racks // self.sys.top_n)
+        num_enclosures = self.sys.num_disks // self.sys.num_disks_per_enclosure
+        num_enclosures_per_rack = self.sys.num_disks_per_rack // self.sys.num_disks_per_enclosure
+        failed_disks_per_enclosure = [0] * num_enclosures
+        failed_enclosures_per_enclosuregroup = [0] * (num_enclosures // self.sys.top_n)
         for _, diskId in failures:
-            rackId = diskId // self.sys.num_disks_per_rack
-            failed_disks_per_rack[rackId] += 1
-            if failed_disks_per_rack[rackId] == self.sys.m + 1:
-                rackgroupId = rackId // self.sys.top_n
-                failed_racks_per_rackgroup[rackgroupId] += 1
-                if failed_racks_per_rackgroup[rackgroupId] > self.sys.top_m:
+            enclosureId = diskId // self.sys.num_disks_per_enclosure
+            failed_disks_per_enclosure[enclosureId] += 1
+            if failed_disks_per_enclosure[enclosureId] == self.sys.m + 1:
+                enclosuregroupId = (enclosureId % num_enclosures_per_rack) + (enclosureId // (num_enclosures_per_rack * self.sys.top_n)) * num_enclosures_per_rack
+                failed_enclosures_per_enclosuregroup[enclosuregroupId] += 1
+                if failed_enclosures_per_enclosuregroup[enclosuregroupId] > self.sys.top_m:
                     return 1
         return 0
 
