@@ -42,11 +42,11 @@ class Simulate:
         if self.place_type == 0:
             return self.flat_cluster_check_burst(failures)
         if self.place_type == 1:
-            return self.mlec_check_burst(failures)
+            return self.flat_decluster_check_burst(failures)
         if self.place_type == 2:
-            return self.mlec_check_burst(failures)
-        if self.place_type == 3:
             return self.mlec_cluster_check_burst(failures)
+        if self.place_type == 3:
+            return self.network_cluster_check_burst(failures)
         if self.place_type == 4:
             return self.mlec_check_burst(failures)
 
@@ -60,6 +60,16 @@ class Simulate:
             if failed_disks_per_diskgroup[diskgroupId] > self.sys.m:
                 return 1
         return 0
+
+    def flat_decluster_check_burst(self, failures):
+        failed_disks_per_rack = [0] * self.sys.num_racks
+        for _, diskId in failures:
+            rackId = diskId // self.sys.num_disks_per_rack
+            failed_disks_per_rack[rackId] += 1
+            if failed_disks_per_rack[rackId] > self.sys.m:
+                return 1
+        return 0
+
 
     
     def mlec_cluster_check_burst(self, failures):
@@ -100,6 +110,18 @@ class Simulate:
                     return 1
         return 0
 
+
+
+    def network_cluster_check_burst(self, failures):
+        num_diskgroups = self.sys.num_disks // self.sys.top_n
+        failed_disks_per_diskgroup = [0] * num_diskgroups
+        for _, diskId in failures:
+            # similar to mlec diskgroupStripesetId
+            diskgroupId = (diskId % self.sys.num_disks_per_rack) + (diskId // (self.sys.num_disks_per_rack * self.sys.top_n)) * self.sys.num_disks_per_rack 
+            failed_disks_per_diskgroup[diskgroupId] += 1
+            if failed_disks_per_diskgroup[diskgroupId] > self.sys.top_m:
+                return 1
+        return 0
 
         
         
