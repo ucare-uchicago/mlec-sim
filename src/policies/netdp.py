@@ -8,7 +8,7 @@ from disk import Disk
 import logging
 import operator as op
 import numpy as np
-from ..helpers.netdp_prio import priority_percent
+from helpers.netdp_prio import priority_percent
 from functools import reduce
 
 class NetDP:
