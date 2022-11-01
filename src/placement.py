@@ -22,14 +22,18 @@ class Placement:
         #------------------------------------------------
         if self.place_type == 0:
             return self.flat_cluster_simulate(state)
-        if self.place_type == 1:
+        elif self.place_type == 1:
             return self.flat_decluster_simulate(state)
-        if self.place_type == 2:
+        elif self.place_type == 2:
             return self.mlec_cluster_simulate(state)
-        if self.place_type == 3:
+        elif self.place_type == 3:
             return self.net_raid_simulate(state)
-        if self.place_type == 4:
+        elif self.place_type == 4:
             return self.mlec_dp_simulate(state)
+        elif self.place_type == 5:
+            return self.net_dp_simulate(state)
+        else:
+            raise NotImplementedError("The placement type does not have a DL strategy")
             
 
 
@@ -84,8 +88,21 @@ class Placement:
                 prob = 1
                 return prob
         return prob
+    
+    def net_dp_simulate(self, state):
+        prob = 0
+        
+        # If there are more than m racks that contains failures
+        #  there has to be a stripe that has m failed chunks
+        #  therefore the system fails
+        rack_with_failures = state.get_failed_disks_each_rack()[1]
+        
+        if (rack_with_failures > self.sys.m):
+            logging.info("SYSTEM FAILS!")
+            logging.info(state.get_failed_disks_each_rack()[0])
+            prob = 1
 
-
+        return prob
 
 
 if __name__ == "__main__":

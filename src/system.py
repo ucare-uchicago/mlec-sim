@@ -55,14 +55,18 @@ class System:
         self.place_type = place_type
         if place_type == 0:
             self.flat_cluster_layout()
-        if place_type == 1:
+        elif place_type == 1:
             self.flat_decluster_layout()
-        if place_type == 2:
+        elif place_type == 2:
             self.mlec_cluster_layout()
-        if place_type == 3:
+        elif place_type == 3:
             self.net_raid_layout()
-        if place_type == 4:
+        elif place_type == 4:
             self.mlec_dp_layout()
+        elif place_type == 5:
+            self.net_dp_layout()
+        else:
+            raise NotImplementedError("The placment type does not have a defined layout")
         #--------------------------------------------
         self.diskSize = diskCap
         self.diskIO = rebuildRate
@@ -101,8 +105,12 @@ class System:
             disks_per_rack = self.disks_per_rack[rackId]
             self.flat_decluster_rack_layout[rackId] = disks_per_rack
 
-
-
+    def net_dp_layout(self):
+        # Same as flat decluster
+        self.flat_decluster_rack_layout = {}
+        for rackId in self.racks:
+            disks_per_rack = self.disks_per_rack[rackId]
+            self.flat_decluster_rack_layout[rackId] = disks_per_rack
 
 
 
@@ -154,13 +162,7 @@ class System:
         logging.info("* there are {} stripesets:\n{}".format(
                 num_stripesets, sets))
 
-
-
-
-
-
-
-
+ 
 
 
 if __name__ == "__main__":
