@@ -61,4 +61,4 @@ optional arguments:
 - `python main.py -k_local=8 -p_local=2 -total_drives=50 -drives_per_rack=50 -io_speed=100 -placement=RAID`
 - `python main.py -sim_mode 0 -afr 2 -io_speed 100 -cap 20 -k_local 8 -p_local 2 -total_drives 50 -drives_per_rack 50 -placement=DP`
 - The simulation result would be in the file `s-result-<mode>.log` file with the following format
-   - <data_shard>-<parity_shard>-<afr_in_percent>: <number_of_nines>
+   - (k_net+p_net)(k_local+p_local) total_drives afr cap io_speed n_nines sigma failed_iters total_iters adapt

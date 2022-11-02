@@ -7,7 +7,7 @@ from numpy import c_, mat
 if __name__ == "__main__":
     # Read from the log
     path = "src/s-result-DP_NET.log"
-    c_path = "src/c-result-DP_NET.log"
+    c_path = "src/s-result-DP.log"
     
     k_net = []
     p_net = []
@@ -33,12 +33,20 @@ if __name__ == "__main__":
     
     c_afr = []
     c_nines = []
-    for row in open(c_path, 'r'):
-        matcher = re.findall(r'(.*) (.*)', row)
-        (c_afr_, c_nines_) = matcher[0]
-        c_afr.append(float(c_afr_))
-        c_nines.append(float(c_nines_))
+    # for row in open(c_path, 'r'):
+    #     matcher = re.findall(r'(.*) (.*)', row)
+    #     (c_afr_, c_nines_) = matcher[0]
+    #     c_afr.append(float(c_afr_))
+    #     c_nines.append(float(c_nines_))
         
+    for row in open(c_path, 'r'):
+        matcher = re.findall(r'\((.*)\+(.*)\)\((.*)\+(.*)\) (.*) (.*) (.*) (.*) (.*) (.*) (.*) (.*) (.*)', row)
+        
+        (k_net_, p_net_, k_local_, p_local_, total_drives_, afr_, cap_, io_speed_, nines_, sigma_, failed_iters_, total_iters_, adapt_) = matcher[0]
+        
+        # NET_DP uses local shard arguments
+        c_nines.append(float(nines_))
+        c_afr.append(float(afr_))
 
     print(c_afr)
     print(c_nines)
