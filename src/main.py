@@ -106,7 +106,7 @@ def get_placement_index(placement):
 # -----------------------------
 def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
-        logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
+        # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
     
     # for afr in range(2, 11):
         mission = YEAR
@@ -127,7 +127,7 @@ def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
         # We need to get enough failures in order to compute accurate nines #
         while failed_iters < 20:
             start  = time.time()
-            res = simulate(failureGenerator, sys, iters=50000, epochs=200, concur=200, mission=mission)
+            res = simulate(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
             failed_iters += res[0]
             total_iters += res[1]
             metrics += res[2]

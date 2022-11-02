@@ -97,7 +97,9 @@ class Placement:
         #  therefore the system fails
         rack_with_failures = state.get_failed_disks_each_rack()[1]
         
+        
         if (rack_with_failures > self.sys.m):
+            logging.info("SYS FAILURE WITH RACK FAILURE: " + str(state.get_failed_disks_each_rack()[0]))
             logging.info("SYSTEM FAILS!")
             logging.info(state.get_failed_disks_each_rack()[0])
             prob = 1

@@ -40,6 +40,7 @@ class Decluster:
 
 
     def update_disk_priority(self, event_type, diskId):
+        logging.info("Event %s, dID %s", event_type, diskId)
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
             curr_priority = self.disks[diskId].priority
             del self.disks[diskId].repair_time[curr_priority]
@@ -80,6 +81,8 @@ class Decluster:
                 for dId in fail_per_rack:
                     priorities.append(self.disks[dId].priority)
                 max_priority = max(priorities)+1
+                
+                logging.info("Max prio: %s", max_priority)
                 #----------------------------------------------
                 curr_priority = self.disks[diskId].priority
                 #-----------------------------------------------
@@ -101,6 +104,8 @@ class Decluster:
     
 
     def update_disk_repair_time(self, diskId, priority, fail_per_rack):
+        logging.info("Updating repair time for diskId %d, prio %d", diskId, priority)
+        logging.info("Disk %s", str(self.disks[diskId]))
         disk = self.disks[diskId]
         good_num = disk.good_num
         fail_num = disk.fail_num
@@ -111,6 +116,7 @@ class Decluster:
             priority_sets = self.ncr(good_num, self.n-priority)*self.ncr(fail_num-1, priority-1)
             total_sets = self.ncr((good_num+fail_num-1), (self.n-1)) 
             priority_percent = float(priority_sets)/total_sets
+            logging.info("Priority percent: %s and disk prio: %s", priority_percent, disk.priority)
             repaired_percent = 0
             disk.curr_repair_data_remaining = disk.repair_data * priority_percent
             if priority > 1:
@@ -130,6 +136,10 @@ class Decluster:
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_rack)
         else:
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism)
+        
+        logging.info("Fail per rack %s", fail_per_rack)
+        logging.info("Parallelism: %s, amplification: %s, data: %s, diskIO: %s", parallelism, amplification, disk.curr_repair_data_remaining, self.sys.diskIO)
+        logging.info("Time needed for repair %s d", (repair_time / 3600 / 24))
         #print "-----", self.sys.diskSize, amplification, self.sys.diskIO, parallelism
         #----------------------------------------------------
         # self.disks[diskId].repair_time[priority] = repair_time/3600
@@ -170,6 +180,10 @@ class Decluster:
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_rack)
         else:
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism)
+            
+        logging.info("Fail per rack %s", fail_per_rack)
+        logging.info("Parallelism: %s, amplification: %s, data: %s, diskIO: %s", parallelism, amplification, disk.curr_repair_data_remaining, self.sys.diskIO)
+        logging.info("Time needed for repair %s d", (repair_time / 3600 / 24))
         #print "-----", self.sys.diskSize, amplification, self.sys.diskIO, parallelism
         #----------------------------------------------------
         # self.disks[diskId].repair_time[priority] = repair_time/3600
