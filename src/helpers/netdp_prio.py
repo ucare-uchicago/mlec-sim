@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 
 # Scenario
 # - one failure
@@ -124,22 +125,28 @@ def f3p3_distinct(r,B,n):
 # - located on distinct racks
 # - disks with priority of f
 def fnpn_distinct(r,B,n,f):
+    logging.info("(r,B,n,f): (%s,%s,%s,%s)", r, B, n, f)
     a = 1/(B**(f-1))
-    prod_i = np.arange(1, f-1)
+    prod_i = np.arange(1, f)
     b_num = np.prod(n-prod_i)
     b_denom = np.prod(r-prod_i)
+    logging.info("a: %s, b_num: %s, b_denom: %s", a, b_num, b_denom)
     
     return a*(b_num/b_denom)
 
 def two_failure(r, B, n, disk,failed_disk_per_rack, failed_racks):
+    logging.info("Calling two_failure()")
     if (failed_racks == 1):
+        logging.info("f2p1_same()")
         return f2p1_same(r,B,n)
     elif (failed_racks == 2):
         # Check the priority of the disk
         prio = disk.priority
         if (prio == 1):
+            logging.info("f2p1_distinct()")
             return f2p1_distinct(r,B,n)
         elif (prio == 2):
+            logging.info("f2p2_distinct()")
             return f2p2_distinct(r,B,n)
     else:
         raise Exception("Unknown failure state")
@@ -182,6 +189,7 @@ def three_failure(r, B, n, disk,failed_disk_per_rack, failed_racks):
         raise Exception("Unknown failure state")
         
 def priority_percent(r, B, n, disk,failed_disk_per_rack, failed_racks):
+    # print(f"Calculating pp for r={r}, B={B}, n={n}, failed_racks={failed_racks}")
     # Determine how many failures are there in the system
     fail_num = disk.fail_num
     
