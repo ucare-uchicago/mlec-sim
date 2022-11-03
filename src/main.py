@@ -126,6 +126,7 @@ def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 
         # We need to get enough failures in order to compute accurate nines #
         while failed_iters < 20:
+            logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
             start  = time.time()
             res = simulate(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
             failed_iters += res[0]

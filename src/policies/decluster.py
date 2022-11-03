@@ -40,7 +40,7 @@ class Decluster:
 
 
     def update_disk_priority(self, event_type, diskId):
-        logging.info("Event %s, dID %s", event_type, diskId)
+        logging.info("Event %s, dID %s, time: %s", event_type, diskId, self.state.curr_time)
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
             curr_priority = self.disks[diskId].priority
             del self.disks[diskId].repair_time[curr_priority]
@@ -82,6 +82,7 @@ class Decluster:
                     priorities.append(self.disks[dId].priority)
                 max_priority = max(priorities)+1
                 
+                logging.info("Failed disk system: %s", self.state.failed_disks)
                 logging.info("Max prio: %s", max_priority)
                 #----------------------------------------------
                 curr_priority = self.disks[diskId].priority
@@ -100,7 +101,7 @@ class Decluster:
                     for dId in fail_per_rack:
                         self.update_disk_repair_time(dId, self.disks[dId].priority, 
                             len(fail_per_rack))
-                            
+        logging.info("-----")         
     
 
     def update_disk_repair_time(self, diskId, priority, fail_per_rack):

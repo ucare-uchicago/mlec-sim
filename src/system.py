@@ -24,7 +24,8 @@ class System:
         self.num_disks = num_disks
         self.disks = {}
         for diskId in range(num_disks):
-            self.disks[diskId] = Disk(diskId, diskCap)
+            disk = Disk(diskId, diskCap)
+            self.disks[diskId] = disk
         #--------------------------------------------
         # Set the system system layout
         #--------------------------------------------
@@ -112,7 +113,9 @@ class System:
             disks_per_rack = self.disks_per_rack[rackId]
             self.flat_decluster_rack_layout[rackId] = disks_per_rack
 
-
+        for diskId in self.disks:
+            self.disks[diskId].diskId = diskId
+            self.disks[diskId].rackId = diskId // self.num_disks_per_rack
 
     # layout for mlec cluster raid
     def mlec_cluster_layout(self):

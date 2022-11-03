@@ -114,7 +114,8 @@ class Simulate:
         self.mytimer = mytimer
 
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
-        
+        # Debug purpose, static seed
+        # np.random.seed(1)
         
         self.reset(failureGenerator, mytimer)
 
