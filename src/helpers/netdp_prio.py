@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 
 # Scenario
 # - one failure
@@ -125,69 +126,93 @@ def f3p3_distinct(r,B,n):
 # - disks with priority of f
 def fnpn_distinct(r,B,n,f):
     a = 1/(B**(f-1))
-    prod_i = np.arange(1, f-1)
+    prod_i = np.arange(1, f)
     b_num = np.prod(n-prod_i)
     b_denom = np.prod(r-prod_i)
+    logging.info("a: %s, b_num: %s, b_denom: %s", a, b_num, b_denom)
     
     return a*(b_num/b_denom)
 
-def two_failure(r, B, n, disk,failed_disk_per_rack, failed_racks):
-    if (failed_racks == 1):
+def two_failure(r, B, n, disk,failed_disk_per_rack, priority):
+    logging.info("Calling two_failure()")
+    if (priority == 1):
+        logging.info("f2p1_same()")
         return f2p1_same(r,B,n)
-    elif (failed_racks == 2):
+    elif (priority == 2):
         # Check the priority of the disk
         prio = disk.priority
         if (prio == 1):
+            logging.info("f2p1_distinct()")
             return f2p1_distinct(r,B,n)
         elif (prio == 2):
+            logging.info("f2p2_distinct()")
             return f2p2_distinct(r,B,n)
     else:
         raise Exception("Unknown failure state")
     
-def three_failure(r, B, n, disk,failed_disk_per_rack, failed_racks):
-    if (failed_racks == 1):
+def three_failure(r, B, n, disk,failed_disk_per_rack, priority):
+    logging.info("Calling three_failure()")
+    if (priority == 1):
         return f3p1_same(r,B,n)
-    elif (failed_racks == 2):
+    elif (priority == 2):
         prio = disk.priority
         rack = disk.rackId
         if (len(failed_disk_per_rack[rack]) == 1):
             # Priority calculation for rack with 1 failure
             if (prio == 1):
+                logging.info("Calling f3p1_rack_with_1()")
                 return f3p1_rack_with_1(r,B,n)
             elif (prio == 2):
+                logging.info("Calling f3p2_rack_with_1()")
                 return f3p2_rack_with_1(r,B,n)
             else:
                 raise Exception("Unknown failure state")
         elif (len(failed_disk_per_rack[rack]) == 2):
             # Priority calculation for rack with 2 failures
             if (prio == 1):
+                logging.info("Calling f3p1_rack_with_2()")
                 return f3p1_rack_with_2(r,B,n)
             elif (prio == 2):
+                logging.info("Calling f3p2_rack_with_2()")
                 return f3p2_rack_with_2(r,B,n)
             else:
                 raise Exception("Unknown failure state")
         else:
             raise Exception("Unkown failure state")
-    elif (failed_racks == 3):
+    elif (priority == 3):
         prio = disk.priority
         if (prio == 1):
+            logging.info("Calling f3p1_distinct()")
             return f3p1_distinct(r,B,n)
         elif (prio == 2):
+            logging.info("Calling f3p2_distinct()")
             return f3p2_distinct(r,B,n)
         elif (prio == 3):
+            logging.info("Calling f3p3_distinct()")
             return f3p3_distinct(r,B,n)
         else:
             raise Exception("Unkonwn failure state")
     else:
         raise Exception("Unknown failure state")
         
-def priority_percent(r, B, n, disk,failed_disk_per_rack, failed_racks):
-    # Determine how many failures are there in the system
-    fail_num = disk.fail_num
     
-    if (fail_num == 1):
+def priority_percent(state, disk,failed_disk_per_rack, max_priority, priority):
+    r = len(state.racks)
+    B = len(state.disks)/len(state.racks)
+    n = state.n
+    
+    # print(f"Calculating pp for r={r}, B={B}, n={n}, failed_racks={failed_racks}")
+    # Determine how many failures are there in the system
+    
+    logging.info("(r,B,n,failed_racks,max_prio,prio): (%s,%s,%s,%s,%s,%s)", r, B, n, priority, max_priority, disk.priority)
+    
+    if (max_priority == 1):
         return f1p1(r,B,n)
-    elif (fail_num == 2):
-        return two_failure(r, B, n, disk,failed_disk_per_rack, failed_racks)
-    elif (fail_num == 3):
-        return three_failure(r, B, n, disk,failed_disk_per_rack, failed_racks)
+    elif (max_priority == 2):
+        return two_failure(r, B, n, disk, failed_disk_per_rack, priority)
+    elif (max_priority == 3):
+        return three_failure(r, B, n, disk, failed_disk_per_rack, priority)
+    elif (max_priority == disk.priority):
+        return fnpn_distinct(r,B,n)
+    else:
+        raise Exception("Unknown failure state")
