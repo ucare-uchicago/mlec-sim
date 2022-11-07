@@ -182,19 +182,27 @@ class NetDP:
         # For read parallelism, we need to sum all the surviving disks outside of the impacted racks
         # Note that this is an assumption made to reduce the complexity of the simulation
         # parallelism = disk.good_num / (self.sys.k + 1)
-        parallelism = self.calc_parallelism(failed_racks)
+        # parallelism = self.calc_parallelism(failed_racks)
         
-        amplification = self.sys.k + priority        
+        # amplification = self.sys.k + priority        
         
-        if priority < failed_racks:
-            # This means that we need to yield bandwidth to the disks with higher priority
-            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/failed_racks)
-        else:
-            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism)
+        # if priority < failed_racks:
+        #     # This means that we need to yield bandwidth to the disks with higher priority
+        #     repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/failed_racks)
+        # else:
+        #     repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism)
             
-        logging.info("Failed racks %s", failed_racks)
-        logging.info("Parallelism: %s, amplification: %s, data: %s, diskIO: %s", parallelism, amplification, disk.curr_repair_data_remaining, self.sys.diskIO)
-        return repair_time
+        # logging.info("Failed racks %s", failed_racks)
+        # logging.info("Parallelism: %s, amplification: %s, data: %s, diskIO: %s", parallelism, amplification, disk.curr_repair_data_remaining, self.sys.diskIO)
+        # return repair_time
+        
+        # We calculate the repair time for RAID, and divide that by speed up brought by net dp
+        repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO)
+        
+        participating_disks = disk.good_num
+        speed_up = participating_disks // (self.sys.k + 1)
+        
+        return repair_time / speed_up
     
     def calc_parallelism(self, failed_racks, exp=False):
         # return (len(self.racks) - failed_racks) * self.sys.num_disks_per_rack

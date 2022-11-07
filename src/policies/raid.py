@@ -77,6 +77,7 @@ class RAID:
         else:
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
+            
         repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_rack)
 
         disk.repair_time[0] = repair_time / 3600 / 24
