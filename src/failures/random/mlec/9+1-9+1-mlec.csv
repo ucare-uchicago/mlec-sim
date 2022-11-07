@@ -1,0 +1,23 @@
+config total_drives failed_disks affected_racks dl_prob nines sigma failed_iters total_iters adapt
+(9+1)(9+1) 32000 20 1 0.0 nines sigma 0 1000000 notadapt
+(9+1)(9+1) 32000 20 2 0.000557 nines sigma 557 1000000 notadapt
+(9+1)(9+1) 32000 20 3 0.000336 nines sigma 336 1000000 notadapt
+(9+1)(9+1) 32000 20 4 0.000251 nines sigma 251 1000000 notadapt
+(9+1)(9+1) 32000 20 5 0.000156 nines sigma 156 1000000 notadapt
+(9+1)(9+1) 32000 20 6 0.000111 nines sigma 111 1000000 notadapt
+(9+1)(9+1) 32000 20 7 6.6e-05 nines sigma 66 1000000 notadapt
+(9+1)(9+1) 32000 20 8 5.8e-05 nines sigma 58 1000000 notadapt
+(9+1)(9+1) 32000 20 9 3.6e-05 nines sigma 36 1000000 notadapt
+(9+1)(9+1) 32000 20 10 3.5e-05 nines sigma 35 1000000 notadapt
+(9+1)(9+1) 32000 20 11 1.8e-05 nines sigma 18 1000000 notadapt
+(9+1)(9+1) 32000 20 12 2.1e-05 nines sigma 21 1000000 notadapt
+(9+1)(9+1) 32000 20 13 1.5e-05 nines sigma 15 1000000 notadapt
+(9+1)(9+1) 32000 20 14 8e-06 nines sigma 8 1000000 notadapt
+(9+1)(9+1) 32000 20 15 3e-06 nines sigma 3 1000000 notadapt
+(9+1)(9+1) 32000 20 16 4e-06 nines sigma 4 1000000 notadapt
+(9+1)(9+1) 32000 20 17 2e-06 nines sigma 2 1000000 notadapt
+(9+1)(9+1) 32000 20 18 0.0 nines sigma 0 1000000 notadapt
+(9+1)(9+1) 32000 20 19 0.0 nines sigma 0 1000000 notadapt
+(9+1)(9+1) 32000 20 20 0.0 nines sigma 0 1000000 notadapt
+
+
