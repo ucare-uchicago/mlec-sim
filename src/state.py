@@ -106,9 +106,10 @@ class State:
         failures = {}
         num_racks_with_failure = 0
         for rackId in self.sys.racks:
-            failures[rackId] = self.get_failed_disks_per_rack(rackId)
+            rack_failures = self.get_failed_disks_per_rack(rackId)
             
-            if (len(failures[rackId]) > 0):
+            if (len(rack_failures) > 0):
+                failures[rackId] = rack_failures
                 num_racks_with_failure += 1
     
         return [failures, num_racks_with_failure]

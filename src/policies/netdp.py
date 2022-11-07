@@ -1,3 +1,4 @@
+from dis import dis
 from typing import List
 
 from system import System
@@ -8,7 +9,7 @@ from disk import Disk
 import logging
 import operator as op
 import numpy as np
-from helpers.netdp_prio import priority_percent
+from helpers import netdp_prio
 from functools import reduce
 
 class NetDP:
@@ -47,10 +48,22 @@ class NetDP:
             self.failed_disks[diskId] = 1
     
     def update_disk_priority(self, event_type, diskId: int):
-        logging.info("Event %s, dID %s", event_type, diskId)
+        
+        failed_disk_system_tuple = self.state.get_failed_disks_each_rack()
+        failed_disk_per_rack = failed_disk_system_tuple[0]
+        failed_racks = failed_disk_system_tuple[1]
+        
+        disk = self.disks[diskId]
+        
+        logging.info("Event %s, dID %s, time: %s", event_type, diskId, self.state.curr_time)
+        logging.info("Failed disk system: %s", failed_disk_per_rack)
+        priorities = {}
+        for dId in self.state.failed_disks:
+            priorities[dId] = self.disks[dId].priority
+                
+        logging.info("Priorities: %s", priorities)
         
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
-            disk = self.disks[diskId]
             # Get the current priority of the disk
             curr_priority = disk.priority
             # Remove the priority repair time and reduce priority because the disk is already repaired
@@ -60,34 +73,28 @@ class NetDP:
             # QUESTION: Why mark the repair start time when its a repair event?
             disk.repair_start_time = self.curr_time
             
-            # Note that the max priority should be number of racks that are impacted
-            # Get all the failed disks out from the current stripeset and the disk's current priority
-            #  update the repair time
-            failed_disk_system_tuple = self.state.get_failed_disks_each_rack()
-            failed_disk_per_rack = failed_disk_system_tuple[0]
-            failed_racks = failed_disk_system_tuple[1]
+            max_priority = 0
+            for dId in self.state.failed_disks:
+                max_priority = max(max_priority, self.disks[dId].priority)
+            
+            logging.info("Disk priority: %s", disk.priority)
             
             all_failed_disks = list(dId for v in failed_disk_per_rack.values() for dId in v)
             for dId in all_failed_disks:
                 # Do not do ADAPT for now
-                self.update_disk_repair_time(dId, self.disks[dId].priority, failed_racks, failed_disk_system_tuple)
+                self.update_disk_repair_time(dId, self.disks[dId].priority, max_priority, failed_disk_system_tuple)
+                logging.info("===")
                 
         if event_type == Disk.EVENT_FAIL:
-            disk = self.disks[diskId]
-            
-            failed_disk_system_tuple = self.state.get_failed_disks_each_rack()
-            failed_disk_per_rack = failed_disk_system_tuple[0]
-            failed_racks = failed_disk_system_tuple[1]
-            
-            logging.info("Failed disk system: %s", failed_disk_per_rack)
             logging.info("Max prio: %s", failed_racks)
             all_failed_disks = list(dId for v in failed_disk_per_rack.values() for dId in v)
-            
             
             # Good num / failed num
             # Good num and failed num does not directly get involved in priority percent calculation
             # It it used to determine which formula to use to caluclate pp
-            good_num = self.state.sys.num_disks - np.sum(failed_disk_per_rack.keys())
+            good_num = self.state.sys.num_disks
+            for value in failed_disk_per_rack.values():
+                good_num -= len(value)
             fail_num = self.state.sys.num_disks - good_num
             disk.good_num = good_num
             disk.fail_num = fail_num
@@ -95,23 +102,41 @@ class NetDP:
             # We need to check if the disk failed in a previously unimpacted rack
             # If so, the priority is failed_racks + 1
             # Otherwise, the priority remains failed_racks because failures within an impacted rack does not affect priotiy 
-            if (len(failed_disk_per_rack[disk.rackId]) == 1):
-                disk.priority = failed_racks + 1
-            else:
-                disk.priority = failed_racks
+            rackId = diskId // self.sys.num_disks_per_rack
+            max_priority = 0
+            for dId in self.state.failed_disks:
+                max_priority = max(max_priority, self.disks[dId].priority)
+                
+            logging.info("Max priority before: %s", max_priority)
+            
+            # If the current failure happens in a brand new rack, we need to increment max_priority
+            #   otherwise, if the failure happened within the same rack, there will be no priority increase
+            if (len(failed_disk_per_rack[rackId]) == 1):
+                max_priority += 1
+            
+            logging.info("Max priority after: %s", max_priority)
+            
+            disk.priority = max_priority
+            
+            # if (len(failed_disk_per_rack[rackId]) == 1):
+            #     disk.priority = failed_racks
+            # else:
+            #     disk.priority = failed_racks - 1
+            
             
             disk.repair_start_time = self.curr_time
             
             # Ignore ADAPT for now
             for dId in all_failed_disks:
-                self.update_disk_repair_time(dId, self.disks[dId].priority, failed_racks, failed_disk_system_tuple)
+                self.update_disk_repair_time(dId, self.disks[dId].priority, max_priority, failed_disk_system_tuple)
+                logging.info("===")
         
         logging.info("-----")
     
-    def update_disk_repair_time(self, diskId, priority, fail_per_stripe, failed_disk_system_tuple):
+    def update_disk_repair_time(self, diskId, priority, max_priority, failed_disk_system_tuple):
         failed_disk_per_rack = failed_disk_system_tuple[0]
         failed_racks = failed_disk_system_tuple[1]
-        logging.info("Updating repair time for diskId %d, prio %d", diskId, priority)
+        logging.info("Updating repair time for diskId %d, prio %d, max prio: %s", diskId, priority, max_priority)
         logging.info("Disk %s", str(self.disks[diskId]))
         disk = self.disks[diskId]
         
@@ -119,7 +144,8 @@ class NetDP:
         if repaired_time == 0:
             # This means that the repair just started on a Disk.EVENT_FAIL
             # We calculate how many stripes that store data on this disk is impacted by this priority
-            priority_percent = priority_percent(len(self.state.racks), len(self.state.disks)/len(self.state.racks), self.state.n, disk, failed_disk_per_rack, failed_racks)
+            priority_percent = netdp_prio.priority_percent(self.state, disk, failed_disk_per_rack, max_priority, priority)
+            logging.info("Priority percent: %s for racks: %s and disk prio: %s", priority_percent, failed_disk_per_rack, disk.priority)
             repaired_percent = 0
             # Disk capacity * percentage of chunks/data in this disk that we need to repair (for this priority)
             disk.curr_repair_data_remaining = disk.repair_data * priority_percent
@@ -136,28 +162,48 @@ class NetDP:
             repaired_percent = repaired_time / disk.repair_time[priority]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
 
-        # For read parallelism, we need to sum all the surviving disks outside of the impacted racks
-        # Note that this is an assumption made to reduce the complexity of the simulation
-        parallelism = 0
-        for rackId, disks in failed_disk_per_rack:
-            if (len(failed_disk_per_rack[rackId]) == 0):
-                parallelism += len(self.state.disks)/len(self.state.racks)
-            
-        amplification = self.sys.k + priority
         
-        logging.info("Fail per stripe %s", fail_per_stripe)
-        if priority < fail_per_stripe:
-            # This means that we need to yield bandwidth to the disks with higher priority
-            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_stripe)
-        else:
-            repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism)
-            
+        repair_time = self.calc_repair_time(disk, failed_racks, priority)
+        
         disk.repair_time[priority] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[priority]
+        
+        logging.info("Time needed for repair %s d, will be repaired at day %s", (repair_time / 3600 / 24), disk.estimate_repair_time)
+        
         
     def ncr(self, n, r):
         r = min(r, n-r)
         numer = reduce(op.mul, range(n, n-r, -1), 1)
         denom = reduce(op.mul, range(1, r+1), 1)
         return numer / denom
+
+    def calc_repair_time(self, disk, failed_racks, priority):
+        # For read parallelism, we need to sum all the surviving disks outside of the impacted racks
+        # Note that this is an assumption made to reduce the complexity of the simulation
+        # parallelism = disk.good_num / (self.sys.k + 1)
+        # parallelism = self.calc_parallelism(failed_racks)
+        
+        # amplification = self.sys.k + priority        
+        
+        # if priority < failed_racks:
+        #     # This means that we need to yield bandwidth to the disks with higher priority
+        #     repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/failed_racks)
+        # else:
+        #     repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism)
+            
+        # logging.info("Failed racks %s", failed_racks)
+        # logging.info("Parallelism: %s, amplification: %s, data: %s, diskIO: %s", parallelism, amplification, disk.curr_repair_data_remaining, self.sys.diskIO)
+        # return repair_time
+        
+        # We calculate the repair time for RAID, and divide that by speed up brought by net dp
+        repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO)
+        
+        participating_disks = disk.good_num
+        speed_up = participating_disks // (self.sys.k + 1)
+        
+        return repair_time / speed_up
+    
+    def calc_parallelism(self, failed_racks, exp=False):
+        # return (len(self.racks) - failed_racks) * self.sys.num_disks_per_rack
+        return self.sys.num_disks - len(self.state.failed_disks)

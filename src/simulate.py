@@ -69,7 +69,7 @@ class Simulate:
             
         # debug print after heapsort, clearer for debug
         for disk_fail_time, _, diskId in self.failure_queue:
-            logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Disk.EVENT_FAIL, diskId))
+            logging.debug("    >>>>> reset {} {} {}".format(disk_fail_time, Disk.EVENT_FAIL, diskId))
             
         
         if self.sys.rack_fail > 0:
@@ -114,7 +114,8 @@ class Simulate:
         self.mytimer = mytimer
 
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
-        
+        # Debug purpose, static seed
+        # np.random.seed(1)
         
         self.reset(failureGenerator, mytimer)
 
