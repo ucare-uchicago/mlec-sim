@@ -107,7 +107,7 @@ def get_placement_index(placement):
 def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
         # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
-    
+
     # for afr in range(2, 11):
         mission = YEAR
         failureGenerator = FailureGenerator(afr)
