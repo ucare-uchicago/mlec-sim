@@ -1,66 +1,26 @@
 from cProfile import label
+from parse import parse_sim_result, parse_calc_result
 import matplotlib.pyplot as plt
 import re
 
 if __name__ == "__main__":
     # Read from the log
-    path = "src/s-result-DP_NET.log"
-    c_path = "src/s-result-DP.log"
-    calc_path = "src/c-result-DP.log"
-    
-    k_net = []
-    p_net = []
-    k_local = []
-    p_local = []
-    nines = []
-    sigmas = []
-    afr = []
-    
-    for row in open(path, 'r'):
-        matcher = re.findall(r'\((.*)\+(.*)\)\((.*)\+(.*)\) (.*) (.*) (.*) (.*) (.*) (.*) (.*) (.*) (.*)', row)
-        
-        (k_net_, p_net_, k_local_, p_local_, total_drives_, afr_, cap_, io_speed_, nines_, sigma_, failed_iters_, total_iters_, adapt_) = matcher[0]
-        
-        # NET_DP uses local shard arguments
-        k_net.append(int(k_net_))
-        k_local.append(int(k_local_))
-        p_net.append(int(p_net_))
-        p_local.append(int(p_local_))
-        nines.append(float(nines_))
-        sigmas.append(float(sigma_))
-        afr.append(float(afr_))
-    
-    c_afr = []
-    c_nines = []
-    c_sigmas = []
-        
-    for row in open(c_path, 'r'):
-        matcher = re.findall(r'\((.*)\+(.*)\)\((.*)\+(.*)\) (.*) (.*) (.*) (.*) (.*) (.*) (.*) (.*) (.*)', row)
-        
-        (k_net_, p_net_, k_local_, p_local_, total_drives_, afr_, cap_, io_speed_, nines_, sigma_, failed_iters_, total_iters_, adapt_) = matcher[0]
-        
-        # NET_DP uses local shard arguments
-        c_nines.append(float(nines_))
-        c_afr.append(float(afr_))
-        c_sigmas.append(float(sigma_))
-
-
-    calc_afr = []
-    calc_nines = []
-    
-    for row in open(calc_path, 'r'):
-        matcher = re.findall(r'(.*) (.*)', row)
-        (calc_afr_, calc_nines_) = matcher[0]
-        calc_afr.append(float(calc_afr_))
-        calc_nines.append(float(calc_nines_))
+    calc_result = parse_calc_result("src/c-result-DP.log")
+    twenty_racks = parse_sim_result("src/s-result-DP_NET_1.log")
+    forty_racks = parse_sim_result("src/s-result-DP_NET_2.log")
+    ten_racks = parse_sim_result("src/s-result-DP_NET_3.log")
     
     # plt.plot(c_afr, c_nines, label="DP", color='blue')
     # plt.plot(afr, nines, label='DP_NET')
     
-    plt.plot(calc_afr, calc_nines, label="Web Calc")
+    print(calc_result['afr'])
+    print(calc_result['nines'])
+    # plt.plot(calc_result['afr'], calc_result['nines'], label="Web c")
     
-    plt.errorbar(afr, nines, yerr=sigmas, label="DP_NET Sim")
-    plt.errorbar(c_afr, c_nines, yerr=c_sigmas, label="DP Sim")
+    plt.errorbar(ten_racks['afr'], ten_racks['nines'], yerr=ten_racks['sigma'], label="DP Net 10 racks")
+    plt.errorbar(twenty_racks['afr'], twenty_racks['nines'], yerr=twenty_racks['sigma'], label="DP Net 20 racks")
+    plt.errorbar(forty_racks['afr'], forty_racks['nines'], yerr=forty_racks['sigma'], label="DP Net 40 rakcs")
+    # plt.errorbar(c_afr, c_nines, yerr=c_sigmas, label="DP Sim")
     
     plt.legend(loc="upper right")
     
