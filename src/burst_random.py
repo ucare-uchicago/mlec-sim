@@ -117,50 +117,19 @@ class CorrelatedBurst:
 
 def iter(afr, failure_list, placement, drives_per_rack, iters, *arg):
     try:
-        results = []
-        for num_failed_racks, num_failed_disks in failure_list:
-            if placement == 'NET_DP':
-                if num_failed_racks <= p_net:
-                    res = 0
-                else:
-                    res = iters
-            elif num_failed_racks <= p_net:
-                res = 0
-            elif placement == 'DP' and math.ceil(num_failed_disks / num_failed_racks) > p_local:
-                res = iters
-            elif placement == 'RAID' and math.ceil(num_failed_disks / num_failed_racks) > p_local * (drives_per_rack // (k_local+p_local))+1:
-                res = iters
-            elif num_failed_disks <= p_local:
-                res = 0
-            else:
-                res = 0
-                # start = time.time()
-                failureGenerator = FailureGenerator(afr, CorrelatedBurst(num_failed_disks,num_failed_racks, drives_per_rack), is_burst=True)
-                # print(time.time()-start)
-                sys = System(*arg, num_disks_per_enclosure=100)
-                
-                mytimer = Mytimer()
-                repair = Repair(sys, sys.place_type)
-                placement = Placement(sys, sys.place_type)
-
-                
-
-                # start = time.time()
-                # init_time = 0
-                # sim_time = 0
-                for iter in range(0, iters):
-                    # temp = time.time()
-                    sim = Simulate(sys.num_disks, sys, repair, placement)
-                    # init_time += time.time() - temp
-                    # temp = time.time()
-                    res += sim.run_simulation(failureGenerator, mytimer)
-                    # sim_time += time.time() - temp
-                # print(init_time)
-                # print("sim time:{}".format(sim_time))
-                # one_iter_time = time.time() - start
-                # print(one_iter_time)
-                # print(mytimer)
-            results.append(res)
+        
+        num_failed_disks = failure_list[0]
+        results = [0] * num_failed_disks
+        failureGenerator = FailureGenerator(afr, ArbitraryBurst(num_failed_disks), is_burst=True)
+        sys = System(*arg, num_disks_per_enclosure=100)
+        for iter in range(0, iters):
+            failures = failureGenerator.gen_failure_burst(sys.num_disks_per_rack, sys.num_racks)
+            failures_per_rack = {}      # it's just 1 or 0.
+            for _, diskId in failures:
+                rackId = diskId // drives_per_rack
+                failures_per_rack[rackId] = 1
+            affected_racks = len(failures_per_rack.keys())
+            results[affected_racks-1] += 1
         return np.array(results)
         
     except Exception as e:
@@ -215,38 +184,11 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     df = pd.read_csv ('failures/ornl/by_rack/burst_node_rack.csv')
     upper_bounds = {}
     # print(df)
-    failure_list = []
-    for index, row in df.iterrows():
-        num_failed_racks = row['racks']
-        num_failed_disks = row['drives']
-        if num_failed_racks in upper_bounds:
-            upper_bounds[num_failed_racks] = max(upper_bounds[num_failed_racks], num_failed_disks)
-        else:
-            upper_bounds[num_failed_racks] = num_failed_disks
-    # for num_failed_racks in range(1,2):
-    #     for num_failed_disks in range(1, 101):
-    #         failure_list.append((num_failed_racks, num_failed_disks))
-    # for num_failed_racks in range(2,3):
-    #     for num_failed_disks in range(2, 55):
-    #         failure_list.append((num_failed_racks, num_failed_disks))
-    # for num_failed_racks in range(3,21):
-    #     if num_failed_racks not in upper_bounds:
-    #         upper_bound = 20
-    #     else:
-    #         upper_bound = max(upper_bounds[num_failed_racks]+1, 20)
-        
-    #     upper_bound = max(upper_bound, num_failed_racks+5)
-    #     for num_failed_disks in range(num_failed_racks, upper_bound):
-    #         failure_list.append((num_failed_racks, num_failed_disks))
-    # for num_failed_racks in range(5,6):
-    #     for num_failed_disks in range(5, 10):
-    #         failure_list.append((num_failed_racks, num_failed_disks))
-    for num_failed_racks in range(1,21):
-        for num_failed_disks in range(20, 21):
-            failure_list.append((num_failed_racks, num_failed_disks))
+    drives = 20
+    failure_list = [drives]
 
     # failure_list.append((2,4))
-    iters = 5000
+    iters = 500
     epochs = 200
     place_type = get_placement_index(placement)
     start  = time.time()
@@ -259,21 +201,12 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 
     print(results)
     total_iters = iters * epochs
-    for i in range(len(failure_list)):
-        failed_iters = results[i]
-        num_failed_racks, num_failed_disks = failure_list[i]
-        # print("num_failed_racks: {}  num_failed_disks: {}  failed_iters: {}  total_iters: {}".format(
-        #                 num_failed_racks, num_failed_disks, failed_iters, total_iters))
+    for i in range(len(results)):
+        racks = i+1
+        count = results[i]
 
-        prob_dl = str(failed_iters/total_iters)
-        # print("probability of data loss: {}".format(prob_dl))
-        # print()
-
-        output = open("s-burst-{}.log".format(placement), "a")
-        output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
-            k_net, p_net, k_local, p_local, total_drives,
-            num_failed_disks, num_failed_racks, prob_dl,
-            'nines', 'sigma', failed_iters, total_iters, "adapt" if adapt else "notadapt"))
+        output = open("burst-random-count.log", "a")
+        output.write("{},{},{}\n".format(racks, drives, count))
         output.close()
 
 
