@@ -26,7 +26,7 @@ import time
 
 
 def burst_brute(k_local, p_local, k_net, p_net):
-    for num_fail_disks in range(14,18):
+    for num_fail_disks in range(5,10):
         n_local = k_local + p_local
         n_net = k_net + p_net
         num_disks = n_local * n_net
