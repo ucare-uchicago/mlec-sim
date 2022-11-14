@@ -404,7 +404,7 @@ As we can see, due to the asymmetrical layout, we would have to discuss priority
 
 \section{When there are $\mathcal{N}$ failures, this means that priority $\mathcal{N}$ stripe}
 \begin{equation*}
-  \text{prio percent}=\frac{1}{B^{\mathcal{N}-1}}\frac{\prod_{i=1}^{\mathcal{N}-1}(n-i)}{\prod_{i=1}^{\mathcal{N}-1}(r-i)}
+  \text{prio percent}=\frac{ncr(r-\mathcal{N},n-\mathcal{N})B^{n-\mathcal{N}}}{ncr(r-1,n-1)B^{n-1}}=\frac{1}{B^{\mathcal{N}-1}}\frac{\prod_{i=1}^{\mathcal{N}-1}(n-i)}{\prod_{i=1}^{\mathcal{N}-1}(r-i)}
 \end{equation*}
 
 \end{document}
