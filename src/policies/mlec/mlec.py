@@ -1,19 +1,17 @@
 from disk import Disk
-import operator as op
-import numpy as np
 import logging
-from functools import reduce
-from rack import Rack
 import time
 from diskgroup import Diskgroup
-from heapq import *
+from heapq import heappush
+from policies.policy import Policy
+from pdl import mlec_cluster_pdl
 
-class MLEC:
+class MLEC(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
     def __init__(self, state):
-        self.state = state
+        super().__init__(state)
         self.sys = state.sys
         self.n = state.n
         self.top_n = self.sys.top_k + self.sys.top_m
@@ -218,14 +216,6 @@ class MLEC:
         diskgroup.repair_start_time = self.curr_time
         diskgroup.estimate_repair_time = self.curr_time + diskgroup.repair_time[0]
 
-    
-    def get_failed_racks_per_stripesetRackId(self, rackId):
-        rackStripesetId = rackId // self.sys.top_n
-        return list(self.failed_racks_per_stripeset[rackStripesetId].keys())
-    
-    def get_failed_racks_per_stripeset(self, rackStripesetId):
-        return list(self.failed_racks_per_stripeset[rackStripesetId].keys())
-    
     def get_failed_disks_per_diskgroup(self, diskgroupId):
         return list(self.diskgroups[diskgroupId].failed_disks.keys())
     
@@ -252,3 +242,6 @@ class MLEC:
             if self.state.repairing:
                 self.state.repairing = False
                 self.state.sys.metrics.total_rebuild_time += curr_time - self.state.repair_start_time
+
+    def check_pdl(self):
+        return mlec_cluster_pdl(self.state)

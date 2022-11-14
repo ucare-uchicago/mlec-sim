@@ -30,8 +30,12 @@ class Rack:
         self.repair_time = {}
         self.repair_data = repair_data
         #-------------------------------
-        # self.repair_start_time = 0
-        # self.curr_repair_data_remaining = 0
+        self.repair_start_time: float = 0
+        self.init_repair_start_time: float = 0
+        self.estimate_repair_time: float = 0
+        self.curr_repair_data_remaining: float = 0
+        
+        
         self.failed_disks = {}
         self.stripesets_repair_finish = []
         for i in range(stripeset_num):

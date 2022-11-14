@@ -9,9 +9,8 @@ import random
 # Custom stuff
 from failure_generator import FailureGenerator, GoogleBurst
 from util import wait_futures
-from constants import debug, YEAR
+from constants.time import YEAR
 
-from placement import Placement
 from system import System
 from repair import Repair
 
@@ -123,11 +122,10 @@ def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
         sys = copy.deepcopy(sys_)
         mytimer = Mytimer()
         repair = Repair(sys, sys.place_type)
-        placement = Placement(sys, sys.place_type)
 
         start = time.time()
         for iter in range(0, iters):
-            sim = Simulate(mission, sys.num_disks, sys, repair, placement)
+            sim = Simulate(mission, sys.num_disks, sys, repair)
             res += sim.run_simulation(failureGenerator, mytimer)
         return (res, mytimer, sys.metrics)
     except Exception as e:

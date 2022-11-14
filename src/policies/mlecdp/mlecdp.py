@@ -1,18 +1,19 @@
 from disk import Disk
-import operator as op
-import numpy as np
 import logging
-from functools import reduce
 from rack import Rack
+from system import System
+from policies.policy import Policy
+from helpers.common_math import ncr
+from pdl import mlec_dp_pdl
 
-class MLECDP:
+class MLECDP(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
     def __init__(self, state):
-        self.state = state
-        self.sys = state.sys
-        self.n = state.n
+        super().__init__(state)
+        self.sys: System = state.sys
+        self.n: int = state.n
         self.racks = state.racks
         self.disks = state.disks
         self.curr_time = state.curr_time
@@ -20,24 +21,6 @@ class MLECDP:
         self.failed_racks = state.failed_racks
         self.num_rack_groups = self.sys.num_racks // self.sys.top_n 
         self.rack_group_failures = [0] * self.num_rack_groups
-
-    def update_disk_state(self, event_type, diskId):
-        rackId = diskId // self.sys.num_disks_per_rack
-        if event_type == Disk.EVENT_REPAIR:
-            self.disks[diskId].state = Disk.STATE_NORMAL
-            self.racks[rackId].failed_disks.pop(diskId, None)
-            self.failed_disks.pop(diskId, None)
-            # logging.info("rack {} after pop: {}".format(rackId, self.racks[rackId].failed_disks))
-            
-            
-        if event_type == Disk.EVENT_FAIL:
-            self.disks[diskId].state = Disk.STATE_FAILED
-            self.racks[rackId].failed_disks[diskId] = 1
-            self.failed_disks[diskId] = 1
-            # logging.info("rack {} after add: {}".format(rackId, self.racks[rackId].failed_disks))
-
-
-
 
     #----------------------------------------------
     def update_disk_priority(self, event_type, diskId):
@@ -108,8 +91,8 @@ class MLECDP:
         repaired_time = self.curr_time - disk.repair_start_time
         # print("disk {}  priority {}  repair time {}".format(diskId, priority, disk.repair_time))
         if repaired_time == 0:
-            priority_sets = self.ncr(good_num, self.n-priority)*self.ncr(fail_num-1, priority-1)
-            total_sets = self.ncr((good_num+fail_num-1), (self.n-1)) 
+            priority_sets = ncr(good_num, self.n-priority)*ncr(fail_num-1, priority-1)
+            total_sets = ncr((good_num+fail_num-1), (self.n-1)) 
             priority_percent = float(priority_sets)/total_sets
             repaired_percent = 0
             disk.curr_repair_data_remaining = disk.repair_data * priority_percent
@@ -229,9 +212,9 @@ class MLECDP:
         rack.estimate_repair_time = self.curr_time + rack.repair_time[0]
         # logging.info("calculate repair time for rack {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
         #                 rackId, repaired_time, rack.repair_time[0], rack.repair_start_time))
-
-    def ncr(self, n, r):
-        r = min(r, n-r)
-        numer = reduce(op.mul, range(n, n-r, -1), 1)
-        denom = reduce(op.mul, range(1, r+1), 1)
-        return numer / denom
+    
+    def update_disk_repair_time_adapt(self, diskId, priority, fail_per_rack, max_priority):
+        raise NotImplementedError("update_disk_repair_time_adapt() for mlecdp is not implemented")
+    
+    def check_pdl(self):
+        return mlec_dp_pdl(self.state)

@@ -1,5 +1,5 @@
 from disk import Disk
-from heapq import *
+from heapq import heappush, heappop
 import logging
 from rack import Rack
 

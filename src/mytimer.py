@@ -1,6 +1,6 @@
 class Mytimer:
     def __init__(self):
-        self.simInitTime = 0
+        self.simInitTime = 0.0
         self.seedtime = 0
         self.copytime = 0
         self.genfailtime = 0
@@ -15,7 +15,7 @@ class Mytimer:
         self.updateRackStateTime = 0
 
         self.updatePriorityTime = 0
-        self.updateDiskRepairTime = 0
+        self.updateDiskRepairTime = 0.0
         self.updatePriorityFailTime = 0
 
         self.updateRackPriorityTime = 0

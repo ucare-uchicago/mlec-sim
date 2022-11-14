@@ -1,17 +1,17 @@
 from disk import Disk
-import operator as op
-import numpy as np
 import logging
-from functools import reduce
 from rack import Rack
+from policies.policy import Policy
+from helpers.common_math import ncr
+from pdl import flat_decluster_pdl
 
 
-class Decluster:
+class Decluster(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
     def __init__(self, state):
-        self.state = state
+        super().__init__(state)
         self.sys = state.sys
         self.n = state.n
         self.racks = state.racks
@@ -19,25 +19,6 @@ class Decluster:
         self.curr_time = state.curr_time
         self.failed_disks = state.failed_disks
         self.failed_racks = state.failed_racks
-
-
-    def update_disk_state(self, event_type, diskId):
-        rackId = diskId // self.sys.num_disks_per_rack
-        if event_type == Disk.EVENT_REPAIR:
-            self.disks[diskId].state = Disk.STATE_NORMAL
-            self.racks[rackId].failed_disks.pop(diskId, None)
-            self.failed_disks.pop(diskId, None)
-            # logging.info("rack {} after pop: {}".format(rackId, self.racks[rackId].failed_disks))
-            
-            
-        if event_type == Disk.EVENT_FAIL:
-            self.disks[diskId].state = Disk.STATE_FAILED
-            self.racks[rackId].failed_disks[diskId] = 1
-            self.failed_disks[diskId] = 1
-            # logging.info("rack {} after add: {}".format(rackId, self.racks[rackId].failed_disks))
-
-
-
 
     def update_disk_priority(self, event_type, diskId):
         logging.info("Event %s, dID %s, time: %s", event_type, diskId, self.state.curr_time)
@@ -114,8 +95,8 @@ class Decluster:
         repaired_time = self.curr_time - disk.repair_start_time
         # print("disk {}  priority {}  repair time {}".format(diskId, priority, disk.repair_time))
         if repaired_time == 0:
-            priority_sets = self.ncr(good_num, self.n-priority)*self.ncr(fail_num-1, priority-1)
-            total_sets = self.ncr((good_num+fail_num-1), (self.n-1)) 
+            priority_sets = ncr(good_num, self.n-priority)*ncr(fail_num-1, priority-1)
+            total_sets = ncr((good_num+fail_num-1), (self.n-1)) 
             priority_percent = float(priority_sets)/total_sets
             logging.info("Priority percent: %s and disk prio: %s", priority_percent, disk.priority)
             repaired_percent = 0
@@ -158,12 +139,12 @@ class Decluster:
         repaired_time = self.curr_time - disk.repair_start_time
         # print("disk {}  priority {}  repair time {}".format(diskId, priority, disk.repair_time))
         if repaired_time == 0:
-            priority_sets = self.ncr(good_num, self.n-priority)*self.ncr(fail_num-1, priority-1)
-            total_sets = self.ncr((good_num+fail_num-1), (self.n-1)) 
+            priority_sets = ncr(good_num, self.n-priority)*ncr(fail_num-1, priority-1)
+            total_sets = ncr((good_num+fail_num-1), (self.n-1)) 
             priority_percent = float(priority_sets)/total_sets
             repaired_percent = 0
-            logging.info("ncr(%s,%s)*ncr(%s,%s) %s*%s", good_num, self.n-priority, fail_num-1, priority-1, self.ncr(good_num, self.n-priority), self.ncr(fail_num-1, priority-1))
-            logging.info("ncr(%s,%s), %s", good_num + fail_num - 1, self.n -1, self.ncr(good_num + fail_num - 1, self.n - 1))
+            logging.info("ncr(%s,%s)*ncr(%s,%s) %s*%s", good_num, self.n-priority, fail_num-1, priority-1, ncr(good_num, self.n-priority), ncr(fail_num-1, priority-1))
+            logging.info("ncr(%s,%s), %s", good_num + fail_num - 1, self.n -1, ncr(good_num + fail_num - 1, self.n - 1))
             logging.info("Good num %s, Fail num %s, prio %s, n %s, Prio perc %s",good_num, fail_num, priority, self.n, priority_percent)
             
             disk.curr_repair_data_remaining = disk.repair_data * priority_percent
@@ -195,8 +176,8 @@ class Decluster:
         #----------------------------------------------------
         if max_priority == fail_per_rack and disk.priority < max_priority:
             # the disk repair will be delayed because other disk is doing critical rebuild
-            max_priority_sets = self.ncr(good_num, self.n-max_priority)*self.ncr(fail_num-1, max_priority-1)
-            total_sets = self.ncr((good_num+fail_num-1), (self.n-1)) 
+            max_priority_sets = ncr(good_num, self.n-max_priority)*ncr(fail_num-1, max_priority-1)
+            total_sets = ncr((good_num+fail_num-1), (self.n-1)) 
             max_priority_percent = float(max_priority_sets)/total_sets
             critical_data = disk.repair_data * max_priority_percent
             critical_repair_time = critical_data*amplification/(self.sys.diskIO*parallelism) / 3600 / 24
@@ -205,9 +186,5 @@ class Decluster:
             logging.info("disk ID {}  disk priority {}  fail_per_rack {} critical time {}  estimate finish time {}".format(
                             diskId, disk.priority, fail_per_rack, critical_repair_time, disk.estimate_repair_time))
 
-
-    def ncr(self, n, r):
-        r = min(r, n-r)
-        numer = reduce(op.mul, range(n, n-r, -1), 1)
-        denom = reduce(op.mul, range(1, r+1), 1)
-        return numer / denom
+    def check_pdl(self):
+        return flat_decluster_pdl(self.state)
