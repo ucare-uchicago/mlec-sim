@@ -1,8 +1,9 @@
-from disk import Disk
 import logging
-from rack import Rack
+from components.disk import Disk
+from components.rack import Rack
 from policies.policy import Policy
 from .pdl import flat_cluster_pdl
+from .repair import raid_repair
 
 class RAID(Policy):
     #--------------------------------------
@@ -82,3 +83,6 @@ class RAID(Policy):
     
     def check_pdl(self):
         return flat_cluster_pdl(self.state)
+    
+    def update_repair_events(self, repair_queue):
+        return raid_repair(self.state, repair_queue)

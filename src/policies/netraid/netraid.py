@@ -1,7 +1,9 @@
-from disk import Disk
 import logging
+
+from components.disk import Disk
 from policies.policy import Policy
 from .pdl import net_raid_pdl
+from .repair import netraid_repair
 
 class NetRAID(Policy):
     #--------------------------------------
@@ -66,3 +68,6 @@ class NetRAID(Policy):
 
     def check_pdl(self):
         return net_raid_pdl(self.state)
+    
+    def get_repair_event(self, repair_queue):
+        netraid_repair(self.state, repair_queue)

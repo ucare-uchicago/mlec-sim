@@ -1,10 +1,12 @@
-from disk import Disk
 import logging
-from rack import Rack
+
+from components.disk import Disk
+from components.rack import Rack
 from system import System
 from policies.policy import Policy
 from helpers.common_math import ncr
 from .pdl import mlec_dp_pdl
+from .repair import mlecdp_repair
 
 class MLECDP(Policy):
     #--------------------------------------
@@ -218,3 +220,6 @@ class MLECDP(Policy):
     
     def check_pdl(self):
         return mlec_dp_pdl(self.state)
+    
+    def update_repair_events(self, repair_queue):
+        mlecdp_repair(self.state, repair_queue)

@@ -1,9 +1,11 @@
-from disk import Disk
 import logging
-from rack import Rack
+
+from components.disk import Disk
+from components.rack import Rack
 from policies.policy import Policy
 from helpers.common_math import ncr
 from .pdl import flat_decluster_pdl
+from .repair import decluster_repair
 
 
 class Decluster(Policy):
@@ -188,3 +190,6 @@ class Decluster(Policy):
 
     def check_pdl(self):
         return flat_decluster_pdl(self.state)
+    
+    def update_repair_events(self, repair_queue):
+        decluster_repair(self.state, repair_queue)
