@@ -9,11 +9,8 @@ import random
 # Custom stuff
 from failure_generator import FailureGenerator, GoogleBurst
 from util import wait_futures
-from constants import debug, YEAR
 
-from placement import Placement
 from system import System
-from repair import Repair
 
 from simulate import Simulate
 from mytimer import Mytimer
