@@ -11,6 +11,7 @@ from drive_args import DriveArgs
 from failure_generator import FailureGenerator, Weibull, GoogleBurst
 from util import wait_futures
 from constants.time import YEAR
+from constants.PlacementType import parse_placement, PlacementType
 
 from system import System
 from repair import Repair
@@ -73,23 +74,6 @@ def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
     return [failed_instances, epochs * iters, metrics]
 
 
-def get_placement_index(placement):
-    place_type = -1
-    if placement == 'RAID':
-        place_type = 0
-    elif placement == 'DP':
-        place_type = 1
-    elif placement == 'MLEC':
-        place_type = 2
-    elif placement == 'RAID_NET':
-        place_type = 3
-    elif placement == 'MLEC_DP':
-        place_type = 4
-    elif placement == 'DP_NET':
-        place_type = 5
-    return place_type
-
-
 # -----------------------------
 # normal Monte Carlo simulation
 # -----------------------------
@@ -100,7 +84,7 @@ def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     mission = YEAR
     failureGenerator = FailureGenerator(afr)
 
-    place_type = get_placement_index(placement)
+    place_type = parse_placement(placement)
     
     sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
             io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
@@ -157,10 +141,10 @@ def manual_1_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_
     
     for afr in range(5, 6):
         # 1. get P(rack 1 fails)
-        place_type = get_placement_index(placement)
-        local_place_type = 0        # local RAID
-        if place_type == 4:         # if MLEC_DP
-            local_place_type = 1    # local DP
+        place_type = parse_placement(placement)
+        local_place_type = PlacementType.RAID        # local RAID
+        if place_type == PlacementType.MLEC_DP:         # if MLEC_DP
+            local_place_type = PlacementType.DP    # local DP
         failureGenerator = FailureGenerator(afr)
         sys = System(drives_per_rack, drives_per_rack, k_local, p_local, local_place_type, cap * 1024 * 1024,
                 io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
@@ -251,10 +235,10 @@ def manual_2_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_
                     total_drives, drives_per_rack, placement, dist):
     for cap in range(100, 110, 10):
         # 1. get P(rack 1 fails)
-        place_type = get_placement_index(placement)
-        local_place_type = 0        # local RAID
-        if place_type == 4:         # if MLEC_DP
-            local_place_type = 1    # local DP
+        place_type = parse_placement(placement)
+        local_place_type = PlacementType.RAID        # local RAID
+        if place_type == PlacementType.MLEC_DP:         # if MLEC_DP
+            local_place_type = PlacementType.DP    # local DP
         failureGenerator = FailureGenerator(afr)
         sys = System(drives_per_rack, drives_per_rack, k_local, p_local, local_place_type, cap * 1024 * 1024,
                 io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
@@ -387,7 +371,7 @@ def io_over_year(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 def weibull_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution):
     # logging.basicConfig(level=logging.INFO)
-    place_type = get_placement_index(placement)
+    place_type = parse_placement(placement)
     
     for beta in np.arange(1, 2.2, 0.2):
         mission = YEAR
@@ -457,7 +441,7 @@ def weibull_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 # --------------------------------
 def metric_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution):
-    place_type = get_placement_index(placement)
+    place_type = parse_placement(placement)
 
     for afr in range(2, 6):
         mission = YEAR
@@ -509,7 +493,7 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     mission = YEAR
     failureGenerator = FailureGenerator(afr, GoogleBurst(50, 50), is_burst=True)
 
-    place_type = get_placement_index(placement)
+    place_type = parse_placement(placement)
     
     sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
             io_speed, 1, k_net, p_net, adapt, rack_fail = 0)

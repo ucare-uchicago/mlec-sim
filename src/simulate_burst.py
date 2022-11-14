@@ -1,10 +1,9 @@
-from heapq import *
 import logging
-from constants.time import YEAR
 import numpy as np
 import os
 from mytimer import Mytimer
 from system import System
+from constants.PlacementType import PlacementType
 #----------------------------
 # Logging Settings
 #----------------------------
@@ -28,15 +27,15 @@ class Simulate:
 
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
         failures = failureGenerator.gen_failure_burst(self.sys.num_disks_per_rack, self.sys.num_racks)
-        if self.place_type == 0:
+        if self.place_type == PlacementType.RAID:
             return self.flat_cluster_check_burst(failures)
-        if self.place_type == 1:
+        if self.place_type == PlacementType.DP:
             return self.flat_decluster_check_burst(failures)
-        if self.place_type == 2:
+        if self.place_type == PlacementType.MLEC:
             return self.mlec_cluster_check_burst(failures)
-        if self.place_type == 3:
+        if self.place_type == PlacementType.RAID_NET:
             return self.network_cluster_check_burst(failures)
-        if self.place_type == 4:
+        if self.place_type == PlacementType.MLEC_DP:
             return self.mlec_decluster_check_burst(failures)
         
         raise NotImplementedError("placement type not recognized")

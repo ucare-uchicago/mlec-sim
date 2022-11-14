@@ -1,5 +1,9 @@
 from system import System
-from disk import Disk
+from components.disk import Disk
+from constants.PlacementType import PlacementType
+
+from typing import Tuple, Optional
+
 
 class Policy:
     
@@ -9,6 +13,8 @@ class Policy:
         
         self.curr_time: float = state.curr_time
     
+    # Default disk state update behavior
+    #  Should override if there are layout specific changes (for example net_raid)
     def update_disk_state(self, event_type: str, diskId: int) -> None:
         rackId = diskId // self.sys.num_disks_per_rack
         if event_type == Disk.EVENT_REPAIR:
@@ -39,3 +45,6 @@ class Policy:
     
     def check_pdl(self):
         raise NotImplementedError("check_pdl() not implemented")
+    
+    def update_repair_events(self, repair_queue):
+        raise NotImplementedError("update_repair_events() not implemented")

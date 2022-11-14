@@ -1,10 +1,12 @@
-from disk import Disk
 import logging
 import time
-from diskgroup import Diskgroup
+
+from components.disk import Disk
+from components.diskgroup import Diskgroup
 from heapq import heappush
 from policies.policy import Policy
 from .pdl import mlec_cluster_pdl
+from .repair import mlec_repair
 
 class MLEC(Policy):
     #--------------------------------------
@@ -225,23 +227,8 @@ class MLEC(Policy):
     def get_failed_diskgroups(self):
         return list(self.failed_diskgroups.keys())
 
-    # update the repair event queue
-    def update_repair_event(self, curr_time, repair_queue):
-        repair_queue.clear()
-        for diskgroupId in self.get_failed_diskgroups():
-            heappush(repair_queue, (self.diskgroups[diskgroupId].estimate_repair_time, Diskgroup.EVENT_REPAIR, diskgroupId))
-        for diskId in self.state.get_failed_disks():
-            diskgroupId = diskId // self.sys.n
-            if self.diskgroups[diskgroupId].state == Diskgroup.STATE_NORMAL:
-                heappush(repair_queue, (self.disks[diskId].estimate_repair_time, Disk.EVENT_REPAIR, diskId))
-        if len(repair_queue) > 0:
-            if not self.state.repairing:
-                self.state.repairing = True
-                self.state.repair_start_time = curr_time
-        else:
-            if self.state.repairing:
-                self.state.repairing = False
-                self.state.sys.metrics.total_rebuild_time += curr_time - self.state.repair_start_time
-
     def check_pdl(self):
         return mlec_cluster_pdl(self.state)
+    
+    def update_repair_events(self, repair_queue):
+        mlec_repair(self.diskgroups, self.get_failed_diskgroups(), self.state, repair_queue)

@@ -1,11 +1,13 @@
 from state import State
 from system import System
-from disk import Disk
-from rack import Rack
+from components.disk import Disk
+from components.rack import Rack
 from heapq import heappush, heappop
+
+from constants.time import YEAR
+
 import logging
 import time
-from constants.time import YEAR
 import numpy as np
 import time
 import os
@@ -17,6 +19,7 @@ from typing import Tuple, Optional
 #----------------------------
 
 class Simulate:
+    
     def __init__(self, mission_time, num_disks, sys: System, repair = None):
         self.mission_time = mission_time
         #---------------------------------------
@@ -150,7 +153,7 @@ class Simulate:
             if self.sys.place_type in [2]:
                 new_diskgroup_failure = self.state.policy.update_diskgroup_state(event_type, diskId)
                 if new_diskgroup_failure != None:
-                    self.state.update_diskgroup_priority(event_type, new_diskgroup_failure, diskId)
+                    self.state.policy.update_diskgroup_priority(event_type, new_diskgroup_failure, diskId)
 
             #--------------------------------------
             # In MLEC-DP, a rack can have more disks
@@ -196,9 +199,20 @@ class Simulate:
                 
                     #------------------------------------------
 
-            self.repair.update_repair_event(self.state, curr_time, self.repair_queue)
+            self.update_repair_event(curr_time)
         return prob
 
 
-    
+    def update_repair_event(self, curr_time):
+        self.repair_queue.clear()
+        self.state.policy.update_repair_events(self.repair_queue)
+            
+        if len(self.repair_queue) > 0:
+            if not self.state.repairing:
+                self.state.repairing = True
+                self.state.repair_start_time = curr_time
+        else:
+            if self.state.repairing:
+                self.state.repairing = False
+                self.state.sys.metrics.total_rebuild_time += curr_time - self.state.repair_start_time
 

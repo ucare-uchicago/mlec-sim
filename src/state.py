@@ -1,9 +1,9 @@
-from disk import Disk
-from rack import Rack
+from components.disk import Disk
+from components.rack import Rack
 from system import System
 from typing import Dict
-from policies import *
 from mytimer import Mytimer
+from policies.policy_factory import get_policy
 from policies.policy import Policy
 
 class State:
@@ -45,19 +45,7 @@ class State:
         self.repair_start_time = 0
 
         self.mytimer: Mytimer = mytimer
-
-        if self.sys.place_type == 0:
-            self.policy: Policy = RAID(self)
-        elif self.sys.place_type == 1:
-            self.policy: Policy = Decluster(self)
-        elif self.sys.place_type == 2:
-            self.policy: Policy = MLEC(self)
-        elif self.sys.place_type == 3:
-            self.policy: Policy = NetRAID(self)
-        elif self.sys.place_type == 4:
-            self.policy: Policy = MLECDP(self)
-        elif self.sys.place_type == 5:
-            self.policy: Policy = NetDP(self)
+        self.policy: Policy = get_policy(self.sys.place_type, self)
         #----------------------------------
 
 
@@ -67,7 +55,6 @@ class State:
 
 
 
-    
     # This returns array [{rackId: failedDisks}, numRacksWithFailure]
     def get_failed_disks_each_rack(self):
         failures = {}
@@ -80,9 +67,6 @@ class State:
                 num_racks_with_failure += 1
     
         return [failures, num_racks_with_failure]
-        
-    def update_diskgroup_priority(self, event_type, new_failed_rack, diskId):
-        self.policy.update_diskgroup_priority(event_type, new_failed_rack, diskId)
 
 
     def get_failed_disks_per_rack(self, rackId):

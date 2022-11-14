@@ -1,9 +1,11 @@
-from disk import Disk
+import logging
+
+from components.disk import Disk
 from policies.policy import Policy
 
-import logging
 from helpers import netdp_prio
 from .pdl import network_decluster_pdl
+from .repair import netdp_repair
 
 class NetDP(Policy):
     
@@ -166,3 +168,6 @@ class NetDP(Policy):
     
     def check_pdl(self):
         return network_decluster_pdl(self.state)
+    
+    def update_repair_events(self, repair_queue):
+        return netdp_repair(self.state, repair_queue)

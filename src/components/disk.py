@@ -1,5 +1,3 @@
-from typing import Optional
-
 class Disk:
     #----------------------------------
     # The 2 possible state

@@ -1,5 +1,3 @@
-from mpmath import mpf
-
 class Diskgroup:
     #----------------------------
     # The 2 possible disk states
