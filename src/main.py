@@ -7,7 +7,6 @@ import traceback
 import logging
 
 # Custom stuff
-from drive_args import DriveArgs
 from failure_generator import FailureGenerator, Weibull, GoogleBurst
 from util import wait_futures
 from constants.time import YEAR
