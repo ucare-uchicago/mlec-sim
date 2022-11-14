@@ -9,7 +9,7 @@ from heapq import *
 import logging
 import time
 import sys
-from constants import debug, YEAR
+from constants.time import YEAR
 import numpy as np
 import time
 import os

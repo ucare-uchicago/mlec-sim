@@ -10,7 +10,7 @@ import logging
 from drive_args import DriveArgs
 from failure_generator import FailureGenerator, Weibull, GoogleBurst
 from util import wait_futures
-from constants import debug, YEAR
+from constants.time import YEAR
 
 from placement import Placement
 from system import System
@@ -19,18 +19,11 @@ from repair import Repair
 from simulate import Simulate
 from mytimer import Mytimer
 from metrics import Metrics
-import time
 
+import time
 import argparse
 
 from helpers.weibullNines import calculate_weibull_nines
-
-
-def factorial(n):
-    if n == 0:
-        return 1
-    else:
-        return n * factorial(n - 1)
 
 
 def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
@@ -82,7 +75,6 @@ def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
     return [failed_instances, epochs * iters, metrics]
 
 
-
 def get_placement_index(placement):
     place_type = -1
     if placement == 'RAID':
@@ -100,57 +92,55 @@ def get_placement_index(placement):
     return place_type
 
 
-
 # -----------------------------
 # normal Monte Carlo simulation
 # -----------------------------
 def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
-        # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
+    # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
 
-    # for afr in range(2, 11):
-        mission = YEAR
-        failureGenerator = FailureGenerator(afr)
+    mission = YEAR
+    failureGenerator = FailureGenerator(afr)
 
-        place_type = get_placement_index(placement)
-        
-        sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
-                io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
+    place_type = get_placement_index(placement)
+    
+    sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
+            io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
 
-        failed_iters = 0
-        total_iters = 0
-        metrics = Metrics()
+    failed_iters = 0
+    total_iters = 0
+    metrics = Metrics()
 
-        # temp = simulate(sys_state1, iters=10000, epochs=1, concur=1, mission=mission)
-        # return
+    # temp = simulate(sys_state1, iters=10000, epochs=1, concur=1, mission=mission)
+    # return
 
-        # We need to get enough failures in order to compute accurate nines #
-        while failed_iters < 20:
-            logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
-            start  = time.time()
-            res = simulate(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
-            failed_iters += res[0]
-            total_iters += res[1]
-            metrics += res[2]
-            # print(metrics)
-            simulationTime = time.time() - start
-            print("simulation time: {}".format(simulationTime))
-            print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
+    # We need to get enough failures in order to compute accurate nines #
+    while failed_iters < 20:
+        logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+        start  = time.time()
+        res = simulate(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
+        failed_iters += res[0]
+        total_iters += res[1]
+        metrics += res[2]
+        # print(metrics)
+        simulationTime = time.time() - start
+        print("simulation time: {}".format(simulationTime))
+        print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
 
-        total_iters *= mission/YEAR
+    total_iters *= mission/YEAR
 
-        # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
-        nines = str(round(-math.log10(failed_iters/total_iters),3))
-        sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
-        print("Num of Nine: " + nines)
-        print("error sigma: " + sigma)
-        print()
+    # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+    nines = str(round(-math.log10(failed_iters/total_iters),3))
+    sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
+    print("Num of Nine: " + nines)
+    print("error sigma: " + sigma)
+    print()
 
-        output = open("s-result-{}.log".format(placement), "a")
-        output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
-            k_net, p_net, k_local, p_local, total_drives,
-            afr, cap, io_speed, nines, sigma, failed_iters, total_iters, "adapt" if adapt else "notadapt"))
-        output.close()
+    output = open("s-result-{}.log".format(placement), "a")
+    output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
+        k_net, p_net, k_local, p_local, total_drives,
+        afr, cap, io_speed, nines, sigma, failed_iters, total_iters, "adapt" if adapt else "notadapt"))
+    output.close()
 
 
 

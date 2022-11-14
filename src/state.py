@@ -18,6 +18,7 @@ class State:
         self.n = sys.k + sys.m
         self.racks = {}
         self.disks = self.sys.disks
+        
         for diskId in self.disks:
             disk = self.disks[diskId]
             disk.state = Disk.STATE_NORMAL

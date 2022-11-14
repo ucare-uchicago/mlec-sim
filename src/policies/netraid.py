@@ -1,10 +1,5 @@
 from disk import Disk
-import operator as op
-import numpy as np
 import logging
-from functools import reduce
-from rack import Rack
-from constants import RAID_NET
 
 class NetRAID:
     #--------------------------------------
