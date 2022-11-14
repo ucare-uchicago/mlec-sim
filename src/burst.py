@@ -9,10 +9,10 @@ import random
 # Custom stuff
 from failure_generator import FailureGenerator, GoogleBurst
 from util import wait_futures
+from constants.PlacementType import PlacementType, parse_placement
 from constants.time import YEAR
 
 from system import System
-from repair import Repair
 
 from simulate import Simulate
 from mytimer import Mytimer
@@ -121,11 +121,10 @@ def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
         failureGenerator = copy.deepcopy(failureGenerator_)
         sys = copy.deepcopy(sys_)
         mytimer = Mytimer()
-        repair = Repair(sys, sys.place_type)
 
         start = time.time()
         for iter in range(0, iters):
-            sim = Simulate(mission, sys.num_disks, sys, repair)
+            sim = Simulate(mission, sys.num_disks, sys)
             res += sim.run_simulation(failureGenerator, mytimer)
         return (res, mytimer, sys.metrics)
     except Exception as e:
@@ -157,22 +156,6 @@ def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
     return [failed_instances, epochs * iters, metrics]
 
 
-
-def get_placement_index(placement):
-    place_type = -1
-    if placement == 'RAID':
-        place_type = 0
-    elif placement == 'DP':
-        place_type = 1
-    elif placement == 'MLEC':
-        place_type = 2
-    elif placement == 'RAID_NET':
-        place_type = 3
-    elif placement == 'MLEC_DP':
-        place_type = 4
-    return place_type
-
-
 # -----------------------------
 # simulate against bursts
 # -----------------------------
@@ -186,7 +169,7 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
             # failureGenerator = FailureGenerator(afr, ArbitraryBurst(num_failed_disks), is_burst=True)
             failureGenerator = FailureGenerator(afr, CorrelatedBurst(num_failed_disks,num_failed_racks, drives_per_rack), is_burst=True)
 
-            place_type = get_placement_index(placement)
+            place_type = parse_placement(placement)
             
             sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
                     io_speed, 1, k_net, p_net, adapt, rack_fail = 0)

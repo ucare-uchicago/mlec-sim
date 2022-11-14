@@ -8,10 +8,10 @@ import random
 
 # Custom stuff
 from failure_generator import FailureGenerator, GoogleBurst
+from constants.PlacementType import parse_placement, PlacementType
 from util import wait_futures
 
 from system import System
-from repair import Repair
 
 from simulate_burst import Simulate
 from mytimer import Mytimer
@@ -117,16 +117,16 @@ def iter(afr, failure_list, placement, drives_per_rack, iters, *arg):
     try:
         results = []
         for num_failed_racks, num_failed_disks in failure_list:
-            if placement == 'NET_DP':
+            if placement == PlacementType.DP_NET:
                 if num_failed_racks <= p_net:
                     res = 0
                 else:
                     res = iters
             elif num_failed_racks <= p_net:
                 res = 0
-            elif placement == 'DP' and math.ceil(num_failed_disks / num_failed_racks) > p_local:
+            elif placement == PlacementType.DP and math.ceil(num_failed_disks / num_failed_racks) > p_local:
                 res = iters
-            elif placement == 'RAID' and math.ceil(num_failed_disks / num_failed_racks) > p_local * (drives_per_rack // (k_local+p_local))+1:
+            elif placement == PlacementType.RAID and math.ceil(num_failed_disks / num_failed_racks) > p_local * (drives_per_rack // (k_local+p_local))+1:
                 res = iters
             elif num_failed_disks <= p_local:
                 res = 0
@@ -138,16 +138,13 @@ def iter(afr, failure_list, placement, drives_per_rack, iters, *arg):
                 sys = System(*arg, num_disks_per_enclosure=100)
                 
                 mytimer = Mytimer()
-                repair = Repair(sys, sys.place_type)
-
-                
 
                 # start = time.time()
                 # init_time = 0
                 # sim_time = 0
                 for iter in range(0, iters):
                     # temp = time.time()
-                    sim = Simulate(sys.num_disks, sys, repair)
+                    sim = Simulate(sys.num_disks, sys)
                     # init_time += time.time() - temp
                     # temp = time.time()
                     res += sim.run_simulation(failureGenerator, mytimer)
@@ -185,23 +182,6 @@ def simulate(afr, failure_list, placement, drives_per_rack, iters, epochs, concu
     combined_results = sum(ress)
     
     return combined_results
-
-
-
-def get_placement_index(placement):
-    place_type = -1
-    if placement == 'RAID':
-        place_type = 0
-    elif placement == 'DP':
-        place_type = 1
-    elif placement == 'MLEC':
-        place_type = 2
-    elif placement == 'RAID_NET':
-        place_type = 3
-    elif placement == 'MLEC_DP':
-        place_type = 4
-    return place_type
-
 
 # -----------------------------
 # simulate against bursts
@@ -245,7 +225,7 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     # failure_list.append((2,4))
     iters = 5000
     epochs = 200
-    place_type = get_placement_index(placement)
+    place_type = parse_placement(placement)
     start  = time.time()
 
     results = simulate(afr, failure_list, placement, drives_per_rack, iters, epochs, epochs, 

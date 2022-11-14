@@ -3,6 +3,7 @@ from components.rack import Rack
 from system import System
 from typing import Dict
 from mytimer import Mytimer
+from constants.PlacementType import PlacementType
 from policies.policy_factory import get_policy
 from policies.policy import Policy
 
@@ -28,7 +29,7 @@ class State:
             disk.state = Disk.STATE_NORMAL
             disk.priority = 0
             disk.repair_time = {}
-        if self.sys.place_type == 2:
+        if self.sys.place_type == PlacementType.MLEC:
             # rack_repair_data = sys.diskSize * self.n
             rack_repair_data = sys.diskSize * (self.sys.m + 1)
         else:

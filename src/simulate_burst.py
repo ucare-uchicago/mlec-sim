@@ -9,10 +9,9 @@ from constants.PlacementType import PlacementType
 #----------------------------
 
 class Simulate:
-    def __init__(self, num_disks, sys, repair = None):
+    def __init__(self, num_disks, sys):
         #---------------------------------------
         self.sys: System = sys
-        self.repair = repair
         self.place_type = sys.place_type
         #---------------------------------------
         self.num_disks = num_disks
