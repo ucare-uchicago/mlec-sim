@@ -2,7 +2,7 @@ from disk import Disk
 import logging
 from rack import Rack
 from policies.policy import Policy
-from pdl import flat_cluster_pdl
+from .pdl import flat_cluster_pdl
 
 class RAID(Policy):
     #--------------------------------------

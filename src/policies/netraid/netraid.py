@@ -1,7 +1,7 @@
 from disk import Disk
 import logging
 from policies.policy import Policy
-from pdl import net_raid_pdl
+from .pdl import net_raid_pdl
 
 class NetRAID(Policy):
     #--------------------------------------

@@ -2,8 +2,8 @@ from disk import Disk
 from policies.policy import Policy
 
 import logging
-import pdl
 from helpers import netdp_prio
+from .pdl import network_decluster_pdl
 
 class NetDP(Policy):
     
@@ -165,4 +165,4 @@ class NetDP(Policy):
         return self.sys.num_disks - len(self.state.failed_disks)
     
     def check_pdl(self):
-        return pdl.check_pdl(self.state)
+        return network_decluster_pdl(self.state)

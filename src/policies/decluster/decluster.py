@@ -3,7 +3,7 @@ import logging
 from rack import Rack
 from policies.policy import Policy
 from helpers.common_math import ncr
-from pdl import flat_decluster_pdl
+from .pdl import flat_decluster_pdl
 
 
 class Decluster(Policy):
