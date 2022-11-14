@@ -7,7 +7,6 @@ from helpers.common_math import ncr
 from .pdl import flat_decluster_pdl
 from .repair import decluster_repair
 
-
 class Decluster(Policy):
     #--------------------------------------
     # system state consists of disks state
