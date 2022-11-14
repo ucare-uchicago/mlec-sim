@@ -1,14 +1,16 @@
-from system import System
+from __future__ import annotations
+import typing
+
+if typing.TYPE_CHECKING:
+    from system import System
+    from state import State
+
 from components.disk import Disk
-from constants.PlacementType import PlacementType
-
-from typing import Tuple, Optional
-
 
 class Policy:
     
-    def __init__(self, state) -> None:
-        self.state = state
+    def __init__(self, state: State) -> None:
+        self.state: State = state
         self.sys: System = state.sys
         
         self.curr_time: float = state.curr_time
