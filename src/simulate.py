@@ -20,11 +20,10 @@ from typing import Tuple, Optional
 
 class Simulate:
     
-    def __init__(self, mission_time, num_disks, sys: System, repair = None):
+    def __init__(self, mission_time, num_disks, sys: System):
         self.mission_time = mission_time
         #---------------------------------------
         self.sys: System = sys
-        self.repair = repair
         #---------------------------------------
         self.num_disks = num_disks
         self.failure_queue = []

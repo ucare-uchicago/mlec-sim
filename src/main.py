@@ -13,7 +13,6 @@ from constants.time import YEAR
 from constants.PlacementType import parse_placement, PlacementType
 
 from system import System
-from repair import Repair
 
 from simulate import Simulate
 from mytimer import Mytimer
@@ -31,13 +30,12 @@ def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
         failureGenerator = copy.deepcopy(failureGenerator_)
         sys = copy.deepcopy(sys_)
         mytimer: Mytimer = Mytimer()
-        repair = Repair(sys, sys.place_type)
 
         start = time.time()
         for iter in range(0, iters):
             # logging.info("")
             temp = time.time()
-            sim = Simulate(mission, sys.num_disks, sys, repair)
+            sim = Simulate(mission, sys.num_disks, sys)
             mytimer.simInitTime += time.time() - temp
             res += sim.run_simulation(failureGenerator, mytimer)
         end = time.time()
