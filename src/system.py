@@ -1,10 +1,7 @@
 import numpy as np
-import random
 import logging
-from rack import Rack
 from metrics import Metrics
 from disk import Disk
-
 
 
 #----------------------------
@@ -130,22 +127,9 @@ class System:
         self.num_diskgroups = self.num_disks // self.n
         self.num_diskgroup_stripesets = self.num_diskgroups // self.top_n
         self.diskgroup_stripesets = []
-        
-
-
-
         # print(self.rack_stripesets)
         # print(self.stripesets_per_racks)
         
-
-
-
-        
-        
-
-
-
-
     def net_raid_layout(self):
         stripe_width = self.top_k + self.top_m
         num_rack_group = self.num_racks // stripe_width
@@ -169,9 +153,6 @@ class System:
         self.net_raid_stripesets_layout = sets
         logging.info("* there are {} stripesets:\n{}".format(
                 num_stripesets, sets))
-
- 
-
 
 if __name__ == "__main__":
     logger = logging.getLogger()
