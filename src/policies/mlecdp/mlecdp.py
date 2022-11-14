@@ -4,7 +4,7 @@ from rack import Rack
 from system import System
 from policies.policy import Policy
 from helpers.common_math import ncr
-from pdl import mlec_dp_pdl
+from .pdl import mlec_dp_pdl
 
 class MLECDP(Policy):
     #--------------------------------------
@@ -171,7 +171,7 @@ class MLECDP(Policy):
                 return rackId
         
         if event_type == Rack.EVENT_FAIL:
-            rackID = diskId
+            rackId = diskId
             rackGroupId = rackId // self.sys.top_n
             self.racks[rackId].state = Rack.STATE_FAILED
             self.failed_racks[rackId] = 1

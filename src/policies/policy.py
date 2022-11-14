@@ -1,11 +1,10 @@
 from system import System
 from disk import Disk
-from state import State
 
 class Policy:
     
-    def __init__(self, state: State) -> None:
-        self.state: State = state
+    def __init__(self, state) -> None:
+        self.state = state
         self.sys: System = state.sys
         
         self.curr_time: float = state.curr_time

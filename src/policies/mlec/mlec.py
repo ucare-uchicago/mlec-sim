@@ -4,7 +4,7 @@ import time
 from diskgroup import Diskgroup
 from heapq import heappush
 from policies.policy import Policy
-from pdl import mlec_cluster_pdl
+from .pdl import mlec_cluster_pdl
 
 class MLEC(Policy):
     #--------------------------------------

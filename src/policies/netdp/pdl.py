@@ -1,6 +1,6 @@
 import logging
 
-def check_pdl(state):
+def network_decluster_pdl(state):
     # prob = 0
     
     # # If there are more than m racks that contains failures
