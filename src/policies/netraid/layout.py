@@ -1,10 +1,13 @@
-from system import System
+from __future__ import annotations
+import typing
+
+if typing.TYPE_CHECKING:
+    from system import System
 
 def net_raid_layout(sys: System):
     stripe_width = sys.top_k + sys.top_m
     num_rack_group = sys.num_racks // stripe_width
     num_stripesets = sys.num_disks_per_rack * num_rack_group
-    
     
     sets = {}
     for i in range(num_stripesets):

@@ -1,4 +1,8 @@
-from system import System
+from __future__ import annotations
+import typing
+
+if typing.TYPE_CHECKING:
+    from system import System
 
 def net_dp_layout(sys: System):
     # Same as flat decluster

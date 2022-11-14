@@ -1,8 +1,14 @@
+from __future__ import annotations
+import typing
+
+if typing.TYPE_CHECKING:
+    from system import System
+    from state import State
+
 import logging
 
 from components.disk import Disk
 from components.rack import Rack
-from system import System
 from policies.policy import Policy
 from helpers.common_math import ncr
 from .pdl import mlec_dp_pdl
@@ -12,7 +18,7 @@ class MLECDP(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
-    def __init__(self, state):
+    def __init__(self, state: State):
         super().__init__(state)
         self.sys: System = state.sys
         self.n: int = state.n
