@@ -1,30 +1,19 @@
-from inspect import trace
-from multiprocessing.pool import ThreadPool
-from placement import Placement
-from repair import Repair
-from state import State
-from disk import Disk
-from rack import Rack
 from heapq import *
 import logging
-import time
-import sys
-from constants import debug, YEAR
+from constants.time import YEAR
 import numpy as np
-import time
 import os
 from mytimer import Mytimer
-import random
+from system import System
 #----------------------------
 # Logging Settings
 #----------------------------
 
 class Simulate:
-    def __init__(self, num_disks, sys = None, repair = None, placement = None):
+    def __init__(self, num_disks, sys, repair = None):
         #---------------------------------------
-        self.sys = sys
+        self.sys: System = sys
         self.repair = repair
-        self.placement = placement
         self.place_type = sys.place_type
         #---------------------------------------
         self.num_disks = num_disks
@@ -34,7 +23,7 @@ class Simulate:
     #----------------------------------------------------------------
     # run simulation based on statistical model or production traces
     #----------------------------------------------------------------
-    def run_simulation(self, failureGenerator, mytimer):
+    def run_simulation(self, failureGenerator, mytimer) -> int:
         logging.info("---------")
 
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
@@ -49,6 +38,8 @@ class Simulate:
             return self.network_cluster_check_burst(failures)
         if self.place_type == 4:
             return self.mlec_decluster_check_burst(failures)
+        
+        raise NotImplementedError("placement type not recognized")
 
 
     def flat_cluster_check_burst(self, failures):

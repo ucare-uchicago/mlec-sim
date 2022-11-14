@@ -9,9 +9,7 @@ import random
 # Custom stuff
 from failure_generator import FailureGenerator, GoogleBurst
 from util import wait_futures
-from constants import debug, YEAR
 
-from placement import Placement
 from system import System
 from repair import Repair
 
@@ -141,7 +139,6 @@ def iter(afr, failure_list, placement, drives_per_rack, iters, *arg):
                 
                 mytimer = Mytimer()
                 repair = Repair(sys, sys.place_type)
-                placement = Placement(sys, sys.place_type)
 
                 
 
@@ -150,7 +147,7 @@ def iter(afr, failure_list, placement, drives_per_rack, iters, *arg):
                 # sim_time = 0
                 for iter in range(0, iters):
                     # temp = time.time()
-                    sim = Simulate(sys.num_disks, sys, repair, placement)
+                    sim = Simulate(sys.num_disks, sys, repair)
                     # init_time += time.time() - temp
                     # temp = time.time()
                     res += sim.run_simulation(failureGenerator, mytimer)

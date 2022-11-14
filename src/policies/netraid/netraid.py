@@ -1,12 +1,14 @@
 from disk import Disk
 import logging
+from policies.policy import Policy
+from pdl import net_raid_pdl
 
-class NetRAID:
+class NetRAID(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
     def __init__(self, state):
-        self.state = state
+        super().__init__(state)
         self.sys = state.sys
         self.n = state.n
         self.racks = state.racks
@@ -18,25 +20,6 @@ class NetRAID:
     #----------------------------------------------
     # raid net
     #----------------------------------------------
-
-    def update_disk_state(self, event_type, diskId):
-        rackId = diskId // self.sys.num_disks_per_rack
-        if event_type == Disk.EVENT_REPAIR:
-            self.disks[diskId].state = Disk.STATE_NORMAL
-            self.racks[rackId].failed_disks.pop(diskId, None)
-            self.failed_disks.pop(diskId, None)
-            # logging.info("rack {} after pop: {}".format(rackId, self.racks[rackId].failed_disks))
-            
-            
-        if event_type == Disk.EVENT_FAIL:
-            self.disks[diskId].state = Disk.STATE_FAILED
-            self.racks[rackId].failed_disks[diskId] = 1
-            self.failed_disks[diskId] = 1
-            # logging.info("rack {} after add: {}".format(rackId, self.racks[rackId].failed_disks))
-
-
-
-
     def update_disk_priority(self, event_type, diskId):
         if event_type == Disk.EVENT_REPAIR:
             disk = self.disks[diskId]
@@ -80,3 +63,6 @@ class NetRAID:
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
         logging.info("  curr time: {}  repair time: {}  finish time: {}".format(self.curr_time, disk.repair_time[0], disk.estimate_repair_time))
+
+    def check_pdl(self):
+        return net_raid_pdl(self.state)

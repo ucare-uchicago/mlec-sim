@@ -1,6 +1,10 @@
 from disk import Disk
 from rack import Rack
+from system import System
+from typing import Dict
 from policies import *
+from mytimer import Mytimer
+from policies.policy import Policy
 
 class State:
     #--------------------------------------
@@ -12,11 +16,11 @@ class State:
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
-    def __init__(self, sys, mytimer=None):
+    def __init__(self, sys, mytimer):
         #----------------------------------
-        self.sys = sys
-        self.n = sys.k + sys.m
-        self.racks = {}
+        self.sys: System = sys
+        self.n: int = sys.k + sys.m
+        self.racks: Dict[int, Rack] = {}
         self.disks = self.sys.disks
         
         for diskId in self.disks:
@@ -34,29 +38,27 @@ class State:
         self.stripeset_num_per_rack = sys.num_disks_per_rack // self.n
         for rackId in self.sys.racks:
             self.racks[rackId] = Rack(rackId, rack_repair_data, self.stripeset_num_per_rack)
-        self.curr_time = 0
+        self.curr_time: float = 0.0
         self.failed_disks = {}
         self.failed_racks = {}
         self.repairing = True
         self.repair_start_time = 0
 
-        self.mytimer = mytimer
+        self.mytimer: Mytimer = mytimer
 
         if self.sys.place_type == 0:
-            self.policy = RAID(self)
+            self.policy: Policy = RAID(self)
         elif self.sys.place_type == 1:
-            self.policy = Decluster(self)
+            self.policy: Policy = Decluster(self)
         elif self.sys.place_type == 2:
-            self.policy = MLEC(self)
+            self.policy: Policy = MLEC(self)
         elif self.sys.place_type == 3:
-            self.policy = NetRAID(self)
+            self.policy: Policy = NetRAID(self)
         elif self.sys.place_type == 4:
-            self.policy = MLECDP(self)
+            self.policy: Policy = MLECDP(self)
         elif self.sys.place_type == 5:
-            self.policy = NetDP(self)
+            self.policy: Policy = NetDP(self)
         #----------------------------------
-        
-
 
 
     def update_curr_time(self, curr_time):
@@ -64,42 +66,6 @@ class State:
         self.policy.curr_time = curr_time
 
 
-
-    #----------------------------------------------
-    # update disk state
-    #----------------------------------------------
-    def update_disk_state(self, event_type, diskId):
-        return self.policy.update_disk_state(event_type, diskId)
-
-
-    #----------------------------------------------
-    # update disk priority and compute disk repair time
-    #----------------------------------------------
-    def update_disk_priority(self, event_type, diskset):
-        return self.policy.update_disk_priority(event_type, diskset)
-
-
-    #----------------------------------------------
-    # update rack state
-    #----------------------------------------------
-    def update_rack_state(self, event_type, diskId):
-        return self.policy.update_rack_state(event_type, diskId)
-
-
-
-
-                                
-    
-    #----------------------------------------------
-    # update network-level priority
-    #----------------------------------------------
-    def update_rack_priority(self, event_type, new_failed_rack, diskId):
-        self.policy.update_rack_priority(event_type, new_failed_rack, diskId)
-
-
-
-    def update_diskgroup_state(self, event_type, diskId):
-        return self.policy.update_diskgroup_state(event_type, diskId)
 
     
     # This returns array [{rackId: failedDisks}, numRacksWithFailure]

@@ -2,10 +2,13 @@ from disk import Disk
 from policies.policy import Policy
 
 import logging
+import pdl
 from helpers import netdp_prio
 
 class NetDP(Policy):
     
+    def __init__(self, state):
+        super().__init__(state)
     
     def update_disk_priority(self, event_type, diskId: int):
         
@@ -131,9 +134,6 @@ class NetDP(Policy):
         
         logging.info("Time needed for repair %s d, will be repaired at day %s", (repair_time / 3600 / 24), disk.estimate_repair_time)
         
-        
-    
-
     def calc_repair_time(self, disk, failed_racks, priority):
         # For read parallelism, we need to sum all the surviving disks outside of the impacted racks
         # Note that this is an assumption made to reduce the complexity of the simulation
@@ -163,3 +163,6 @@ class NetDP(Policy):
     def calc_parallelism(self, failed_racks, exp=False):
         # return (len(self.racks) - failed_racks) * self.sys.num_disks_per_rack
         return self.sys.num_disks - len(self.state.failed_disks)
+    
+    def check_pdl(self):
+        return pdl.check_pdl(self.state)

@@ -1,33 +1,31 @@
-from inspect import trace
-from multiprocessing.pool import ThreadPool
-from placement import Placement
-from repair import Repair
 from state import State
+from system import System
 from disk import Disk
 from rack import Rack
-from heapq import *
+from heapq import heappush, heappop
 import logging
 import time
-import sys
 from constants.time import YEAR
 import numpy as np
 import time
 import os
-from mytimer import Mytimer
 import random
+
+from typing import Tuple, Optional
 #----------------------------
 # Logging Settings
 #----------------------------
 
 class Simulate:
-    def __init__(self, mission_time, num_disks, sys = None, repair = None, placement = None):
+    def __init__(self, mission_time, num_disks, sys: System, repair = None):
         self.mission_time = mission_time
         #---------------------------------------
-        self.sys = sys
+        self.sys: System = sys
         self.repair = repair
-        self.placement = placement
         #---------------------------------------
         self.num_disks = num_disks
+        self.failure_queue = []
+        self.repair_queue = []
 
 
     #------------------------------------------
@@ -40,7 +38,7 @@ class Simulate:
         self.failure_queue = []
         self.repair_queue = []
 
-        self.sys.priority_per_set = {}
+        # self.sys.priority_per_set = {}
 
         self.state = State(self.sys, mytimer)
 
@@ -85,7 +83,7 @@ class Simulate:
     #------------------------------------------
     
     #------------------------------------------
-    def get_next_event(self):
+    def get_next_event(self) -> Optional[Tuple[float, str, int]]:
         if self.failure_queue or self.repair_queue:
             if len(self.repair_queue) == 0:
                 next_event = heappop(self.failure_queue)
@@ -99,10 +97,8 @@ class Simulate:
                 else:
                     next_event = heappop(self.repair_queue)
             return next_event
-        return (None, None, None)
         
-
-
+        return None
 
     #----------------------------------------------------------------
     # run simulation based on statistical model or production traces
@@ -126,23 +122,24 @@ class Simulate:
             #---------------------------
             # extract the next event
             #---------------------------
-            (event_time, event_type, diskId) = self.get_next_event()
+            next_event = self.get_next_event()
+            if next_event is None:
+                break
+            
+            (event_time, event_type, diskId) = next_event
             getEventEndTime = time.time()
 
             # logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
             
-            if event_time == None:
-                break
-
             #--------------------------------------
             # update all disks state/priority
             #--------------------------------------
             curr_time = event_time
             self.state.update_curr_time(curr_time)
 
-            self.state.update_disk_state(event_type, diskId)
+            self.state.policy.update_disk_state(event_type, diskId)
 
-            self.state.update_disk_priority(event_type, diskId)
+            self.state.policy.update_disk_priority(event_type, diskId)
 
             #--------------------------------------
             # In MLEC-RAID, each disk group contains n=k+m disks. A rack can have multiple diskgroups
@@ -151,7 +148,7 @@ class Simulate:
             # Note that other disk groups in this rack can be healthy and don't need repair
             #--------------------------------------
             if self.sys.place_type in [2]:
-                new_diskgroup_failure = self.state.update_diskgroup_state(event_type, diskId)
+                new_diskgroup_failure = self.state.policy.update_diskgroup_state(event_type, diskId)
                 if new_diskgroup_failure != None:
                     self.state.update_diskgroup_priority(event_type, new_diskgroup_failure, diskId)
 
@@ -160,9 +157,9 @@ class Simulate:
             # If the rack has m+1 or more disk failures, then we need to repair the rack
             #--------------------------------------
             if self.sys.place_type in [4]:
-                new_rack_failure = self.state.update_rack_state(event_type, diskId)
+                new_rack_failure = self.state.policy.update_rack_state(event_type, diskId)
                 if new_rack_failure != None:
-                    self.state.update_rack_priority(event_type, new_rack_failure, diskId)
+                    self.state.policy.update_rack_priority(event_type, new_rack_failure, diskId)
 
             #---------------------------
             # exceed mission-time, exit
@@ -187,7 +184,7 @@ class Simulate:
             #---------------------------
             if event_type == Disk.EVENT_FAIL or event_type == Rack.EVENT_FAIL:
                 #curr_failures = self.state.get_failed_disks()
-                if self.placement.check_data_loss_prob(self.state):
+                if self.state.policy.check_pdl():
                     prob = 1
                     logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     # loss_events = self.placement.check_data_loss_events(self.state)

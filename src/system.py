@@ -3,6 +3,9 @@ import logging
 from metrics import Metrics
 from disk import Disk
 
+from typing import Dict, List
+from numpy.typing import NDArray
+
 
 #----------------------------
 # Configuration of the system
@@ -10,23 +13,23 @@ from disk import Disk
 
 class System:
     def __init__(self, num_disks, num_disks_per_rack, k, m, place_type, diskCap, rebuildRate,
-                    utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = False, num_disks_per_enclosure = -1):
+                    utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = 0, num_disks_per_enclosure = -1):
         #--------------------------------------------
         # Set up the system parameters
         #--------------------------------------------
-        self.num_disks_per_rack = num_disks_per_rack
+        self.num_disks_per_rack: int = num_disks_per_rack
         #--------------------------------------------
         # set up the system racks, disks
         #--------------------------------------------
-        self.num_disks = num_disks
-        self.disks = {}
+        self.num_disks: int = num_disks
+        self.disks: Dict[int, Disk] = {}
         for diskId in range(num_disks):
             disk = Disk(diskId, diskCap)
             self.disks[diskId] = disk
         #--------------------------------------------
         # Set the system system layout
         #--------------------------------------------
-        self.disks_per_rack = {}
+        self.disks_per_rack: Dict[int, NDArray] = {}
         #--------------------------------------------
         # record racks/disks inside each rack
         #--------------------------------------------
@@ -34,7 +37,7 @@ class System:
             self.num_racks = self.num_disks//self.num_disks_per_rack
         else:
             self.num_racks = self.num_disks//self.num_disks_per_rack+1
-        self.racks = range(self.num_racks)
+        self.racks: range = range(self.num_racks)
         for rackId in self.racks:
             if rackId == 0:
                 self.disks_per_rack[rackId] = np.array(range(num_disks_per_rack))
@@ -43,12 +46,12 @@ class System:
         #--------------------------------------------
         # set up the erasure coding configuration
         #--------------------------------------------
-        self.k = k
-        self.m = m
-        self.n = m + k
-        self.top_k = top_k
-        self.top_m = top_m
-        self.top_n = top_m + top_k
+        self.k: int = k
+        self.m: int = m
+        self.n: int = m + k
+        self.top_k: int = top_k
+        self.top_m: int = top_m
+        self.top_n: int = top_m + top_k
         #--------------------------------------------
         self.place_type = place_type
         if place_type == 0:
@@ -66,17 +69,17 @@ class System:
         else:
             raise NotImplementedError("The placment type does not have a defined layout")
         #--------------------------------------------
-        self.diskSize = diskCap
-        self.diskIO = rebuildRate
-        self.utilizeRatio = utilizeRatio
-        self.adapt = adapt
-        self.rack_fail = rack_fail
-        self.metrics = Metrics()
+        self.diskSize: int = diskCap
+        self.diskIO: int = rebuildRate
+        self.utilizeRatio: float = utilizeRatio
+        self.adapt: bool = adapt
+        self.rack_fail: int = rack_fail
+        self.metrics: Metrics = Metrics()
         # ----------
         if num_disks_per_enclosure == -1:
-            self.num_disks_per_enclosure = self.num_disks_per_rack
+            self.num_disks_per_enclosure: int = self.num_disks_per_rack
         else:
-            self.num_disks_per_enclosure = num_disks_per_enclosure
+            self.num_disks_per_enclosure: int = num_disks_per_enclosure
 
 
     def flat_cluster_layout(self):

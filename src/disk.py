@@ -1,3 +1,5 @@
+from typing import Optional
+
 class Disk:
     #----------------------------------
     # The 2 possible state
@@ -18,9 +20,9 @@ class Disk:
         #-------------------------------
         # initialize the state be normal
         #-------------------------------
-        self.diskId = diskId
-        self.rackId = 0
-        self.stripesetId = 0
+        self.diskId: int = diskId
+        self.rackId: int = 0
+        self.stripesetId: int = 0
         #-------------------------------
         # initialize the state be normal
         #-------------------------------
@@ -35,10 +37,13 @@ class Disk:
         self.repair_time = {}
         self.repair_data = repair_data
         #-------------------------------
-        # self.repair_start_time = 0
-        # self.curr_repair_data_remaining = 0
-        # self.good_num = 0
-        # self.fail_num = 0
+        # initialize repair metrics
+        #-------------------------------
+        self.repair_start_time: float = 0
+        self.estimate_repair_time: float = 0
+        self.curr_repair_data_remaining: float = 0
+        self.good_num: int = 0
+        self.fail_num: int = 0
 
 
     def update_disk_state(self, state):
@@ -47,9 +52,4 @@ class Disk:
     # Override toString()
     def __str__(self):
         return "[dId: {}, rId: {}, sId: {}, state: {}, prio: {}]".format(self.diskId, self.rackId, self.stripesetId, self.state, self.priority)
-
-
-if __name__ == "__main__":
-    disk = Disk(20)
-    disk.update_disk(10, "normal")
             
