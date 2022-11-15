@@ -33,13 +33,13 @@ def find_all_lists(num_failed_disks, num_affected_racks, disks_per_rack):
 
 
 def burst_theory(k_local, p_local, k_net, p_net, 
-                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks):
+                total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks):
     if placement == 'RAID':
         burst_theory_raid(k_local, p_local, k_net, p_net, 
                 total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
-    if placement == 'RAID_NET':
-        burst_theory_raid(k_local, p_local, k_net, p_net, 
-                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
+    if placement == 'DP':
+        burst_theory_dp(k_local, p_local, k_net, p_net, 
+                total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks)
 
 
 
@@ -130,27 +130,72 @@ def burst_theory_raid(k_local, p_local, k_net, p_net,
 
 
 
-# ##############################
-# # network-only slec clusteredc (network RAID)
-# ##############################
+##############################
+# local-only slec declustered (local DP)
+##############################
 
-# def survival_case_raid_net(k_local, p_local, k_net, p_net, 
-#                 total_drives, drives_per_rack, placement, all_possible_fail_disks_per_rack):
+dp_helper = {}
+def survival_case_dp(k_local, p_local, k_net, p_net, 
+                total_drives, drives_per_rack, drives_per_diskgroup, placement, all_possible_fail_disks_per_rack):
+    survival_cases = 0
+    for failure_list in all_possible_fail_disks_per_rack:
+        cases = 1
+        for failures_per_rack in failure_list:
+            num_diskgroups_per_rack = drives_per_rack // drives_per_diskgroup
+            # assume failures_per_rack = M > 1
+            # suppose disk group size is d
+            # then a rack has g = M/d disk groups
+            # here we have x1+x2+x3+...+xg = M
+            # for every x we want 0<=x<=p_local
+            # how many possible divisions?
+            # for every possible division, how many possible combinations? It should be C(d,x1)*C(d,x2)*...C(d,x)
+            # Here we resolve this problem using backtracking algorithm
+            def helper(k_local, p_local, failures_per_rack, num_diskgroups_per_rack, drives_per_diskgroup):
+                if p_local == 0:
+                    return 0
+                if failures_per_rack < 0:
+                    return 0
+                if failures_per_rack == 0:
+                    return 1
+                if (k_local, p_local, failures_per_rack, num_diskgroups_per_rack, drives_per_diskgroup) in dp_helper:
+                    return dp_helper[(k_local, p_local, failures_per_rack, num_diskgroups_per_rack, drives_per_diskgroup)]
 
+                num_disks_per_rack = drives_per_diskgroup * num_diskgroups_per_rack
+                # only one disk group. Easy as we simply check if failure # larger than parity
+                if num_diskgroups_per_rack == 1:
+                    if failures_per_rack <= p_local:
+                        dp_helper[(k_local, p_local, failures_per_rack, num_diskgroups_per_rack, drives_per_diskgroup)] = (
+                            math.comb(num_disks_per_rack, failures_per_rack))
+                    else:
+                        dp_helper[(k_local, p_local, failures_per_rack, num_diskgroups_per_rack, drives_per_diskgroup)] = 0
+                    return dp_helper[(k_local, p_local, failures_per_rack, num_diskgroups_per_rack, drives_per_diskgroup)]
+                # only one failure. Then just a random disk in the rack
+                if failures_per_rack == 1:
+                    dp_helper[(k_local, p_local, failures_per_rack, num_diskgroups_per_rack, drives_per_diskgroup)] = num_disks_per_rack
+                    return num_disks_per_rack
+                count = 0
+                # dynamic programming. Suppose one disk group contains i failures:
+                for i in range(p_local+1):
+                    if i > failures_per_rack:
+                        break
+                    count += helper(k_local, p_local, failures_per_rack - i, num_diskgroups_per_rack - 1, drives_per_diskgroup) * math.comb(drives_per_diskgroup, i)
+                dp_helper[(k_local, p_local, failures_per_rack, num_diskgroups_per_rack, drives_per_diskgroup)] = count
+                return count
+            
+            cases *= helper(k_local, p_local, failures_per_rack, num_diskgroups_per_rack, drives_per_diskgroup)
+            # print("failures_per_rack: {} num_diskgroups_per_rack: {} . helper: {}".format(
+            #             failures_per_rack, num_diskgroups_per_rack, helper(k_local, p_local, failures_per_rack, num_diskgroups_per_rack)))
+        # print("failure_list: {}, raid cases: {}".format(failure_list, cases))
+        survival_cases += cases
+    return survival_cases
 
-
-
-
-def burst_theory_raid_net(k_local, p_local, k_net, p_net, 
-                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks):
+def burst_theory_dp(k_local, p_local, k_net, p_net, 
+                total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks):
     all_possible_fail_disks_per_rack = find_all_lists(num_failed_disks, num_affected_racks, drives_per_rack)
-    # we first randomly pick affected racks. We then count instances given affected racks.
-    num_racks = total_drives // drives_per_rack
-    total = math.comb(num_racks, num_affected_racks) * total_cases(k_local, p_local, k_net, p_net, 
+    total = total_cases(k_local, p_local, k_net, p_net, 
                 total_drives, drives_per_rack, placement, all_possible_fail_disks_per_rack)
-                
-    survival = survival_case_raid(k_local, p_local, k_net, p_net, 
-                total_drives, drives_per_rack, placement, all_possible_fail_disks_per_rack)
+    survival = survival_case_dp(k_local, p_local, k_net, p_net, 
+                total_drives, drives_per_rack, drives_per_diskgroup, placement, all_possible_fail_disks_per_rack)
 
     dl_prob = 1 - survival/total
     print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
@@ -170,6 +215,7 @@ if __name__ == "__main__":
     parser.add_argument('-p_net', type=int, help="number of parity chunks in network EC", default=1)
     parser.add_argument('-total_drives', type=int, help="number of total drives in the system", default=-1)
     parser.add_argument('-drives_per_rack', type=int, help="number of drives per rack", default=-1)
+    parser.add_argument('-drives_per_diskgroup', type=int, help="number of drives per disk group", default=-1)
     parser.add_argument('-placement', type=str, help="placement policy. Can be RAID/DP/MLEC/LRC", default='MLEC')
     args = parser.parse_args()
 
@@ -187,6 +233,10 @@ if __name__ == "__main__":
     if drives_per_rack == -1:
         drives_per_rack=k_local+p_local
     
+    drives_per_diskgroup = args.drives_per_diskgroup
+    if drives_per_diskgroup == -1:
+        drives_per_diskgroup = drives_per_rack
+    
     placement = args.placement
     if placement in ['RAID', 'DP']:
         k_net = 1
@@ -203,4 +253,4 @@ if __name__ == "__main__":
     for num_failed_disks in range(1, 21):
         for num_affected_racks in range(1, min(num_failed_disks, 20)+1):
             burst_theory(k_local, p_local, k_net, p_net, 
-                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
+                total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks)
