@@ -41,7 +41,7 @@ S(f,r,M) = \{(f_0, f_1, ..., f_{r-1}) | \sum_{\substack{0 \leq i \leq r-1 \\ 1 \
 \end{eqnarray}
 
 
-For each $(f_0, f_2, ..., f_{r-1})$, there are $\prod_{i=0}^{r-1}C_{M}^{f_i}$ instances.
+For each $(f_0, f_1, ..., f_{r-1})$, there are $\prod_{i=0}^{r-1}C_{M}^{f_i}$ instances.
 
 Therefore, the total number of instances is:
 \begin{eqnarray}
@@ -65,13 +65,13 @@ One key here is how to get $S(f,r,M)$. Note that we have the following recurrenc
 
 By using formula \ref{eq:total_bt}, we can get $S(f,r,M)$ using backtracking algorithm or dynamic programming. Here is an implementation using backtracking algorithm: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/burst_theory.py#L14}
 
-\section{Survival instances under RAID}
+\section{Survival instances under local clustered (RAID)}\label{sec-raid}
 
 Consider $k_l+p_l$ local-only SLEC. For easier deployment we assume $n_l=k_l+p_l$ is divisible by Z.
 
 $n_l$ drives in the same enclosure compose a RAID disk group. Therefore a rack contains $g_l = M/n_l$ RAID groups.
 
-For each $(f_0, f_2, ..., f_{r-1}) \in S(f,r,M)$, rack $i$ contains $fi\geq1$ failures. We need to compute for each $f_i$, how many instances can survive the $f_i$ failures in the rack.
+For each $(f_0, f_1, ..., f_{r-1}) \in S(f,r,M)$, rack $i$ contains $fi\geq1$ failures. We need to compute for each $f_i$, how many instances can survive the $f_i$ failures in the rack.
 
 Denote $\eta(f_i, g_l)$ as the number of survival instances in a rack when there are $f_i$ failures in a rack containing $g_l$ $k_l+p_l$ RAID groups.
 
@@ -86,7 +86,7 @@ We have the following recurrence relation (which is derived by considering what 
 
 We can then compute $\eta(f_i, g_l)$ based on recurrence relation \ref{eq:raid:1} and backtracking algorithm. Here is an implementation: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/burst_theory.py#L69}
 
-Therefore, the total survival instances of $(f_0, f_2, ..., f_{r-1})$ is $\prod_{i=0}^{r-1} \eta(f_i, g_l)$.
+Therefore, the total survival instances of $(f_0, f_1, ..., f_{r-1})$ is $\prod_{i=0}^{r-1} \eta(f_i, g_l)$.
 
 Therefore, the total number of survival instances in the whole system is:
 
@@ -106,5 +106,83 @@ Therefore, the probability of data loss under $f$ failures on $r$ racks for RAID
 \end{aligned}
 \label{eq:raid:3}
 \end{eqnarray}
+
+
+
+\section{Survival instances under local declustered parity}
+
+It's similar to local clustered erasure in \ref{sec-raid}, but now the size of the disk group is usually larger than $n_l$. 
+
+Suppose the size of the disk group is $D$, usually $n_l \leq D \leq Z$, where $Z$ is the size of the enclosure.
+
+If any disk group has more than $p_l$ disk failures, then there is data loss.
+
+So now a rack contains $g_l = M/D$ RAID groups.
+
+
+Denote $\eta(f_i, g_l)$ as the number of survival instances in a rack when there are $f_i$ failures in a rack containing $g_l$ disks groups, each group contains $D$ disks and do $k_l+p_l$ declustered erasure.
+
+We have the following recurrence relation:
+
+\begin{eqnarray}
+\begin{aligned}
+  \eta(f_i, g_l) &= \sum_{\substack{0 \leq a \leq p_l \\ a\leq f_i}} \eta(f_i-a, g_l-1) \cdot C(D, a)
+\end{aligned}
+\label{eq:dp:1}
+\end{eqnarray}
+
+
+Therefore, the total number of survival instances in the whole system is:
+
+\begin{eqnarray}
+C_{X}^{r} \cdot \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1} \eta(f_i, g_l)
+\label{eq:dp:2}
+\end{eqnarray}
+
+Therefore, the probability of data loss under $f$ failures on $r$ racks for RAID is:
+
+\begin{eqnarray}
+\begin{aligned}
+\text{Declustered data loss} &= \frac{C_{X}^{r} \cdot \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1} \eta(f_i, g_l)} 
+{C_{X}^{r} \cdot \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1}C_{M}^{f_i}}\\
+&= \frac{ \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1} \eta(f_i, g_l)} 
+{\sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1}C_{M}^{f_i}}
+\end{aligned}
+\label{eq:dp:3}
+\end{eqnarray}
+
+
+\section{Survival instances under network clustered erasure}
+
+TBD, this is more challenging.
+
+\section{Survival instances under network declustered erasure}
+
+This is easy.
+
+Consider $n_n=k_n+p_n$ network-only declustered erasure.
+
+There is data loss whenever there are more than $p_n$ affected racks.
+
+Therefore:
+
+\begin{eqnarray}
+  \text{Net-declus Data loss} =
+    \begin{cases}
+      1 & \text{if $r > p_n$}\\
+      0 & \text{otherwise}
+    \end{cases}       
+\label{eq:net_dp:1}
+\end{eqnarray}
+
+where $r$ is the number of affected racks.
+
+\section{Survival instances under MLEC clustered}
+
+TBD
+
+\section{Survival instances under MLEC Declustered}
+
+TBD
 
 \end{document}
