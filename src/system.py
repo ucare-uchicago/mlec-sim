@@ -2,6 +2,7 @@ import numpy as np
 import logging
 from metrics import Metrics
 from components.disk import Disk
+from components.network import Network
 from constants.PlacementType import PlacementType
 from policies.policy_factory import config_system_layout
 
@@ -76,6 +77,11 @@ class System:
             self.num_disks_per_enclosure: int = self.num_disks_per_rack
         else:
             self.num_disks_per_enclosure: int = num_disks_per_enclosure
+        #----------------------
+        # initialize network
+        #----------------------
+        # static value for now
+        self.network: Network = Network(self, 10000, 1000)
 
 
 if __name__ == "__main__":

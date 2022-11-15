@@ -39,8 +39,8 @@ def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
             mytimer.simInitTime += time.time() - temp
             res += sim.run_simulation(failureGenerator, mytimer)
         end = time.time()
-        # print("totaltime: {}".format(end - start))
-        # print(mytimer)
+        print("totaltime: {}".format((end - start) * 1000))
+        print(mytimer)
         return (res, mytimer, sys.metrics)
     except Exception as e:
         print(traceback.format_exc())
@@ -94,17 +94,17 @@ def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     # return
 
     # We need to get enough failures in order to compute accurate nines #
-    while failed_iters < 20:
-        logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
-        start  = time.time()
-        res = simulate(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
-        failed_iters += res[0]
-        total_iters += res[1]
-        metrics += res[2]
-        # print(metrics)
-        simulationTime = time.time() - start
-        print("simulation time: {}".format(simulationTime))
-        print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
+    # while failed_iters < 20:
+    logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+    start  = time.time()
+    res = simulate(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
+    failed_iters += res[0]
+    total_iters += res[1]
+    metrics += res[2]
+    # print(metrics)
+    simulationTime = time.time() - start
+    print("simulation time: {}".format(simulationTime))
+    print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
 
     total_iters *= mission/YEAR
 
@@ -113,8 +113,7 @@ def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
     print("Num of Nine: " + nines)
     print("error sigma: " + sigma)
-    print()
-
+    
     output = open("s-result-{}.log".format(placement), "a")
     output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
         k_net, p_net, k_local, p_local, total_drives,

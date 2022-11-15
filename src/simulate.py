@@ -2,6 +2,7 @@ from state import State
 from system import System
 from components.disk import Disk
 from components.rack import Rack
+from mytimer import Mytimer
 from heapq import heappush, heappop
 
 from constants.time import YEAR
@@ -109,7 +110,8 @@ class Simulate:
         logging.info("---------")
 
         self.sys.metrics.iter_count += 1
-        self.mytimer = mytimer
+        self.mytimer: Mytimer = mytimer
+        self.mytimer.simInitTime = time.time()
 
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
         # Debug purpose, static seed
@@ -129,7 +131,7 @@ class Simulate:
                 break
             
             (event_time, event_type, diskId) = next_event
-            getEventEndTime = time.time()
+            self.mytimer.getEventTime = (time.time() - self.mytimer.simInitTime) * 1000
 
             # logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
             
@@ -138,10 +140,13 @@ class Simulate:
             #--------------------------------------
             curr_time = event_time
             self.state.update_curr_time(curr_time)
+            self.mytimer.updateClockTime = (time.time() - self.mytimer.simInitTime) * 1000
 
             self.state.policy.update_disk_state(event_type, diskId)
+            self.mytimer.updateStateTime = (time.time() - self.mytimer.simInitTime) * 1000
 
             self.state.policy.update_disk_priority(event_type, diskId)
+            self.mytimer.updatePriorityTime = (time.time() - self.mytimer.simInitTime) * 1000
 
             #--------------------------------------
             # In MLEC-RAID, each disk group contains n=k+m disks. A rack can have multiple diskgroups
@@ -153,7 +158,7 @@ class Simulate:
                 new_diskgroup_failure = self.state.policy.update_diskgroup_state(event_type, diskId)
                 if new_diskgroup_failure != None:
                     self.state.policy.update_diskgroup_priority(event_type, new_diskgroup_failure, diskId)
-
+            self.mytimer.updateDiskgrpPriorityTime = (time.time() - self.mytimer.simInitTime) * 1000
             #--------------------------------------
             # In MLEC-DP, a rack can have more disks
             # If the rack has m+1 or more disk failures, then we need to repair the rack
@@ -162,7 +167,7 @@ class Simulate:
                 new_rack_failure = self.state.policy.update_rack_state(event_type, diskId)
                 if new_rack_failure != None:
                     self.state.policy.update_rack_priority(event_type, new_rack_failure, diskId)
-
+            self.mytimer.updateRackPriorityTime = (time.time() - self.mytimer.simInitTime) * 1000
             #---------------------------
             # exceed mission-time, exit
             #---------------------------
@@ -180,7 +185,8 @@ class Simulate:
                     heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
                     # logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
 
-
+            self.mytimer.newFailTime = (time.time() - self.mytimer.simInitTime) * 1000
+            
             #---------------------------
             # failure event, check PDL
             #---------------------------
@@ -197,8 +203,9 @@ class Simulate:
                     #print "  >>>>>>> no data loss >>>>>>>  ", curr_failures
                 
                     #------------------------------------------
-
+            self.mytimer.checkLossTime = (time.time() - self.mytimer.simInitTime) * 1000
             self.update_repair_event(curr_time)
+            self.mytimer.updateRepairTime = (time.time() - self.mytimer.simInitTime) * 1000
         return prob
 
 
