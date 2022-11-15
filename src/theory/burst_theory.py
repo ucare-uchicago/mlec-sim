@@ -33,10 +33,14 @@ def find_all_lists(num_failed_disks, num_affected_racks, disks_per_rack):
 
 
 def burst_theory(k_local, p_local, k_net, p_net, 
-                total_drives, drives_per_rack, placement):
+                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks):
     if placement == 'RAID':
-            burst_theory_raid(k_local, p_local, k_net, p_net, 
-                    total_drives, drives_per_rack, placement, 4, 2)
+        burst_theory_raid(k_local, p_local, k_net, p_net, 
+                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
+    if placement == 'RAID_NET':
+        burst_theory_raid(k_local, p_local, k_net, p_net, 
+                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
+
 
 
 def total_cases(k_local, p_local, k_net, p_net, 
@@ -49,7 +53,9 @@ def total_cases(k_local, p_local, k_net, p_net,
         total_cases_fixed_racks += cases
     return total_cases_fixed_racks
 
-
+##############################
+# local-only slec clustered (locla RAID)
+##############################
 
 raid_helper = {}
 def survival_case_raid(k_local, p_local, k_net, p_net, 
@@ -65,7 +71,7 @@ def survival_case_raid(k_local, p_local, k_net, p_net,
             # for every x we want 0<=x<=p_local
             # how many possible divisions?
             # for every possible division, how many possible combinations? It should be C(n,x1)*C(n,x2)*...C(n,x)
-            # Here we resolve this problem using dynamic programming
+            # Here we resolve this problem using backtracking algorithm
             def helper(k_local, p_local, failures_per_rack, num_diskgroups_per_rack):
                 if p_local == 0:
                     return 0
@@ -106,9 +112,6 @@ def survival_case_raid(k_local, p_local, k_net, p_net,
     return survival_cases
 
 
-
-
-
 def burst_theory_raid(k_local, p_local, k_net, p_net, 
                 total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks):
     all_possible_fail_disks_per_rack = find_all_lists(num_failed_disks, num_affected_racks, drives_per_rack)
@@ -117,13 +120,45 @@ def burst_theory_raid(k_local, p_local, k_net, p_net,
     survival = survival_case_raid(k_local, p_local, k_net, p_net, 
                 total_drives, drives_per_rack, placement, all_possible_fail_disks_per_rack)
 
-    print("total: {} survival: {} dl prob: {}".format(total, survival, 1 - survival/total))
+    dl_prob = 1 - survival/total
+    print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
+    print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {}\n".format(
             k_net, p_net, k_local, p_local, total_drives,
-            num_failed_disks, num_affected_racks, survival/total,))
-    
+            num_failed_disks, num_affected_racks, dl_prob))
 
+
+
+# ##############################
+# # network-only slec clusteredc (network RAID)
+# ##############################
+
+# def survival_case_raid_net(k_local, p_local, k_net, p_net, 
+#                 total_drives, drives_per_rack, placement, all_possible_fail_disks_per_rack):
+
+
+
+
+
+def burst_theory_raid_net(k_local, p_local, k_net, p_net, 
+                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks):
+    all_possible_fail_disks_per_rack = find_all_lists(num_failed_disks, num_affected_racks, drives_per_rack)
+    # we first randomly pick affected racks. We then count instances given affected racks.
+    num_racks = total_drives // drives_per_rack
+    total = math.comb(num_racks, num_affected_racks) * total_cases(k_local, p_local, k_net, p_net, 
+                total_drives, drives_per_rack, placement, all_possible_fail_disks_per_rack)
+                
+    survival = survival_case_raid(k_local, p_local, k_net, p_net, 
+                total_drives, drives_per_rack, placement, all_possible_fail_disks_per_rack)
+
+    dl_prob = 1 - survival/total
+    print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
+    print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
+    with open("s-burst-theory-{}.log".format(placement), "a") as output:
+        output.write("({}+{})({}+{}) {} {} {} {}\n".format(
+            k_net, p_net, k_local, p_local, total_drives,
+            num_failed_disks, num_affected_racks, dl_prob))
 
 
 
@@ -165,5 +200,7 @@ if __name__ == "__main__":
     print("(erasure:{}+{})/({}+{})\ntotal drives:\t{}\ndrives_per_rack:\t{}\nplacement:\t{}".format(
                 k_net, p_net, k_local, p_local, total_drives, drives_per_rack, placement
     ))
-    burst_theory(k_local, p_local, k_net, p_net, 
-                total_drives, drives_per_rack, placement)
+    for num_failed_disks in range(1, 21):
+        for num_affected_racks in range(1, min(num_failed_disks, 20)+1):
+            burst_theory(k_local, p_local, k_net, p_net, 
+                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
