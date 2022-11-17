@@ -1,3 +1,8 @@
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from simulate import Simulate
+
 from components.disk import Disk
 from components.rack import Rack
 from system import System
@@ -17,8 +22,9 @@ class State:
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
-    def __init__(self, sys, mytimer):
+    def __init__(self, sys, mytimer, simulation):
         #----------------------------------
+        self.simulation: Simulate = simulation
         self.sys: System = sys
         self.n: int = sys.k + sys.m
         self.racks: Dict[int, Rack] = {}
@@ -68,12 +74,24 @@ class State:
                 num_racks_with_failure += 1
     
         return [failures, num_racks_with_failure]
-
+    
+    # This returns dict {stripeId: [disksId]}
+    def get_failed_disks_each_stripeset(self):
+        stripesets = self.sys.net_raid_stripesets_layout
+        result = {}
+        for ssid in stripesets:
+            failed_disks = []
+            for diskId in stripesets[ssid]:
+                if self.disks[diskId].state == Disk.STATE_FAILED:
+                    failed_disks.append(diskId)
+            
+            if len(failed_disks) != 0:
+                result[ssid] = failed_disks
+        return result            
 
     def get_failed_disks_per_rack(self, rackId):
         # logging.info("sedrver {} get: {}".format(rackId, list(self.racks[rackId].failed_disks.keys())))
         return list(self.racks[rackId].failed_disks.keys())
-
 
     def get_failed_disks_per_stripeset(self, stripesetId):
         failed_disks = []

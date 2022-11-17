@@ -39,8 +39,8 @@ def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
             mytimer.simInitTime += time.time() - temp
             res += sim.run_simulation(failureGenerator, mytimer)
         end = time.time()
-        print("totaltime: {}".format((end - start) * 1000))
-        print(mytimer)
+        # print("totaltime: {}".format((end - start) * 1000))
+        # print(mytimer)
         return (res, mytimer, sys.metrics)
     except Exception as e:
         print(traceback.format_exc())
@@ -76,7 +76,7 @@ def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
 # -----------------------------
 def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
-    # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
+    logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
 
     mission = YEAR
     failureGenerator = FailureGenerator(afr)

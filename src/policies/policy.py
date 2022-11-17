@@ -1,5 +1,7 @@
 from __future__ import annotations
 import typing
+from typing import Optional, Tuple
+import logging
 
 if typing.TYPE_CHECKING:
     from system import System
@@ -20,6 +22,7 @@ class Policy:
     def update_disk_state(self, event_type: str, diskId: int) -> None:
         rackId = diskId // self.sys.num_disks_per_rack
         if event_type == Disk.EVENT_REPAIR:
+            logging.info("Repair event, updating disk %s to be STATE_NORMAL", diskId)
             self.state.disks[diskId].state = Disk.STATE_NORMAL
             # This is removing the disk from the failed disk array
             self.state.racks[rackId].failed_disks.pop(diskId, None)
@@ -50,3 +53,9 @@ class Policy:
     
     def update_repair_events(self, repair_queue):
         raise NotImplementedError("update_repair_events() not implemented")
+    
+    # This function decides whether the policy intervene before we check
+    #   the repair_queue and failure_queue for the next event
+    #   default is to return none
+    def intercept_next_event(self) -> Optional[Tuple[float, str, int]]:
+        return None
