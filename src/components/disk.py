@@ -7,6 +7,7 @@ class Disk:
     #----------------------------------
     # The 3 possible events
     #----------------------------------
+    EVENT_DELAYED_FAIL = "<disk delayed fail>"
     EVENT_FAIL = "<disk failure>"
     EVENT_FASTREBUILD = "<disk fast rebuild>"
     EVENT_REPAIR = "<disk repair>"
@@ -49,5 +50,5 @@ class Disk:
         
     # Override toString()
     def __str__(self):
-        return "[dId: {}, rId: {}, sId: {}, state: {}, prio: {}]".format(self.diskId, self.rackId, self.stripesetId, self.state, self.priority)
+        return "[dId: {}, rId: {}, sId: {}, state: {}, prio: {}, repair_time: {}, repair start time: {}]".format(self.diskId, self.rackId, self.stripesetId, self.state, self.priority, self.repair_time, self.repair_start_time)
             
