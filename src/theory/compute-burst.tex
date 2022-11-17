@@ -34,121 +34,135 @@ Consider $f$ failures happen in $r$ racks.
 
 We first choose $r$ racks from all the $X$ racks, which has $C_{X}^{r}$ combinations.
 
-For each rack combination, without loss of generality, let's assume we picked racks $0, 1, 2, ..., r-1$.
-We consider all the possible failure\_per\_rack cases:
-\begin{eqnarray}
-S(f,r,M) = \{(f_0, f_1, ..., f_{r-1}) | \sum_{\substack{0 \leq i \leq r-1 \\ 1 \leq f_i \leq M}}f_i=f\}.
-\end{eqnarray}
+Given $r$ racks $1,2,...,r$, denote $T(f,r)$ as the total number of instances for $f$ failures to happen in $r$ racks, such that each rack has at least one failure.
 
+Consider the $r$-th rack. If it has $i$ failures, then the rest $r-1$ racks must have $(f-i)$ failures in total with each rack having at least one failure.
 
-For each $(f_0, f_1, ..., f_{r-1})$, there are $\prod_{i=0}^{r-1}C_{M}^{f_i}$ instances.
-
-Therefore, the total number of instances is:
-\begin{eqnarray}
-  C_{X}^{r} \cdot \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1}C_{M}^{f_i}
-\label{eq:tcf}
-\end{eqnarray}
-
-One key here is how to get $S(f,r,M)$. Note that we have the following recurrence relation:
+Therefore, we have the following recurrence relation:
 
 \begin{eqnarray}
 \begin{aligned}
-  S(f,r,M)
-  &= \{(f_0, f_1, ..., f_{r-1}) | \sum_{\substack{0 \leq i \leq r-1 \\ 0 \leq f_i \leq M}}f_i=f\} \\
-    &= \bigcup_{\substack{0 \leq a \leq M \\ a \leq f-r+1}} \{(f_0, f_1, ..., f_{r-2}, a) | \sum_{\substack{0 \leq i \leq r-2 \\ 0 \leq f_i \leq M}}f_i=f-a\} \\
-    &= \bigcup_{\substack{0 \leq a \leq M \\ a \leq f-r+1}} \{s \cup a | s \in S(f-a, r-1, M) \}
+  T(f,r)
+  &= \sum_{\substack{1 \leq i \leq f \\ i \leq M}} C_M^i \cdot T(f-i, r-1)
 \end{aligned}
-\label{eq:total_bt}
+\label{eq:total:rec}
 \end{eqnarray}
 
+The base case is 
 
+\begin{eqnarray}
+  T(f,1) =
+    \begin{cases}
+      C_M^f& \text{if $1 \leq f \leq M$}\\
+      0 & \text{otherwise}
+    \end{cases}       
+\label{eq:total:base}
+\end{eqnarray}
 
-By using formula \ref{eq:total_bt}, we can get $S(f,r,M)$ using backtracking algorithm or dynamic programming. Here is an implementation using backtracking algorithm: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/burst_theory.py#L14}
+Therefore, we can compute $T(f,r)$ using dynamic programming, with time complexity $O(f \cdot r)$, and memory complexity $O(f \cdot r)$. An implementation can be found at: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/burst_theory.py#L30}
+
+The total number of instances is:
+\begin{eqnarray}
+  C_{X}^{r} \cdot T(f,r)
+\label{eq:total:final}
+\end{eqnarray}
 
 \section{Survival instances under local clustered (RAID)}\label{sec-raid}
 
-Consider $k_l+p_l$ local-only SLEC. For easier deployment we assume $n_l=k_l+p_l$ is divisible by Z.
+Consider $k_l+p_l$ local-only RAID SLEC. For easier deployment we assume $n_l=k_l+p_l$ is divisible by Z.
 
-$n_l$ drives in the same enclosure compose a RAID disk group. Therefore a rack contains $g_l = M/n_l$ RAID groups.
+$n_l$ drives in the same enclosure compose a RAID disk group. Therefore a rack contains $g = M/n_l$ RAID groups.
 
-For each $(f_0, f_1, ..., f_{r-1}) \in S(f,r,M)$, rack $i$ contains $fi\geq1$ failures. We need to compute for each $f_i$, how many instances can survive the $f_i$ failures in the rack.
+Denote $\eta(f, g)$ as the number of instances for one single rack to survive $f$ failures in a rack containing $g$ $k_l+p_l$ RAID groups.
 
-Denote $\eta(f_i, g_l)$ as the number of survival instances in a rack when there are $f_i$ failures in a rack containing $g_l$ $k_l+p_l$ RAID groups.
-
-We have the following recurrence relation (which is derived by considering what will happen if disk group 0 contains $a$ failures):
+For $\eta(f, g)$, we have the following recurrence relation (which is derived by considering what will happen if $g$-th group contains $i$ failures):
 
 \begin{eqnarray}
 \begin{aligned}
-  \eta(f_i, g_l) &= \sum_{\substack{0 \leq a \leq p_l \\ a\leq f_i}} \eta(f_i-a, g_l-1) \cdot C(n_l, a)
+  \eta(f, g) &= \sum_{\substack{0 \leq i \leq p_l \\ a\leq f}} \eta(f-i, g-1) \cdot C_{n_l}^i
 \end{aligned}
 \label{eq:raid:1}
 \end{eqnarray}
 
-We can then compute $\eta(f_i, g_l)$ based on recurrence relation \ref{eq:raid:1} and backtracking algorithm. Here is an implementation: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/burst_theory.py#L69}
+The base case is 
 
-Therefore, the total survival instances of $(f_0, f_1, ..., f_{r-1})$ is $\prod_{i=0}^{r-1} \eta(f_i, g_l)$.
+\begin{eqnarray}
+  \eta(f, 1) =
+    \begin{cases}
+      C_{n_l}^f& \text{if $0 \leq f \leq n_l$}\\
+      0 & \text{otherwise}
+    \end{cases}       
+\label{eq:raid:2}
+\end{eqnarray}
+
+We can then compute $\eta(f_i, g_l)$ based on recurrence relation \ref{eq:raid:1} and dynamic programming, with $O(f \cdot g)$ time complexity and $O(f \cdot g)$ memory complexity.\\
+
+Given $r$ racks $1,2,...,r$, denote $S(f,r)$ as the total number of instances for $k_l+p_l$ local-only RAID to survive $f$ failures to in $r$ racks, such that each rack has at least one failure.
+
+For $S(f,r)$, we have the following recurrence relation (which is derived by considering what will happen if $r$-th rack contains $i$ failures):
+
+\begin{eqnarray}
+\begin{aligned}
+  S(f,r)
+  &= \sum_{\substack{1 \leq i \leq f \\ i \leq M}} \eta(i,g) \cdot T(f-i, r-1)
+\end{aligned}
+\label{eq:raid:3}
+\end{eqnarray}
+
+The base case is 
+
+\begin{eqnarray}
+  S(f,1) =
+    \begin{cases}
+      \eta(f,g)& \text{if $1 \leq f \leq M$}\\
+      0 & \text{otherwise}
+    \end{cases}       
+\label{eq:raid:4}
+\end{eqnarray}
+
+Since we have already computed $\eta(f,g)$, we can further compute $S(f,r)$ based on recurrence relation \ref{eq:raid:3} and dynamic programming. The total time complexity $O(f \cdot (g+r)$, and total memory complexity and $O(f \cdot (g+r)$.
+
+Here is an example implementation: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/burst_theory.py#L97}
 
 Therefore, the total number of survival instances in the whole system is:
 
 \begin{eqnarray}
-C_{X}^{r} \cdot \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1} \eta(f_i, g_l)
-\label{eq:raid:2}
+C_{X}^{r} \cdot S(f,r)
+\label{eq:raid:5}
 \end{eqnarray}
 
 Therefore, the probability of data loss under $f$ failures on $r$ racks for RAID is:
 
 \begin{eqnarray}
 \begin{aligned}
-\text{RAID data loss} &= \frac{C_{X}^{r} \cdot \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1} \eta(f_i, g_l)} 
-{C_{X}^{r} \cdot \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1}C_{M}^{f_i}}\\
-&= \frac{ \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1} \eta(f_i, g_l)} 
-{\sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1}C_{M}^{f_i}}
+\text{RAID data loss} = \frac{C_{X}^{r} \cdot S(f,r)} 
+{C_{X}^{r} \cdot T(f,r)}
+= \frac{ S(f,r)} { T(f,r)}
 \end{aligned}
-\label{eq:raid:3}
+\label{eq:raid:6}
 \end{eqnarray}
 
 
 
 \section{Survival instances under local declustered parity}
 
-It's similar to local clustered erasure in \ref{sec-raid}, but now the size of the disk group is usually larger than $n_l$. 
+It's similar to local clustered erasure in Section \ref{sec-raid}, but now the size of the disk group is usually larger than $n_l$. 
 
 Suppose the size of the disk group is $D$, usually $n_l \leq D \leq Z$, where $Z$ is the size of the enclosure.
 
 If any disk group has more than $p_l$ disk failures, then there is data loss.
 
-So now a rack contains $g_l = M/D$ RAID groups.
+So this time a rack contains $g = M/D$ disk groups.
 
-
-Denote $\eta(f_i, g_l)$ as the number of survival instances in a rack when there are $f_i$ failures in a rack containing $g_l$ disks groups, each group contains $D$ disks and do $k_l+p_l$ declustered erasure.
-
-We have the following recurrence relation:
+We can then compute the data loss in the same way that we did for RAID. Therefore, the probability of data loss under $f$ failures on $r$ racks for local-only Declustered erasure is:
 
 \begin{eqnarray}
 \begin{aligned}
-  \eta(f_i, g_l) &= \sum_{\substack{0 \leq a \leq p_l \\ a\leq f_i}} \eta(f_i-a, g_l-1) \cdot C(D, a)
+\text{Declustered data loss} = \frac{C_{X}^{r} \cdot S(f,r)} 
+{C_{X}^{r} \cdot T(f,r)}
+= \frac{ S(f,r)} { T(f,r)}
 \end{aligned}
 \label{eq:dp:1}
-\end{eqnarray}
-
-
-Therefore, the total number of survival instances in the whole system is:
-
-\begin{eqnarray}
-C_{X}^{r} \cdot \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1} \eta(f_i, g_l)
-\label{eq:dp:2}
-\end{eqnarray}
-
-Therefore, the probability of data loss under $f$ failures on $r$ racks for RAID is:
-
-\begin{eqnarray}
-\begin{aligned}
-\text{Declustered data loss} &= \frac{C_{X}^{r} \cdot \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1} \eta(f_i, g_l)} 
-{C_{X}^{r} \cdot \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1}C_{M}^{f_i}}\\
-&= \frac{ \sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1} \eta(f_i, g_l)} 
-{\sum_{(f_0, f_1, ..., f_{r-1}) \in S} \prod_{i=0}^{r-1}C_{M}^{f_i}}
-\end{aligned}
-\label{eq:dp:3}
 \end{eqnarray}
 
 
