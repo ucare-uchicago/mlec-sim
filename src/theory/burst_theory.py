@@ -8,6 +8,8 @@ import time
 import argparse
 import pandas as pd
 
+import netraid
+
 def burst_theory(k_local, p_local, k_net, p_net, 
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks):
     if placement == 'RAID':
@@ -17,6 +19,10 @@ def burst_theory(k_local, p_local, k_net, p_net,
     if placement == 'DP':
         burst_theory_dp(k_local, p_local, k_net, p_net, 
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks)
+    
+    if placement == 'RAID_NET':
+        burst_theory_raid(k_local, p_local, k_net, p_net, 
+                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
 
 
 # total number of cases for having disk failure bursts in a fixed number of racks
@@ -118,7 +124,7 @@ def survival_count_raid(k_local, p_local, drives_per_rack, num_failed_disks, num
 
 def burst_theory_raid(k_local, p_local, k_net, p_net, 
                 total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks):
-    total = total_cases_fixed_racks(drives_per_rack, num_failed_disks, num_affected_racks)
+    total = total_cases_fixed_racks(drives_per_rack, num_failed_disks, num_affected_racks) * math.comb()
     
     survival = survival_count_raid(k_local, p_local, drives_per_rack, num_failed_disks, num_affected_racks)
 
@@ -130,6 +136,29 @@ def burst_theory_raid(k_local, p_local, k_net, p_net,
             k_net, p_net, k_local, p_local, total_drives,
             num_failed_disks, num_affected_racks, dl_prob))
 
+
+
+
+
+##############################
+# network-only slec clustered (network RAID)
+##############################
+
+
+def burst_theory_net_raid(k_local, p_local, k_net, p_net, 
+                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks):
+    num_racks = total_drives // drives_per_rack
+    total = total_cases_fixed_racks(drives_per_rack, num_failed_disks, num_affected_racks) * math.comb(num_racks, num_affected_racks)
+    
+    survival = survival_count_net_raid(k_net, p_net, num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
+
+    dl_prob = 1 - survival/total
+    print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
+    print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
+    with open("s-burst-theory-{}.log".format(placement), "a") as output:
+        output.write("({}+{})({}+{}) {} {} {} {}\n".format(
+            k_net, p_net, k_local, p_local, total_drives,
+            num_failed_disks, num_affected_racks, dl_prob))
 
 
 
@@ -181,7 +210,7 @@ if __name__ == "__main__":
     #     for num_affected_racks in range(4,5):
     temp = time.time()
     for num_failed_disks in range(99, 100):
-        for num_affected_racks in range(4,5):
+        for num_affected_racks in range(50,51):
             burst_theory(k_local, p_local, k_net, p_net, 
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks)
     print("time: {}".format(time.time()-temp))
