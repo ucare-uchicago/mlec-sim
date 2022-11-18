@@ -5,6 +5,7 @@ import logging
 if typing.TYPE_CHECKING:
     from state import State
 
+from components.network import Network
 from components.disk import Disk
 from components.rack import Rack
 
@@ -22,4 +23,5 @@ def netraid_repair(state: State, repair_queue):
             #-----------------------------------------------------
             estimate_time = state.disks[diskId].repair_start_time
             estimate_time  += repair_time
+            # Generate repair event
             heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))

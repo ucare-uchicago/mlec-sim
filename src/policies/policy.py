@@ -21,15 +21,25 @@ class Policy:
     #  Should override if there are layout specific changes (for example net_raid)
     def update_disk_state(self, event_type: str, diskId: int) -> None:
         rackId = diskId // self.sys.num_disks_per_rack
+        disk = self.state.disks[diskId]
         if event_type == Disk.EVENT_REPAIR:
             logging.info("Repair event, updating disk %s to be STATE_NORMAL", diskId)
-            self.state.disks[diskId].state = Disk.STATE_NORMAL
+            disk.state = Disk.STATE_NORMAL
             # This is removing the disk from the failed disk array
             self.state.racks[rackId].failed_disks.pop(diskId, None)
             self.state.failed_disks.pop(diskId, None)
             
+            # If this disk has network usage, we return those to the network state
+            if disk.network_usage is not None:
+                logging.info("Replenishing bandwidth")
+                self.sys.network.inter_rack_avail += disk.network_usage.inter_rack
+                logging.info("Replenish %s inter rack", disk.network_usage.inter_rack)
+                for rackId in disk.network_usage.intra_rack:
+                    self.sys.network.intra_rack_avail[rackId] += disk.network_usage.intra_rack[rackId]
+                    logging.info("Replenih %s intrarack for rack %s", disk.network_usage.intra_rack[rackId], rackId)
+            
         if event_type == Disk.EVENT_FAIL:
-            self.state.disks[diskId].state = Disk.STATE_FAILED
+            disk.state = Disk.STATE_FAILED
             self.state.racks[rackId].failed_disks[diskId] = 1
             self.state.failed_disks[diskId] = 1
     

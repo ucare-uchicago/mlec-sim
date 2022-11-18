@@ -1,3 +1,10 @@
+from __future__ import annotations
+import typing
+from typing import Optional
+
+if typing.TYPE_CHECKING:
+    from components.network import NetworkUsage
+
 class Disk:
     #----------------------------------
     # The 2 possible state
@@ -43,6 +50,12 @@ class Disk:
         self.curr_repair_data_remaining: float = 0
         self.good_num: int = 0
         self.fail_num: int = 0
+        #-------------------------------
+        # marking how much network resource this disk is using for repair
+        #   none value means its not using any
+        #-------------------------------
+        self.network_usage: Optional[NetworkUsage] = None
+        #-------------------------------
 
 
     def update_disk_state(self, state):
