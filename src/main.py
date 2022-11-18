@@ -598,8 +598,6 @@ if __name__ == "__main__":
         p_local = 0
 
     dist = args.dist
-    
-    print(args)
 
     if sim_mode == 0:
         normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
