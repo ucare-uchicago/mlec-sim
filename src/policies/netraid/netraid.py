@@ -90,8 +90,8 @@ class NetRAID(Policy):
                 network_usage = self.update_bandwidth(disk, disk_to_read_from)
                 logging.info("Network usage: %s", network_usage.__dict__)
                 logging.info("Bandwidth after usage - inter: %s, intra: %s", self.sys.network.inter_rack_avail, self.sys.network.intra_rack_avail)
-                self.sys.network.network_usage_queue[diskId] = network_usage
-                logging.info("Network queue: %s", self.sys.network.print_queue())
+                # 2. Assign the network usage to the repairing disk
+                disk.network_usage = network_usage
             else:
                 # If we do not have enough bandwidth to carry out repair, we delay the repair
                 logging.warning("Not enough bandwidth, delaying repair")
@@ -107,9 +107,10 @@ class NetRAID(Policy):
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
             
-            # We pull the network usage from the network queue
-            network_usage = self.sys.network.network_usage_queue[diskId]
+            # We pull the network usage from the disk
+            network_usage = disk.network_usage
 
+        assert network_usage is not None
         logging.info("Repairing with network bandwidth of %s", network_usage.inter_rack)
         repair_time = float(disk.curr_repair_data_remaining) / (network_usage.inter_rack / fail_per_stripeset)
         # repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_stripeset)
