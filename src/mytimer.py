@@ -1,5 +1,6 @@
 class Mytimer:
     def __init__(self):
+        self.eventInitTime = 0.0
         self.simInitTime = 0.0
         self.seedtime = 0.0
         self.copytime = 0.0

@@ -76,6 +76,7 @@ class State:
         return [failures, num_racks_with_failure]
     
     # This returns dict {stripeId: [disksId]}
+    # WARNING: only use for debug. This will cause long simulation time
     def get_failed_disks_each_stripeset(self):
         stripesets = self.sys.net_raid_stripesets_layout
         result = {}

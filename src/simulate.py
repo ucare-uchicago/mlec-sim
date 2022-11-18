@@ -123,6 +123,7 @@ class Simulate:
         # np.random.seed(1)
         
         self.reset(failureGenerator, mytimer)
+        self.mytimer.resettime = (time.time() - self.mytimer.simInitTime) * 1000
 
         curr_time = 0
         prob = 0
@@ -131,6 +132,8 @@ class Simulate:
         logging.info("Initial network - inter: %s, intra: %s", self.sys.network.inter_rack_avail, self.sys.network.intra_rack_avail)
         
         while True:
+            event_start = time.time()
+            self.mytimer.eventInitTime = event_start
             #---------------------------
             # extract the next event
             #---------------------------
@@ -141,7 +144,7 @@ class Simulate:
             (event_time, event_type, diskId) = next_event
             logging.info("Event %s on disk %s occured at %s", event_type, diskId, event_time)
             logging.info("Delayed repair queue: %s", self.delay_repair_queue)
-            self.mytimer.getEventTime = (time.time() - self.mytimer.simInitTime) * 1000
+            self.mytimer.getEventTime = (time.time() - self.mytimer.eventInitTime) * 1000
 
             # logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
             
@@ -150,13 +153,13 @@ class Simulate:
             #--------------------------------------
             curr_time = event_time
             self.state.update_curr_time(curr_time)
-            self.mytimer.updateClockTime = (time.time() - self.mytimer.simInitTime) * 1000
+            self.mytimer.updateClockTime = (time.time() - self.mytimer.eventInitTime) * 1000
 
             self.state.policy.update_disk_state(event_type, diskId)
-            self.mytimer.updateStateTime = (time.time() - self.mytimer.simInitTime) * 1000
+            self.mytimer.updateStateTime = (time.time() - self.mytimer.eventInitTime) * 1000
 
             self.state.policy.update_disk_priority(event_type, diskId)
-            self.mytimer.updatePriorityTime = (time.time() - self.mytimer.simInitTime) * 1000
+            self.mytimer.updatePriorityTime = (time.time() - self.mytimer.eventInitTime) * 1000
 
             #--------------------------------------
             # In MLEC-RAID, each disk group contains n=k+m disks. A rack can have multiple diskgroups
@@ -168,7 +171,7 @@ class Simulate:
                 new_diskgroup_failure = self.state.policy.update_diskgroup_state(event_type, diskId)
                 if new_diskgroup_failure != None:
                     self.state.policy.update_diskgroup_priority(event_type, new_diskgroup_failure, diskId)
-            self.mytimer.updateDiskgrpPriorityTime = (time.time() - self.mytimer.simInitTime) * 1000
+            self.mytimer.updateDiskgrpPriorityTime = (time.time() - self.mytimer.eventInitTime) * 1000
             #--------------------------------------
             # In MLEC-DP, a rack can have more disks
             # If the rack has m+1 or more disk failures, then we need to repair the rack
@@ -177,7 +180,7 @@ class Simulate:
                 new_rack_failure = self.state.policy.update_rack_state(event_type, diskId)
                 if new_rack_failure != None:
                     self.state.policy.update_rack_priority(event_type, new_rack_failure, diskId)
-            self.mytimer.updateRackPriorityTime = (time.time() - self.mytimer.simInitTime) * 1000
+            self.mytimer.updateRackPriorityTime = (time.time() - self.mytimer.eventInitTime) * 1000
             #---------------------------
             # exceed mission-time, exit
             #---------------------------
@@ -195,7 +198,7 @@ class Simulate:
                     heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
                     # logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
 
-            self.mytimer.newFailTime = (time.time() - self.mytimer.simInitTime) * 1000
+            self.mytimer.newFailTime = (time.time() - self.mytimer.eventInitTime) * 1000
             
             #---------------------------
             # failure event, check PDL
@@ -213,11 +216,14 @@ class Simulate:
                     #print "  >>>>>>> no data loss >>>>>>>  ", curr_failures
                 
                     #------------------------------------------
-            self.mytimer.checkLossTime = (time.time() - self.mytimer.simInitTime) * 1000
+            self.mytimer.checkLossTime = (time.time() - self.mytimer.eventInitTime) * 1000
             
             
             self.update_repair_event(curr_time)
-            self.mytimer.updateRepairTime = (time.time() - self.mytimer.simInitTime) * 1000
+            self.mytimer.updateRepairTime = (time.time() - self.mytimer.eventInitTime) * 1000
+            event_end = time.time()
+            # print("Event time " + str((event_end - event_start) * 1000) + "ms")
+            # print(self.mytimer)
             logging.info("------------END EVENT---------------")
         return prob
 
