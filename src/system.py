@@ -15,7 +15,7 @@ from numpy.typing import NDArray
 #----------------------------
 
 class System:
-    def __init__(self, num_disks, num_disks_per_rack, k, m, place_type: PlacementType, diskCap, rebuildRate,
+    def __init__(self, num_disks, num_disks_per_rack, k, m, place_type: PlacementType, diskCap, rebuildRate, intrarack_speed, interrack_speed,
                     utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = 0, num_disks_per_enclosure = -1):
         #--------------------------------------------
         # Set up the system parameters
@@ -81,7 +81,7 @@ class System:
         # initialize network
         #----------------------
         # static value for now
-        self.network: Network = Network(self, 10000, 1000)
+        self.network: Network = Network(self, intrarack_speed * 1024, interrack_speed * 1024)
 
 
 if __name__ == "__main__":

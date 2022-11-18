@@ -74,7 +74,7 @@ def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
 # -----------------------------
 # normal Monte Carlo simulation
 # -----------------------------
-def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
+def normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
     logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
 
@@ -84,7 +84,7 @@ def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     place_type = parse_placement(placement)
     
     sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
-            io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
+            io_speed, intrarack_speed, interrack_speed, 1, k_net, p_net, adapt, rack_fail = 0)
 
     failed_iters = 0
     total_iters = 0
@@ -539,6 +539,8 @@ if __name__ == "__main__":
     parser.add_argument('-sim_mode', type=int, help="simulation mode. Default is 0", default=0)
     parser.add_argument('-afr', type=int, help="disk annual failure rate.", default=5)
     parser.add_argument('-io_speed', type=int, help="disk repair rate (MB/s).", default=30)
+    parser.add_argument('-intrarack_speed', type=int, help="Intra-rack speed (GB/s).", default=100)
+    parser.add_argument('-interrack_speed', type=int, help="Inter-rack speed (GB/s).", default=10)
     parser.add_argument('-cap', type=int, help="disk capacity (TB)", default=20)
     parser.add_argument('-adapt', type=bool, help="assume seagate adapt or not", default=False)
     parser.add_argument('-k_local', type=int, help="number of data chunks in local EC", default=7)
@@ -564,6 +566,9 @@ if __name__ == "__main__":
     p_local = args.p_local
     k_net = args.k_net
     p_net = args.p_net
+    
+    intrarack_speed = args.intrarack_speed
+    interrack_speed = args.interrack_speed
     
     # Multi-threading stuff
     concur = args.concur
@@ -592,7 +597,7 @@ if __name__ == "__main__":
     dist = args.dist
 
     if sim_mode == 0:
-        normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
+        normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
                     total_drives, drives_per_rack, placement, dist, concur, epoch, iters)
     elif sim_mode == 1:
         manual_1_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
