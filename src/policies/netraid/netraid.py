@@ -36,7 +36,8 @@ class NetRAID(Policy):
             
             stripesetId = disk.stripesetId
             failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(stripesetId)
-            #logging.info("Repair event of disk %s on stripe %s", diskId, stripesetId)
+            logging.info("Repair event of disk %s on stripe %s", diskId, stripesetId)
+            # logging.info("Failed stripesets: %s", self.state.get_failed_disks_each_stripeset())
             
             # This is updating the rest of the failed disks for their repair time.
             #  If there is only one failure in the stripeset, this would not be run
@@ -52,8 +53,9 @@ class NetRAID(Policy):
             disk.repair_start_time = self.curr_time
 
             failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(disk.stripesetId)
-            # logging.info("  update_disk_priority_raid_net event: {} stripesetId: {} failed_disks_per_stripeset: {}".format(
-            #                 event_type, disk.stripesetId, failed_disks_per_stripeset))
+            # logging.info("Failed stripesets: %s", self.state.get_failed_disks_each_stripeset())
+            logging.info("  update_disk_priority_raid_net event: {} stripesetId: {} failed_disks_per_stripeset: {}".format(
+                            event_type, disk.stripesetId, failed_disks_per_stripeset))
             #--------------------------------------------
             # calculate repair time for disk failures
             # all the failed disks need to read data from other surviving disks in the group to rebuild data
@@ -66,11 +68,11 @@ class NetRAID(Policy):
     
     
     def update_disk_repair_time(self, diskId, failed_disks_in_stripeset):
-        #logging.info("Updating repair time for disk %s", diskId)
+        logging.info("Updating repair time for disk %s", diskId)
         disk = self.disks[diskId]
         fail_per_stripeset = len(failed_disks_in_stripeset)
-        #logging.info("Bandwidth before usage - inter: %s, intra: %s", self.sys.network.inter_rack_avail, self.sys.network.intra_rack_avail)
-        #logging.info("Disk detail %s", disk)
+        logging.info("Bandwidth before usage - inter: %s, intra: %s", self.sys.network.inter_rack_avail, self.sys.network.intra_rack_avail)
+        logging.info("Disk detail %s", disk)
         repaired_time = self.curr_time - disk.repair_start_time
         if repaired_time == 0:
             # This means that the repair just got started
@@ -81,18 +83,18 @@ class NetRAID(Policy):
             #   the traffic has to travel from node to TOR
             #------------
             disk_to_read_from = self.disks_to_read_for_repair(disk)
-            #logging.info("Reading from %s disks to complete repair", disk_to_read_from)
+            logging.info("Reading from %s disks to complete repair", disk_to_read_from)
             if self.sys.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
                 # This means that we begin repair
                 # 1. Subtract the bandwidth away from network
                 network_usage = self.update_bandwidth(disk, disk_to_read_from)
-                #logging.info("Network usage: %s", network_usage.__dict__)
-                #logging.info("Bandwidth after usage - inter: %s, intra: %s", self.sys.network.inter_rack_avail, self.sys.network.intra_rack_avail)
+                logging.info("Network usage: %s", network_usage.__dict__)
+                logging.info("Bandwidth after usage - inter: %s, intra: %s", self.sys.network.inter_rack_avail, self.sys.network.intra_rack_avail)
                 # 2. Assign the network usage to the repairing disk
                 disk.network_usage = network_usage
             else:
                 # If we do not have enough bandwidth to carry out repair, we delay the repair
-                #logging.warning("Not enough bandwidth, delaying repair")
+                # logging.warning("Not enough bandwidth, delaying repair")
                 self.state.simulation.delay_repair_queue.append(diskId)
                 return
             
@@ -109,14 +111,14 @@ class NetRAID(Policy):
             network_usage = disk.network_usage
 
         assert network_usage is not None
-        #logging.info("Repairing with network bandwidth of %s", network_usage.inter_rack)
-        repair_time = float(disk.curr_repair_data_remaining) / (network_usage.inter_rack / fail_per_stripeset)
+        # logging.info("Repairing with network bandwidth of %s", network_usage.inter_rack)
+        repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / fail_per_stripeset)
         # repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_stripeset)
-        #logging.info("Repaired percent %s, Repair time %s", repaired_percent, repair_time)
+        logging.info("Repaired percent %s, Repair time %s", repaired_percent, repair_time)
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
-        #logging.info("  curr time: {}  repair time: {}  finish time: {}".format(self.curr_time, disk.repair_time[0], disk.estimate_repair_time))
+        logging.info("  curr time: {}  repair time: {}  finish time: {}".format(self.curr_time, disk.repair_time[0], disk.estimate_repair_time))
 
     # TODO: combine this with update_bandwidth to save time
     def disks_to_read_for_repair(self, disk: Disk) -> List[int]:
@@ -131,7 +133,7 @@ class NetRAID(Policy):
         
         return disk_to_read_from
     
-    def update_bandwidth(self, disk: Disk, disk_to_read_from: List[int]) -> Optional[NetworkUsage]:
+    def update_bandwidth(self, disk, disk_to_read_from: List[int]) -> Optional[NetworkUsage]:
         # Calculate intrarack, from k randomly selected drives from the stripeset
         intra_rack = {}
         for diskId in disk_to_read_from:
