@@ -94,7 +94,7 @@ class NetRAID(Policy):
                 disk.network_usage = network_usage
             else:
                 # If we do not have enough bandwidth to carry out repair, we delay the repair
-                logging.warning("Not enough bandwidth, delaying repair")
+                # logging.warning("Not enough bandwidth, delaying repair")
                 self.state.simulation.delay_repair_queue.append(diskId)
                 return
             

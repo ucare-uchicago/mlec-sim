@@ -97,17 +97,17 @@ def normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_lo
     # return
 
     # We need to get enough failures in order to compute accurate nines #
-    # while failed_iters < 20:
-    logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
-    start  = time.time()
-    res = simulate(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
-    failed_iters += res[0]
-    total_iters += res[1]
-    metrics += res[2]
-    # print(metrics)
-    simulationTime = time.time() - start
-    print("simulation time: {}".format(simulationTime))
-    print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
+    while failed_iters < 20:
+        logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+        start  = time.time()
+        res = simulate(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
+        failed_iters += res[0]
+        total_iters += res[1]
+        metrics += res[2]
+        # print(metrics)
+        simulationTime = time.time() - start
+        print("simulation time: {}".format(simulationTime))
+        print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
 
     total_iters *= mission/YEAR
 
