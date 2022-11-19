@@ -94,7 +94,7 @@ class NetRAID(Policy):
                 disk.network_usage = network_usage
             else:
                 # If we do not have enough bandwidth to carry out repair, we delay the repair
-                # logging.warning("Not enough bandwidth, delaying repair")
+                logging.warning("Not enough bandwidth, delaying repair")
                 self.state.simulation.delay_repair_queue.append(diskId)
                 return
             
@@ -168,8 +168,9 @@ class NetRAID(Policy):
         netraid_repair(self.state, repair_queue)
         
     def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:
+        logging.info("Trying to intercept event with delay repair queue length of %s", len(self.state.simulation.delay_repair_queue))
         # Check whether there are delayed repaired disks that satisfy the requirement
-        if len(self.state.simulation.delay_repair_queue):
+        if len(self.state.simulation.delay_repair_queue) == 0 or self.sys.network.inter_rack_avail == 0:
             return None
         
         # We check all the disks that have been delayed for repairs
@@ -177,8 +178,10 @@ class NetRAID(Policy):
             disk = self.state.disks[diskId]
             # This means that we have enough bandwidth to carry out the repair
             disk_to_read_from = self.disks_to_read_for_repair(disk)
+            logging.info("Trying to initiate delayed repair for disk %s with inter-rack of %s and avail peer of %s (k=%s)", diskId, self.sys.network.inter_rack_avail, len(disk_to_read_from), self.sys.top_k)
             if self.sys.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
-                del self.state.simulation.delay_repair_queue[diskId]
+                logging.info("Delayed disk %s now has enough bandwidth, repairing", diskId)
+                self.state.simulation.delay_repair_queue.remove(diskId)
                 return (prev_event[0], Disk.EVENT_DELAYED_FAIL, diskId)
         
         return None

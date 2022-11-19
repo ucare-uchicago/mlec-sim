@@ -36,7 +36,9 @@ class Policy:
                 logging.info("Replenish %s inter rack", disk.network_usage.inter_rack)
                 for rackId in disk.network_usage.intra_rack:
                     self.sys.network.intra_rack_avail[rackId] += disk.network_usage.intra_rack[rackId]
-                    logging.info("Replenih %s intrarack for rack %s", disk.network_usage.intra_rack[rackId], rackId)
+                    logging.info("Replenish %s intrarack for rack %s", disk.network_usage.intra_rack[rackId], rackId)
+            
+            logging.info("Network bandwidth after replenish: %s", self.sys.network.__dict__)
             
         if event_type == Disk.EVENT_FAIL:
             disk.state = Disk.STATE_FAILED
