@@ -42,6 +42,10 @@ class Policy:
             disk.state = Disk.STATE_FAILED
             self.state.racks[rackId].failed_disks[diskId] = 1
             self.state.failed_disks[diskId] = 1
+            
+        if event_type == Disk.EVENT_DELAYED_FAIL:
+            # Currently this should not do anything because the disk should already be in a failed state
+            pass
     
     def update_disk_priority(self, event_type, diskset):
         raise NotImplementedError("update_disk_priority() not implemented")
@@ -67,5 +71,5 @@ class Policy:
     # This function decides whether the policy intervene before we check
     #   the repair_queue and failure_queue for the next event
     #   default is to return none
-    def intercept_next_event(self) -> Optional[Tuple[float, str, int]]:
+    def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:
         return None

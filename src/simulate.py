@@ -32,6 +32,7 @@ class Simulate:
         self.repair_queue = []
         self.delay_repair_queue = []
         self.network_queue = []
+        self.prev_event = None
 
 
     #------------------------------------------
@@ -88,9 +89,10 @@ class Simulate:
 
 
     def get_next_event(self) -> Optional[Tuple[float, str, int]]:
-        # We check whether each policy decides that an event should be returned instead of the default behavior
-        
-        
+        # We check if policy decides that there are something that should be returned
+        intercept = self.state.policy.intercept_next_event(self.prev_event)
+        if intercept is not None:
+            return intercept
         
         if self.failure_queue or self.repair_queue:
             if len(self.repair_queue) == 0:
@@ -104,6 +106,8 @@ class Simulate:
                     next_event = heappop(self.failure_queue)
                 else:
                     next_event = heappop(self.repair_queue)
+                    
+            self.prev_event = next_event
             return next_event
         
         return None

@@ -46,7 +46,7 @@ class NetRAID(Policy):
                 if diskId not in self.state.simulation.delay_repair_queue:
                     self.update_disk_repair_time(diskId, failed_disks_per_stripeset)
 
-        if event_type == Disk.EVENT_FAIL:
+        if event_type in [Disk.EVENT_FAIL, Disk.EVENT_DELAYED_FAIL]:
             disk = self.disks[diskId]
             # Note: the assignment of repair_start_time is moved into update_disk_repair_time()
             #  this is because there is a chance that we might need to delay repair
@@ -159,11 +159,26 @@ class NetRAID(Policy):
             inter_rack = total_upload_bandwidth
             self.sys.network.inter_rack_avail -= total_upload_bandwidth
         
-        return NetworkUsage(inter_rack, intra_rack)
-        
+        return NetworkUsage(inter_rack, intra_rack) 
         
     def check_pdl(self):
         return net_raid_pdl(self.state)
     
     def update_repair_events(self, repair_queue):
         netraid_repair(self.state, repair_queue)
+        
+    def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:
+        # Check whether there are delayed repaired disks that satisfy the requirement
+        if len(self.state.simulation.delay_repair_queue):
+            return None
+        
+        # We check all the disks that have been delayed for repairs
+        for diskId in self.state.simulation.delay_repair_queue:
+            disk = self.state.disks[diskId]
+            # This means that we have enough bandwidth to carry out the repair
+            disk_to_read_from = self.disks_to_read_for_repair(disk)
+            if self.sys.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
+                del self.state.simulation.delay_repair_queue[diskId]
+                return (prev_event[0], Disk.EVENT_DELAYED_FAIL, diskId)
+        
+        return None
