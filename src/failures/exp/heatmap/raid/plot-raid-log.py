@@ -34,11 +34,15 @@ def cal_radius(count):
 
 def coloring(x):
     if x == 0:
+        return 'white'
+    elif x <=0.000001:
+        return 'yellow'
+    elif x <=0.00001:
         return 'lightgreen'
     elif x <= 0.0001:
-        return 'green'
-    elif x <= 0.001:
         return 'lightblue'
+    elif x <= 0.001:
+        return 'green'
     elif x <= 0.01:
         return 'blue'
     elif x <= 0.1:
@@ -81,18 +85,21 @@ axes.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 axes.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
 plt.text(1, 28, 'PDL: 0.0')
-plt.text(6, 28, '0.0001')
-plt.text(11, 28, '0.001')
-plt.text(16, 28, '0.01')
-plt.text(21, 28, '0.1')
-plt.text(26, 28, '1.0')
+plt.text(5.5, 28, r'$10^{-6}$')
+plt.text(9, 28, r'$10^{-5}$')
+plt.text(12.5, 28, r'$10^{-4}$')
+plt.text(16, 28, r'$10^{-3}$')
+plt.text(19, 28, r'$10^{-2}$')
+plt.text(22.5, 28, r'$10^{-1}$')
+plt.text(26, 28, r'$1$')
 
 import matplotlib as mpl
 import matplotlib.colors as colors
 
 dd = 10**(-16)  # a number that is very close to 0
-hc = ['lightgreen', 'lightgreen','green', 'green', 'lightblue', 'lightblue', 'blue', 'blue', 'orange',  'orange', 'purple', 'purple',  'red', 'red']
-th = [0,       0.01,  0.01+dd, 0.2,  0.2+dd,  0.4, 0.4+dd,  0.6,      0.6+dd,   0.8,      0.8+dd,       0.99-dd,         0.99, 1]
+hc = ['white', 'white', 'yellow', 'yellow','lightgreen', 'lightgreen', 'lightblue', 'lightblue', 'green', 'green', 'blue', 'blue', 'orange',  'orange', 'purple', 'purple',  'red', 'red']
+th = [0,       0.01,  0.01+dd, 0.15,  0.15+dd,  0.29, 0.29+dd,  0.43,      0.43+dd,   0.57,      0.57+dd,   0.71, 0.71+dd, 0.85, 0.85+dd, 0.99, 0.99+dd, 1]
+
 
 mycolors=list(zip(th, hc))
 cm = colors.LinearSegmentedColormap.from_list('test', mycolors)
