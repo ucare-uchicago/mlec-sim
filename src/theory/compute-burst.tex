@@ -104,7 +104,7 @@ For $S(f,r)$, we have the following recurrence relation (which is derived by con
 \begin{eqnarray}
 \begin{aligned}
   S(f,r)
-  &= \sum_{\substack{1 \leq i \leq f \\ i \leq M}} \eta(i,g) \cdot T(f-i, r-1)
+  &= \sum_{\substack{1 \leq i \leq f \\ i \leq M}} \eta(i,g) \cdot S(f-i, r-1)
 \end{aligned}
 \label{eq:raid:3}
 \end{eqnarray}
@@ -168,7 +168,74 @@ We can then compute the data loss in the same way that we did for RAID. Therefor
 
 \section{Survival instances under network clustered erasure}
 
-TBD, this is more challenging.
+Consider $n_n=k_n+p_n$ network-only clustered erasure.
+
+We first divide all the racks into $\alpha = X / n_n$ rack groups, each rack group with $n_n=k_n+p_n$ racks.
+
+In each rack group, we further divide the disks into disk groups. Each disk group contains $n_n=k_n+p_n$ disks spread on $n_n$ racks, with each disk on a different rack.
+
+\begin{center}
+    \includegraphics[width=0.9\textwidth]{netraid_layout.png}
+\end{center}
+
+
+Denote $\eta(f,r,m)$ as the number of instances for one rack group to survive $f$ failures in $r$ racks in this rack group, with each rack contains $m$ disks.
+
+Thus there are $m$ disk groups in the rack group: $1,2,..., m$. Suppose the $m$-th disk group has $i$ failures spread in $i$ racks. Then disk group $1,2,...,m-1$ should have $f-i$ failures in total. Suppose these $f-i$ failures spread in $j$ racks. Then the $i$ racks affected by disk group $m$ and the $j$ racks affected by disk groups $1...m-1$ must overlap on $i+j-r$ racks. And there are $r-j$ racks which are affected by disk group $m$ only.
+
+If we consider of the possible values of $i$ and $j$, we can derive the following recurrence relation for $\eta(f,r,m)$ :
+
+\begin{eqnarray}
+\begin{aligned}
+  \eta(f,r,m) &= \sum_{\substack{0 \leq i \leq p_n \\ i\leq r}} 
+                \sum_{\substack{0 \leq j \leq r \\ r-i \leq j}}
+                C_{j}^{i+j-r} \cdot C_{n_n-j}^{r-j} \cdot \eta(f-i, j, m-1) 
+\end{aligned}
+\label{eq:netraid:1}
+\end{eqnarray}
+
+The base case is 
+
+\begin{eqnarray}
+  \eta(f,1,m) =
+    \begin{cases}
+      C_{m}^f \cdot C_{n_n}^1 & \text{if $0 \leq f \leq m$}\\
+      0 & \text{otherwise}
+    \end{cases}       
+\label{eq:netraid:2}
+\end{eqnarray}
+
+We can then compute $\eta(f,r,M)$ based on recurrence relation \ref{eq:netraid:1} and dynamic programming, with $O(f \cdot r \cdot M)$ time complexity and $O(f \cdot r \cdot M)$ memory complexity. Here is an example implementation: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/netraid.py#L32}\\
+
+Given $\alpha$ rack groups $1,2,...,\alpha$, denote $S(f,r, \alpha)$ as the total number of instances for $n_n=k_n+p_n$ network-only RAID to survive $f$ failures in $r$ racks, such that each rack has at least one failure.
+
+For $S(f,r,\alpha)$, we have the following recurrence relation (which is derived by considering what will happen if $\alpha$-th rack group contains $i$ failures affecting $j$ racks):
+
+\begin{eqnarray}
+\begin{aligned}
+  S(f,r,\alpha)
+  &= \sum_{\substack{0 \leq i \leq f \\ i \leq M*p_n}}
+  \sum_{\substack{0 \leq j \leq r \\ j \leq i \\ j \leq n_n}}
+  \eta(i,j,M) \cdot S(f-i, r-j, \alpha-1)
+\end{aligned}
+\label{eq:netraid:3}
+\end{eqnarray}
+
+The base case is 
+
+\begin{eqnarray}
+  S(f,r,1) =  \eta(f,r,M)
+\label{eq:netraid:4}
+\end{eqnarray}
+
+Since we have already computed $\eta(f,r,m)$, we can further compute $S(f,r,\alpha)$ based on recurrence relation \ref{eq:netraid:3} and dynamic programming. The total time complexity $O(f \cdot r \cdot \alpha)$, and total memory complexity and $O(f \cdot r \cdot \alpha)$.
+
+An example implementation can be found at: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/netraid.py#L76}
+
+
+
+
+
 
 \section{Survival instances under network declustered erasure}
 
