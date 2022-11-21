@@ -25,15 +25,15 @@ import time
 
 
 
-def burst_brute(k_local, p_local, k_net, p_net):
-    for num_fail_disks in range(5,10):
+def burst_brute(k_net, p_net, k_local, p_local):
+    for num_fail_disks in range(2,10):
         n_local = k_local + p_local
         n_net = k_net + p_net
         num_disks = n_local * n_net
         num_racks = n_net
         num_system_status = 2 ** num_disks     # bitmap for drive status. 0 for healthy; 1 for failed. 2^Ndrives possible combinations
 
-        num_affect_racks = 5
+        num_affect_racks = 2
 
         total_cases = 0     # total cases when 4 disks and 2 racks are affected
         data_losses = 0     # data loss cases when 4 disks and 2 racks are affected
@@ -141,4 +141,4 @@ if __name__ == "__main__":
 
     dist = args.dist
 
-    burst_brute(k_local, p_local, k_net, p_net)
+    burst_brute(k_net, p_net, k_local, p_local)
