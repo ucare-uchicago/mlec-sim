@@ -1,4 +1,5 @@
 import math
+import total
 
 ##############################
 # mlec clustered
@@ -8,6 +9,7 @@ import math
 # We further divide a rack group into multiple mlec groups.
 # Each mlec group is composed of n_n*n_l disks.
 # An mlec group spread among n_n racks, with n_l disks in each rack.
+
 # -- Step 1:
 #    For each mlec group, consider how many survival instances if f failures affect r racks, 
 #    with no more than p_n racks having more than p_l failures.
@@ -16,105 +18,125 @@ import math
 #             d11 | d21 | d31
 #             d12 | d22 | d32
 #             d13 | d23 | d33
+# num_racks: n_n
+# tole_racks: max number of failed racks that can be tolerated. Should be p_n
+# NOTE: Here it's fine for tole_racks > num_racks. 
+#       For the dynamic programming purpose, tole_racks just means the tolerance upper bound.
+#       However, in reality, usually we have p_n < n_n
 survival_count_mlec_group_dic = {}
-def survival_count_mlec_group(k_net, p_net, k_local, p_local, num_failed_disks, num_affected_racks):
-    if (k_net, p_net, k_local, p_local, num_failed_disks, num_affected_racks) in survival_count_mlec_group_dic:
-        return survival_count_mlec_group_dic[(k_net, p_net, k_local, p_local, num_failed_disks, num_affected_racks)]
+def survival_count_mlec_group(num_racks, tole_racks, k_local, p_local, num_failed_disks, num_affected_racks):
+    # print((num_racks, tole_racks, k_local, p_local, num_failed_disks, num_affected_racks))
+    if (num_racks, tole_racks, k_local, p_local, num_failed_disks, num_affected_racks) in survival_count_mlec_group_dic:
+        return survival_count_mlec_group_dic[(num_racks, tole_racks, k_local, p_local, num_failed_disks, num_affected_racks)]
     # corner cases
-    if k_net < 0 or p_net < 0 or num_failed_disks-i < 0 or num_affected_racks-1 < 0:
+    if num_racks < 0 or tole_racks < 0 or num_failed_disks < 0 or num_affected_racks < 0:
         return 0
     # cannot have more racks than disks
     if num_failed_disks < num_affected_racks:
         return 0
     # cannot affect more than n_n racks
-    n_local = k_local + p_local
-    n_net = k_net + p_net
-    if num_affected_racks > n_net:
+    if num_affected_racks > num_racks:
         return 0
     # base cases
-    if num_failed_disks == 0:
-        return 1
     if num_affected_racks == 0:
-        return 0
+        if num_failed_disks == 0:
+            survival_count_mlec_group_dic[(num_racks, tole_racks, k_local, p_local, num_failed_disks, num_affected_racks)] = 1
+        else:
+            survival_count_mlec_group_dic[(num_racks, tole_racks, k_local, p_local, num_failed_disks, num_affected_racks)] = 0
+        return survival_count_mlec_group_dic[(num_racks, tole_racks, k_local, p_local, num_failed_disks, num_affected_racks)]
+    # recurrence relation
     count = 0
+    n_local = k_local + p_local
     for i in range(n_local + 1):
         if i == 0:
-            count += survival_count_mlec_group(k_net-1, p_net, k_local, p_local, num_failed_disks, num_affected_racks)
+            count += survival_count_mlec_group(num_racks-1, tole_racks, k_local, p_local, num_failed_disks, num_affected_racks)
         elif i <= p_local:
-            count += math.comb(n_local, i) * survival_count_mlec_group(k_net-1, p_net, k_local, p_local, num_failed_disks-i, num_affected_racks-1)
+            count += math.comb(n_local, i) * survival_count_mlec_group(num_racks-1, tole_racks, k_local, p_local, num_failed_disks-i, num_affected_racks-1)
         else:
-            count += math.comb(n_local, i) * survival_count_mlec_group(k_net, p_net-1, k_local, p_local, num_failed_disks-i, num_affected_racks-1)
-    survival_count_mlec_group_dic[(k_net, p_net, k_local, p_local, num_failed_disks, num_affected_racks)] = count
+            count += math.comb(n_local, i) * survival_count_mlec_group(num_racks-1, tole_racks-1, k_local, p_local, num_failed_disks-i, num_affected_racks-1)
+    survival_count_mlec_group_dic[(num_racks, tole_racks, k_local, p_local, num_failed_disks, num_affected_racks)] = count
     return count
 
 
+# Report number of survival instances with parameters k_net and p_net.
+def survival_count_mlec_group_k_p(k_net, p_net, k_local, p_local, num_failed_disks, num_affected_racks):
+    return survival_count_mlec_group(k_net+p_net, p_net, k_local, p_local, num_failed_disks, num_affected_racks)
 
 
-
-# For each rack group, consider how many survival instances if the rack group has r rack failures
-# ------
-# Count survival instances for a single rack if there are f failures in r racks.
-# The rack group is further divided into disk groups
-# each disk group contains n=k+p disks.
-# each disk group has exactly one disk in each rack
-# The layout looks like this for SLEC2+1:
+# -- Step 2:
+#    For each rack group, consider how many survival instances if the rack group has f disk failures affecting r racks.
 # 
-# racks:   r1 | r2 | r3
-#          -- | -- | --
-# group A: d1 | d2 | d3
-# group B: d1 | d2 | d3
-# group C: d1 | d2 | d3
+#    racks:   r1  |  r2 | r3
+#             --  | --- | --
+#     mlec    d11 | d21 | d31
+#     group   d12 | d22 | d32
+#       1     d13 | d23 | d33
+#             --- | --- | ---
+#      mlec   d14 | d24 | d34
+#     group   d15 | d25 | d35
+#       2     d16 | d26 | d36
 # 
-# We need to satisfy two constrains:
-# 1). every group has at most p failures
-# 2). there are exactly r affected racks
-# 
-# Given m racks and g disk groups, thus m*n disks in total, define s(f,r,g) as the number of instances for net-raid k+p
-# to survive  f disk failures in r affected racks
-# here m = k_net + p_net
-#      g =  drives_per_rack
-
+# We divide the rack group into multiple mlec groups. 
+# The recurrence relation comes by considering what will happen if some mlec group has i disk failures affecting j racks.
 survival_count_rack_group_dic = {}
-def survival_count_rack_group(k_net, p_net, drives_per_rack, num_failed_disks, num_affected_racks):
-    if (drives_per_rack, num_failed_disks, num_affected_racks) in survival_count_rack_group_dic:
-        return survival_count_rack_group_dic[(drives_per_rack, num_failed_disks, num_affected_racks)]
+def survival_count_rack_group(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks):
+    print((k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks))
+    if (k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks) in survival_count_rack_group_dic:
+        return survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)]
+    # if num_failed_disks == 0 and num_affected_racks == 0 and num_mlec_groups >= 0:
+    #     survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)] = 1
+    #     return 1
+    if num_mlec_groups <= 0 or num_failed_disks < 0 or num_affected_racks < 0:
+        print('return 0')
+        return 0
     if num_affected_racks > num_failed_disks:
+        print('return 0')
         return 0
-    if num_failed_disks > drives_per_rack * num_affected_racks:
+    if num_failed_disks > num_affected_racks * num_mlec_groups * (k_local + p_local):
+        print('return 0')
         return 0
-    if num_affected_racks == 0:
-        # when reach here, we must have num_failed_disks == 0
-        return 1
+    if num_mlec_groups == 1:
+        survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)] = (
+                survival_count_mlec_group_k_p(k_net, p_net, k_local, p_local, num_failed_disks, num_affected_racks)
+            )
+        print('return {}'.format(survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)]))
+        return survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)]
+    
 
     n_net = k_net + p_net
-    num_racks = n_net
-    if num_affected_racks == 1:
-        if num_failed_disks > drives_per_rack :
-            return 0
-        else:
-            survival_count_rack_group_dic[(drives_per_rack, num_failed_disks, 1)] = (
-                        math.comb(drives_per_rack, num_failed_disks) * math.comb(num_racks, 1)
-                    )
-            return survival_count_rack_group_dic[(drives_per_rack, num_failed_disks, 1)]
-        
-    count = 0
-    
-    max_failures_per_diskgroup = min(p_net, num_failed_disks)
-    # suppose g-th group has i disk failures
     r = num_affected_racks
-    for i in range(max_failures_per_diskgroup+1):
-        # then group 1 to g-1 has f-i disk faiulres
-        # suppose these f-i disk failures affects exactly j racks
-        # then the g-th group affects r-j new racks
-        # and the i disk failures and the j affected racks must overlap on i+j-r racks
+    count = 0
+    for i in range(num_failed_disks+1):
         for j in range(num_affected_racks+1):
-            if i+j-r > j or i+j-r < 0 or r-j > n_net-j or r-j < 0:
-                continue
-            count += math.comb(j, i+j-r) * math.comb(n_net-j, r-j) * survival_count_rack_group(
-                            k_net, p_net, drives_per_rack-1,  num_failed_disks-i, j)
-    survival_count_rack_group_dic[(drives_per_rack, num_failed_disks, num_affected_racks)] = count
+            for h in range(num_affected_racks+1):
+                # suppose j racks are affected in the target mlec group, h racks are affected in the rest mlec groups.
+                # divide the n_n racks into 2 parts. Part 1 are the h racks affected by other mlec groups. Part 2 are the n_n-h racks not affected by other mlec groups.
+                # then the target mlec group should affect (j+h-r) racks in part 1, and (r-h) racks in part 2.
+                # that is to say, j and h should overlap (j+h-r) racks. And the target mlec group should affect another (r-h) racks.
+                if h<j+h-r or j+h-r<0 or n_net-h<r-h or r-h<0:
+                    continue
+                count += (math.comb(h, j+h-r) * math.comb(n_net-h, r-h)
+                            * survival_count_mlec_group(r, p_net, k_local, p_local, i, j)
+                            * survival_count_rack_group(k_net, p_net, k_local, p_local, num_mlec_groups-1, num_failed_disks-i, h))
+                print('\ti: {} j: {} h: {}'.format(i,j,h))
+                print('\tmath: {} math: {} s: {} s: {}'.format(math.comb(h, j+h-r), math.comb(n_net-h, r-h), 
+                                survival_count_mlec_group(r, p_net, k_local, p_local, i, j), 
+                                survival_count_rack_group(k_net, p_net, k_local, p_local, num_mlec_groups-1, num_failed_disks-i, h)))
+        survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)] = count
+    print('{}  return {}'.format((k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks), count))
     return count
+
 
 
 if __name__ == "__main__":
-    survival_count_mlec_group(6, 1, 2, 1, num_failed_disks, num_affected_racks)
+    # survival_cases = survival_count_mlec_group_k_p(3, 2, 3, 2, 12, 3)
+    # total_cases = total.total_cases_fixed_racks(5, 5, 12, 3)
+    # print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
+    # dl_prob = 1 - survival_cases / total_cases
+    # print("dl prob: \t{}\n".format(dl_prob))    # brute force is 0.9340659341. Result should match
+    # print(survival_count_mlec_group_dic)
+    survival_cases = survival_count_rack_group(1, 1, 1, 1, 2, 2, 2)
+    total_cases = total.total_cases_fixed_racks(5, 10, 12, 3)
+    print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
+    dl_prob = 1 - survival_cases / total_cases
+    print("dl prob: \t{}\n".format(dl_prob))    # brute force is 0.9340659341. Result should match
