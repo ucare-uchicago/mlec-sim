@@ -11,7 +11,7 @@ def net_raid_pdl(state: State):
         disk = state.disks[diskId]
         failed_disks_per_stripeset = state.get_failed_disks_per_stripeset(disk.stripesetId)
         if len(failed_disks_per_stripeset) > state.sys.top_m:
-            #logging.warn("System failure caused by stripe %s with failures %s", disk.stripesetId, failed_disks_per_stripeset)
+            logging.warn("System failure caused by stripe %s with failures %s", disk.stripesetId, failed_disks_per_stripeset)
             prob = 1
             return prob
     return prob
