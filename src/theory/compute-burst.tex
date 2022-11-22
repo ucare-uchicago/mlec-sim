@@ -277,7 +277,7 @@ where $r$ is the number of affected racks.
 
 
 
-\section{Survival instances under MLEC clustered}
+\section{Survival instances under MLEC clustered}\label{sec-mlec}
 
 Consider $(k_n+p_n)/(k_l+p_l)$ clustered MLEC.
 We first divide all the racks into $\alpha = X / n_n$ rack groups, each rack group with $n_n=k_n+p_n$ racks.
@@ -412,6 +412,39 @@ An example implementation can be found at: \url{https://github.com/ucare-uchicag
 
 \section{Survival instances under MLEC Declustered}
 
-TBD
+This is very similar to MLEC clustered in section \ref{sec-mlec}. The only difference is that now an mlec group contains $D$ disks per rack, where $D$ is the local disk group size in local declustered parity.
+
+Therefore, equation \ref{eq:mlec:2} should be changed to:
+
+\begin{eqnarray}
+  \Delta(a,p_n,f,r, i) =
+    \begin{cases}
+      \Theta(a-1,p_n,f,r) & \text{if $i = 0$}\\
+      C_{D}^{i} \cdot \Theta(a-1,p_n,f-i,r-1) & \text{if $i \leq p_l$} \\ 
+      C_{D}^{i} \cdot \Theta(a-1,p_n-1,f-i,r-1) & \text{if $i > p_l$}
+    \end{cases}       
+\label{eq:mlec_dp:1}
+\end{eqnarray}
+
+The survival counting for a rack group now equals: $\Gamma(f,r,\frac{M}{D})$
+
+The recurrence of surviving counting for the entire system now equals:
+
+\begin{eqnarray}
+\begin{aligned}
+  S(f,r,\alpha)
+  &= \sum_{\substack{0 \leq i \leq f \\ i \leq M*n_n}}
+  \sum_{\substack{0 \leq j \leq r \\ j \leq i \\ j \leq n_n}}
+  \Gamma(i,j,M/D) \cdot S(f-i, r-j, \alpha-1)
+\end{aligned}
+\label{eq:mlec_dp:2}
+\end{eqnarray}
+
+with base case $S(f,r,1) =  \Gamma(f,r,M/D)$.
+
+The aggregate time complexity is $O(f \cdot r \cdot (n_n p_n + \frac{M}{D} + \frac{X}{n_n}))$
+
+An example implementation can be found at: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/policies/mlec_dp.py}
+
 
 \end{document}
