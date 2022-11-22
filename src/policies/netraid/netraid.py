@@ -71,7 +71,7 @@ class NetRAID(Policy):
         logging.info("Updating repair time for disk %s", diskId)
         disk = self.disks[diskId]
         fail_per_stripeset = len(failed_disks_in_stripeset)
-        logging.info("Bandwidth before usage - inter: %s, intra: %s", self.sys.network.inter_rack_avail, self.sys.network.intra_rack_avail)
+        logging.info("Bandwidth before usage - inter: %s, intra: %s", self.state.network.inter_rack_avail, self.state.network.intra_rack_avail)
         logging.info("Disk detail %s", disk)
         repaired_time = self.curr_time - disk.repair_start_time
         if repaired_time == 0:
@@ -84,18 +84,18 @@ class NetRAID(Policy):
             #------------
             disk_to_read_from = self.disks_to_read_for_repair(disk)
             logging.info("Reading from %s disks to complete repair", disk_to_read_from)
-            if self.sys.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
+            if self.state.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
                 # This means that we begin repair
                 # 1. Subtract the bandwidth away from network
                 network_usage = self.update_bandwidth(disk, disk_to_read_from)
                 logging.info("Network usage: %s", network_usage.__dict__)
-                logging.info("Bandwidth after usage - inter: %s, intra: %s", self.sys.network.inter_rack_avail, self.sys.network.intra_rack_avail)
+                logging.info("Bandwidth after usage - inter: %s, intra: %s", self.state.network.inter_rack_avail, self.state.network.intra_rack_avail)
                 # 2. Assign the network usage to the repairing disk
                 disk.network_usage = network_usage
             else:
                 # If we do not have enough bandwidth to carry out repair, we delay the repair
                 # logging.warning("Not enough bandwidth, delaying repair")
-                # if self.sys.network.inter_rack_avail == 0:
+                # if self.state.network.inter_rack_avail == 0:
                 #     logging.warning("Caused by interrack bandwidth being 0")
                 # else:
                 #     logging.warning("Not enough surviving peers. Only available peer %s, total of %s", disk_to_read_from, len())
@@ -132,7 +132,7 @@ class NetRAID(Policy):
             if len(disk_to_read_from) < self.sys.top_k \
                 and self.state.disks[diskId].state == Disk.STATE_NORMAL \
                 and self.state.racks[disk.rackId].state == Rack.STATE_NORMAL \
-                and self.sys.network.intra_rack_avail[disk.rackId] != 0:
+                and self.state.network.intra_rack_avail[disk.rackId] != 0:
                 disk_to_read_from.append(diskId)
         
         return disk_to_read_from
@@ -142,26 +142,26 @@ class NetRAID(Policy):
         intra_rack = {}
         for diskId in disk_to_read_from:
             rackId = self.state.disks[diskId].rackId
-            if self.sys.diskIO <= self.sys.network.intra_rack_avail[rackId]:
+            if self.sys.diskIO <= self.state.network.intra_rack_avail[rackId]:
                 # We have more bandwidth than disk upload
                 intra_rack[rackId] = self.sys.diskIO
-                self.sys.network.intra_rack_avail[rackId] -= self.sys.diskIO
+                self.state.network.intra_rack_avail[rackId] -= self.sys.diskIO
                 # logging.info("Using %s net bandwidth from rack %s", self.sys.diskIO, rackId)
             else:
                 # We have less bandwidth than the diskIO, we then take all
-                intra_rack[rackId] = self.sys.network.intra_rack_avail[rackId]
-                self.sys.network.intra_rack_avail[rackId] = 0
-                # logging.info("Using %s net bandwidth from rack %s", self.sys.network.intra_rack_avail[rackId], rackId)
+                intra_rack[rackId] = self.state.network.intra_rack_avail[rackId]
+                self.state.network.intra_rack_avail[rackId] = 0
+                # logging.info("Using %s net bandwidth from rack %s", self.state.network.intra_rack_avail[rackId], rackId)
         
         # If the total upload from racks are larger than the avail inter-rack, we use all
         # TODO: if this is the case, we also need to adjust intra-rack bandwidth of each rack
         total_upload_bandwidth = np.sum(list(intra_rack.values()))
-        if total_upload_bandwidth > self.sys.network.inter_rack_avail:
-            inter_rack = self.sys.network.inter_rack_avail
-            self.sys.network.inter_rack_avail = 0
+        if total_upload_bandwidth > self.state.network.inter_rack_avail:
+            inter_rack = self.state.network.inter_rack_avail
+            self.state.network.inter_rack_avail = 0
         else:
             inter_rack = total_upload_bandwidth
-            self.sys.network.inter_rack_avail -= total_upload_bandwidth
+            self.state.network.inter_rack_avail -= total_upload_bandwidth
         
         return NetworkUsage(inter_rack, intra_rack) 
         
@@ -174,7 +174,7 @@ class NetRAID(Policy):
     def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:
         logging.info("Trying to intercept event with delay repair queue length of %s", len(self.state.simulation.delay_repair_queue))
         # Check whether there are delayed repaired disks that satisfy the requirement
-        if len(self.state.simulation.delay_repair_queue) == 0 or self.sys.network.inter_rack_avail == 0:
+        if len(self.state.simulation.delay_repair_queue) == 0 or self.state.network.inter_rack_avail == 0:
             return None
         
         # We check all the disks that have been delayed for repairs
@@ -182,8 +182,8 @@ class NetRAID(Policy):
             disk = self.state.disks[diskId]
             # This means that we have enough bandwidth to carry out the repair
             disk_to_read_from = self.disks_to_read_for_repair(disk)
-            logging.info("Trying to initiate delayed repair for disk %s with inter-rack of %s and avail peer of %s (k=%s)", diskId, self.sys.network.inter_rack_avail, len(disk_to_read_from), self.sys.top_k)
-            if self.sys.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
+            logging.info("Trying to initiate delayed repair for disk %s with inter-rack of %s and avail peer of %s (k=%s)", diskId, self.state.network.inter_rack_avail, len(disk_to_read_from), self.sys.top_k)
+            if self.state.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
                 logging.info("Delayed disk %s now has enough bandwidth, repairing", diskId)
                 self.state.simulation.delay_repair_queue.remove(diskId)
                 return (prev_event[0], Disk.EVENT_DELAYED_FAIL, diskId)
