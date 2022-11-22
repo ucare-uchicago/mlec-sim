@@ -59,7 +59,7 @@ The base case is
 \label{eq:total:base}
 \end{eqnarray}
 
-Therefore, we can compute $T(f,r)$ using dynamic programming, with time complexity $O(f \cdot r)$, and memory complexity $O(f \cdot r)$. An implementation can be found at: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/burst_theory.py#L30}
+Therefore, we can compute $T(f,r)$ using dynamic programming, with time complexity $O(f \cdot r)$, and memory complexity $O(f \cdot r)$. An implementation can be found at: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/policies/total.py}
 
 The total number of instances is:
 \begin{eqnarray}
@@ -67,19 +67,24 @@ The total number of instances is:
 \label{eq:total:final}
 \end{eqnarray}
 
+
+
+
 \section{Survival instances under local clustered (RAID)}\label{sec-raid}
 
 Consider $k_l+p_l$ local-only RAID SLEC. For easier deployment we assume $n_l=k_l+p_l$ is divisible by Z.
 
 $n_l$ drives in the same enclosure compose a RAID disk group. Therefore a rack contains $g = M/n_l$ RAID groups.
 
-Denote $\eta(f, g)$ as the number of instances for one single rack to survive $f$ failures in a rack containing $g$ $k_l+p_l$ RAID groups.
+\subsection{Survival counting in a single RAID group}
 
-For $\eta(f, g)$, we have the following recurrence relation (which is derived by considering what will happen if $g$-th group contains $i$ failures):
+Denote $\Gamma(f, g)$ as the number of instances for one single rack to survive $f$ failures in a rack containing $g$ $k_l+p_l$ RAID groups.
+
+For $\Gamma(f, g)$, we have the following recurrence relation (which is derived by considering what will happen if $g$-th group contains $i$ failures):
 
 \begin{eqnarray}
 \begin{aligned}
-  \eta(f, g) &= \sum_{\substack{0 \leq i \leq p_l \\ a\leq f}} \eta(f-i, g-1) \cdot C_{n_l}^i
+  \Gamma(f, g) &= \sum_{\substack{0 \leq i \leq p_l \\ a\leq f}} \Gamma(f-i, g-1) \cdot C_{n_l}^i
 \end{aligned}
 \label{eq:raid:1}
 \end{eqnarray}
@@ -87,7 +92,7 @@ For $\eta(f, g)$, we have the following recurrence relation (which is derived by
 The base case is 
 
 \begin{eqnarray}
-  \eta(f, 1) =
+  \Gamma(f, 1) =
     \begin{cases}
       C_{n_l}^f& \text{if $0 \leq f \leq n_l$}\\
       0 & \text{otherwise}
@@ -95,7 +100,10 @@ The base case is
 \label{eq:raid:2}
 \end{eqnarray}
 
-We can then compute $\eta(f_i, g_l)$ based on recurrence relation \ref{eq:raid:1} and dynamic programming, with $O(f \cdot g)$ time complexity and $O(f \cdot g)$ memory complexity.\\
+We can then compute $\Gamma(f_i, g_l)$ based on recurrence relation \ref{eq:raid:1} and dynamic programming, with $O(f \cdot g)$ time complexity and $O(f \cdot g)$ memory complexity.
+
+
+\subsection{Survival counting in entire system}
 
 Given $r$ racks $1,2,...,r$, denote $S(f,r)$ as the total number of instances for $k_l+p_l$ local-only RAID to survive $f$ failures to in $r$ racks, such that each rack has at least one failure.
 
@@ -104,7 +112,7 @@ For $S(f,r)$, we have the following recurrence relation (which is derived by con
 \begin{eqnarray}
 \begin{aligned}
   S(f,r)
-  &= \sum_{\substack{1 \leq i \leq f \\ i \leq M}} \eta(i,g) \cdot S(f-i, r-1)
+  &= \sum_{\substack{1 \leq i \leq f \\ i \leq M}} \Gamma(i,g) \cdot S(f-i, r-1)
 \end{aligned}
 \label{eq:raid:3}
 \end{eqnarray}
@@ -114,15 +122,15 @@ The base case is
 \begin{eqnarray}
   S(f,1) =
     \begin{cases}
-      \eta(f,g)& \text{if $1 \leq f \leq M$}\\
+      \Gamma(f,g)& \text{if $1 \leq f \leq M$}\\
       0 & \text{otherwise}
     \end{cases}       
 \label{eq:raid:4}
 \end{eqnarray}
 
-Since we have already computed $\eta(f,g)$, we can further compute $S(f,r)$ based on recurrence relation \ref{eq:raid:3} and dynamic programming. The total time complexity $O(f \cdot (g+r)$, and total memory complexity and $O(f \cdot (g+r)$.
+Since we have already computed $\Gamma(f,g)$, we can further compute $S(f,r)$ based on recurrence relation \ref{eq:raid:3} and dynamic programming. The total time complexity $O(f \cdot (g+r)$, and total memory complexity and $O(f \cdot (g+r)$.
 
-Here is an example implementation: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/burst_theory.py#L97}
+Here is an example implementation: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/policies/raid.py}
 
 Therefore, the total number of survival instances in the whole system is:
 
@@ -166,6 +174,8 @@ We can then compute the data loss in the same way that we did for RAID. Therefor
 \end{eqnarray}
 
 
+
+
 \section{Survival instances under network clustered erasure}
 
 Consider $n_n=k_n+p_n$ network-only clustered erasure.
@@ -178,18 +188,19 @@ In each rack group, we further divide the disks into disk groups. Each disk grou
     \includegraphics[width=0.9\textwidth]{netraid_layout.png}
 \end{center}
 
+\subsection{Survival counting in a single rack group}
 
-Denote $\eta(f,r,m)$ as the number of instances for one rack group to survive $f$ failures in $r$ racks in this rack group, with each rack contains $m$ disks.
+Denote $\Gamma(f,r,m)$ as the number of instances for one rack group to survive $f$ failures in $r$ racks in this rack group, with each rack contains $m$ disks.
 
 Thus there are $m$ disk groups in the rack group: $1,2,..., m$. Suppose the $m$-th disk group has $i$ failures spread in $i$ racks. Then disk group $1,2,...,m-1$ should have $f-i$ failures in total. Suppose these $f-i$ failures spread in $j$ racks. Then the $i$ racks affected by disk group $m$ and the $j$ racks affected by disk groups $1...m-1$ must overlap on $i+j-r$ racks. And there are $r-j$ racks which are affected by disk group $m$ only.
 
-If we consider of the possible values of $i$ and $j$, we can derive the following recurrence relation for $\eta(f,r,m)$ :
+If we consider of the possible values of $i$ and $j$, we can derive the following recurrence relation for $\Gamma(f,r,m)$ :
 
 \begin{eqnarray}
 \begin{aligned}
-  \eta(f,r,m) &= \sum_{\substack{0 \leq i \leq p_n \\ i\leq r}} 
+  \Gamma(f,r,m) &= \sum_{\substack{0 \leq i \leq p_n \\ i\leq r}} 
                 \sum_{\substack{0 \leq j \leq r \\ r-i \leq j}}
-                C_{j}^{i+j-r} \cdot C_{n_n-j}^{r-j} \cdot \eta(f-i, j, m-1) 
+                C_{j}^{i+j-r} \cdot C_{n_n-j}^{r-j} \cdot \Gamma(f-i, j, m-1) 
 \end{aligned}
 \label{eq:netraid:1}
 \end{eqnarray}
@@ -197,7 +208,7 @@ If we consider of the possible values of $i$ and $j$, we can derive the followin
 The base case is 
 
 \begin{eqnarray}
-  \eta(f,1,m) =
+  \Gamma(f,1,m) =
     \begin{cases}
       C_{m}^f \cdot C_{n_n}^1 & \text{if $0 \leq f \leq m$}\\
       0 & \text{otherwise}
@@ -205,7 +216,10 @@ The base case is
 \label{eq:netraid:2}
 \end{eqnarray}
 
-We can then compute $\eta(f,r,M)$ based on recurrence relation \ref{eq:netraid:1} and dynamic programming, with $O(f \cdot r \cdot M)$ time complexity and $O(f \cdot r \cdot M)$ memory complexity. Here is an example implementation: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/netraid.py#L32}\\
+We can then compute $\Gamma(f,r,M)$ based on recurrence relation \ref{eq:netraid:1} and dynamic programming, with $O(f \cdot r \cdot M)$ time complexity and $O(f \cdot r \cdot M)$ memory complexity.
+
+
+\subsection{Survival counting in the entire system}
 
 Given $\alpha$ rack groups $1,2,...,\alpha$, denote $S(f,r, \alpha)$ as the total number of instances for $n_n=k_n+p_n$ network-only RAID to survive $f$ failures in $r$ racks, such that each rack has at least one failure.
 
@@ -216,7 +230,7 @@ For $S(f,r,\alpha)$, we have the following recurrence relation (which is derived
   S(f,r,\alpha)
   &= \sum_{\substack{0 \leq i \leq f \\ i \leq M*p_n}}
   \sum_{\substack{0 \leq j \leq r \\ j \leq i \\ j \leq n_n}}
-  \eta(i,j,M) \cdot S(f-i, r-j, \alpha-1)
+  \Gamma(i,j,M) \cdot S(f-i, r-j, \alpha-1)
 \end{aligned}
 \label{eq:netraid:3}
 \end{eqnarray}
@@ -224,13 +238,13 @@ For $S(f,r,\alpha)$, we have the following recurrence relation (which is derived
 The base case is 
 
 \begin{eqnarray}
-  S(f,r,1) =  \eta(f,r,M)
+  S(f,r,1) =  \Gamma(f,r,M)
 \label{eq:netraid:4}
 \end{eqnarray}
 
-Since we have already computed $\eta(f,r,m)$, we can further compute $S(f,r,\alpha)$ based on recurrence relation \ref{eq:netraid:3} and dynamic programming. The total time complexity $O(f \cdot r \cdot \alpha)$, and total memory complexity and $O(f \cdot r \cdot \alpha)$.
+Since we have already computed $\Gamma(f,r,m)$, we can further compute $S(f,r,\alpha)$ based on recurrence relation \ref{eq:netraid:3} and dynamic programming. The total time complexity $O(f \cdot r \cdot \alpha)$, and total memory complexity and $O(f \cdot r \cdot \alpha)$.
 
-An example implementation can be found at: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/netraid.py#L76}
+An example implementation can be found at: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/policies/netraid.py}
 
 
 
@@ -258,9 +272,143 @@ Therefore:
 
 where $r$ is the number of affected racks.
 
+
+
+
+
+
 \section{Survival instances under MLEC clustered}
 
-TBD
+Consider $(k_n+p_n)/(k_l+p_l)$ clustered MLEC.
+We first divide all the racks into $\alpha = X / n_n$ rack groups, each rack group with $n_n=k_n+p_n$ racks.
+
+In each rack group, we further divide the disks into mlec groups. Each mlec group contains $n_n=k_n+p_n$ disks on a different rack, thus $n_n \cdot n_l$ disks in total.
+
+The following figure shows $(2+1)/(2+1)$ clustered MLEC layout among 6 racks.
+
+\begin{center}
+    \includegraphics[width=0.9\textwidth]{mlec_layout.png}
+\end{center}
+
+
+\subsection{Count survivals in a single mlec group}
+
+Consider a disk group spread among $a$ racks, with each rack containing $n_l=k_l+p_l$ disks. Each rack can survive at most $p_l$ disk failures.
+The whole disk group can survive at most $p_n$ rack failures. 
+
+Denote $\Theta(a,p_n,f,r)$ as the number of instances for such a disk group to survive $f$ failures in $r$ racks in this rack group.
+
+Assume the $a$-th rack contains $i$ disk failures. 
+If we consider of the possible values of $i$, we can derive the following recurrence relation for $\Theta(a,p_n,f,r)$ :
+
+\begin{eqnarray}
+\begin{aligned}
+  \Theta(a,p_n,f,r) &= \sum_{\substack{0 \leq i \leq n_l \\ i\leq f}} 
+                \Delta(a,p_n,f,r, i)
+\end{aligned}
+\label{eq:mlec:1}
+\end{eqnarray}
+
+where:
+
+\begin{eqnarray}
+  \Delta(a,p_n,f,r, i) =
+    \begin{cases}
+      \Theta(a-1,p_n,f,r) & \text{if $i = 0$}\\
+      C_{n_l}^{i} \cdot \Theta(a-1,p_n,f-i,r-1) & \text{if $i \leq p_l$} \\ 
+      C_{n_l}^{i} \cdot \Theta(a-1,p_n-1,f-i,r-1) & \text{if $i > p_l$}
+    \end{cases}       
+\label{eq:mlec:2}
+\end{eqnarray}
+
+
+
+The base case is 
+
+\begin{eqnarray}
+  \Theta(a,p_n,f,0) =
+    \begin{cases}
+      1 & \text{if $f=0$}\\
+      0 & \text{otherwise}
+    \end{cases}       
+\label{eq:mlec:3}
+\end{eqnarray}
+
+Then the survival counting for a mlec group is $\Theta(n_n,p_n,f,r)$.
+
+With dynamic programming, the time complexity and space complexity to compute $\Theta(a,p_n,f,r)$ are both $O(n_n \cdot p_n \cdot f \cdot r)$
+
+\subsection{Count survivals in a single rack group}
+
+
+
+
+
+
+Denote $\Gamma(f,r,m)$ as the number of instances for one rack group to survive $f$ failures in $r$ racks in this rack group.
+
+The rack group contains $m = M / n_l$ mlec groups. Suppose the $m$-th rack group has $i$ failures spread in $j$ racks. Then mlec group $1,2,...,m-1$ should have $f-i$ failures in total. Suppose these $f-i$ failures spread in $h$ racks. Then the $j$ racks affected by disk group $m$ and the $h$ racks affected by disk groups $1...m-1$ must overlap on $j+h-r$ racks. And there are $r-h$ racks which are affected by disk group $m$ only.
+
+If we consider of the possible values of $i$,$j$, and $h$, we can derive the following recurrence relation for $\Gamma(f,r,m)$ :
+
+\begin{eqnarray}
+\begin{aligned}
+  \Gamma(f,r,m) &= \sum_{\substack{0 \leq i \leq f}} 
+                \sum_{\substack{0 \leq j \leq r}}
+                \sum_{\substack{0 \leq h \leq r \\ r-j \leq h}}
+                C_{j}^{j+h-r} \cdot C_{n_n-h}^{r-h} \cdot \Theta(j,p_n,i,j)
+                \cdot \Gamma(f-i, h, m-1) 
+\end{aligned}
+\label{eq:mlec:4}
+\end{eqnarray}
+
+The base case is 
+
+\begin{eqnarray}
+  \Gamma(0,h,m) =
+    \begin{cases}
+      1 & \text{if $h=0$}\\
+      0 & \text{otherwise}
+    \end{cases}       
+\label{eq:mlec:5}
+\end{eqnarray}
+
+With dynamic programming, the time complexity and space complexity to compute $\Gamma(f,r,m)$ are both $O(f \cdot r \cdot m)$
+
+\subsection{Survival counting in the entire system}
+
+Given $\alpha$ rack groups $1,2,...,\alpha$, denote $S(f,r, \alpha)$ as the total number of survivals under $f$ failures in $r$ affected racks.
+
+For $S(f,r,\alpha)$, we have the following recurrence relation (which is derived by considering what will happen if $\alpha$-th rack group contains $i$ failures affecting $j$ racks):
+
+\begin{eqnarray}
+\begin{aligned}
+  S(f,r,\alpha)
+  &= \sum_{\substack{0 \leq i \leq f \\ i \leq M*n_n}}
+  \sum_{\substack{0 \leq j \leq r \\ j \leq i \\ j \leq n_n}}
+  \Gamma(i,j,M/n_l) \cdot S(f-i, r-j, \alpha-1)
+\end{aligned}
+\label{eq:mlec:6}
+\end{eqnarray}
+
+The base case is 
+
+\begin{eqnarray}
+  S(f,r,1) =  \Gamma(f,r,M/n_l)
+\label{eq:mlec:7}
+\end{eqnarray}
+
+Since we have already computed $\Gamma(f,r,m)$, we can further compute $S(f,r,\alpha)$ based on recurrence relation \ref{eq:mlec:6} and dynamic programming. The total time complexity $O(f \cdot r \cdot \alpha)$, and total memory complexity and $O(f \cdot r \cdot \alpha)$.
+
+The aggregate time complexity is $O(f \cdot r \cdot (n_n p_n + \frac{M}{n_l} + \frac{X}{n_n}))$
+
+An example implementation can be found at: \url{https://github.com/ucare-uchicago/mlec-sim/blob/main/src/theory/policies/mlec.py}
+
+
+
+
+
+
 
 \section{Survival instances under MLEC Declustered}
 
