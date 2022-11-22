@@ -80,28 +80,17 @@ def survival_count_mlec_group_k_p(k_net, p_net, k_local, p_local, num_failed_dis
 # The recurrence relation comes by considering what will happen if some mlec group has i disk failures affecting j racks.
 survival_count_rack_group_dic = {}
 def survival_count_rack_group(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks):
-    print((k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks))
     if (k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks) in survival_count_rack_group_dic:
         return survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)]
-    # if num_failed_disks == 0 and num_affected_racks == 0 and num_mlec_groups >= 0:
-    #     survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)] = 1
-    #     return 1
+    if num_failed_disks == 0 and num_affected_racks == 0 and num_mlec_groups >= 0:
+        survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)] = 1
+        return 1
     if num_mlec_groups <= 0 or num_failed_disks < 0 or num_affected_racks < 0:
-        print('return 0')
         return 0
     if num_affected_racks > num_failed_disks:
-        print('return 0')
         return 0
     if num_failed_disks > num_affected_racks * num_mlec_groups * (k_local + p_local):
-        print('return 0')
         return 0
-    if num_mlec_groups == 1:
-        survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)] = (
-                survival_count_mlec_group_k_p(k_net, p_net, k_local, p_local, num_failed_disks, num_affected_racks)
-            )
-        print('return {}'.format(survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)]))
-        return survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)]
-    
 
     n_net = k_net + p_net
     r = num_affected_racks
@@ -116,14 +105,9 @@ def survival_count_rack_group(k_net, p_net, k_local, p_local, num_mlec_groups, n
                 if h<j+h-r or j+h-r<0 or n_net-h<r-h or r-h<0:
                     continue
                 count += (math.comb(h, j+h-r) * math.comb(n_net-h, r-h)
-                            * survival_count_mlec_group(r, p_net, k_local, p_local, i, j)
+                            * survival_count_mlec_group(j, p_net, k_local, p_local, i, j)
                             * survival_count_rack_group(k_net, p_net, k_local, p_local, num_mlec_groups-1, num_failed_disks-i, h))
-                print('\ti: {} j: {} h: {}'.format(i,j,h))
-                print('\tmath: {} math: {} s: {} s: {}'.format(math.comb(h, j+h-r), math.comb(n_net-h, r-h), 
-                                survival_count_mlec_group(r, p_net, k_local, p_local, i, j), 
-                                survival_count_rack_group(k_net, p_net, k_local, p_local, num_mlec_groups-1, num_failed_disks-i, h)))
-        survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)] = count
-    print('{}  return {}'.format((k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks), count))
+    survival_count_rack_group_dic[(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)] = count
     return count
 
 
@@ -135,8 +119,10 @@ if __name__ == "__main__":
     # dl_prob = 1 - survival_cases / total_cases
     # print("dl prob: \t{}\n".format(dl_prob))    # brute force is 0.9340659341. Result should match
     # print(survival_count_mlec_group_dic)
-    survival_cases = survival_count_rack_group(1, 1, 1, 1, 2, 2, 2)
-    total_cases = total.total_cases_fixed_racks(5, 10, 12, 3)
-    print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
-    dl_prob = 1 - survival_cases / total_cases
-    print("dl prob: \t{}\n".format(dl_prob))    # brute force is 0.9340659341. Result should match
+    for failed_disks in range(3,21):
+        for affected_racks in range(3,4):
+            survival_cases = survival_count_rack_group(3, 2, 3, 2, 2, failed_disks, affected_racks)
+            total_cases = total.total_cases_fixed_racks(5, 10, failed_disks, affected_racks)
+            print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
+            dl_prob = 1 - survival_cases / total_cases
+            print("dl prob: \t{}\n".format(dl_prob))    # brute force is 0.9340659341. Result should match
