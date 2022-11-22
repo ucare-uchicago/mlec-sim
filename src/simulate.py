@@ -133,7 +133,7 @@ class Simulate:
         prob = 0
         loss_events = 0
         
-        logging.info("Initial network - inter: %s, intra: %s", self.sys.network.inter_rack_avail, self.sys.network.intra_rack_avail)
+        logging.info("Initial network - inter: %s, intra: %s", self.state.network.inter_rack_avail, self.state.network.intra_rack_avail)
         
         while True:
             event_start = time.time()

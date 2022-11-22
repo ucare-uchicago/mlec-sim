@@ -2,21 +2,26 @@ from parse import parse_calc_result, parse_sim_result
 import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
-    new_sim_result = parse_sim_result("src/logs/s-result-RAID_NET_new.log")
-    sim_result = parse_sim_result("src/logs/s-result-RAID_NET.log")
+    inter_10 = parse_sim_result("src/logs/s-result-RAID_NET_10_inter.log")
+    inter_50 = parse_sim_result("src/logs/s-result-RAID_NET_50_inter.log")
+    inter_100 = parse_sim_result("src/logs/s-result-RAID_NET_100_inter.log")
+    inter_400 = parse_sim_result("src/logs/s-result-RAID_NET_400_inter.log")
+    inter_inf = parse_sim_result("src/logs/s-result-RAID_NET_inf_inter.log")
     
-    plt.errorbar(new_sim_result['afr'], new_sim_result['nines'], yerr=new_sim_result['sigma'], label="Net RAID w/ Inf Network Bandwidth")
-    plt.errorbar(sim_result['afr'], sim_result['nines'], yerr=sim_result['sigma'], label="Old Sim")
-    # plt.errorbar(c_afr, c_nines, yerr=c_sigmas, label="DP Sim")
+    plt.errorbar(inter_10['afr'], inter_10['nines'], yerr=inter_10['sigma'], label="10 Gbps Interrack")
+    plt.errorbar(inter_50['afr'], inter_50['nines'], yerr=inter_50['sigma'], label="50 Gbps Interrack")
+    plt.errorbar(inter_100['afr'], inter_100['nines'], yerr=inter_100['sigma'], label="100 Gbps Interrack")
+    plt.errorbar(inter_400['afr'], inter_400['nines'], yerr=inter_400['sigma'], label="400 Gbps Interrack")
+    plt.errorbar(inter_inf['afr'], inter_inf['nines'], yerr=inter_inf['sigma'], label="inf Gbps Interrack")
     
     plt.legend(loc="upper right")
     
-    plt.ylim((0, 7))
+    plt.ylim((0, 4))
     plt.xlim((0,13))
     
     plt.xlabel("Annual Failure Rate in %")
     plt.ylabel("Durability (Num of Nines)")
     
-    plt.title("Net RAID with inf Network Bandwidth Constraint")
+    plt.title("Net RAID with 100 Gbps Intrarack and Various Interrack Bandwidth")
     # plt.show()
     plt.savefig('jiajunm/plt.png')

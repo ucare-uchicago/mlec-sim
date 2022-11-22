@@ -3,6 +3,7 @@ import typing
 if typing.TYPE_CHECKING:
     from simulate import Simulate
 
+import copy
 from components.disk import Disk
 from components.rack import Rack
 from system import System
@@ -53,6 +54,7 @@ class State:
 
         self.mytimer: Mytimer = mytimer
         self.policy: Policy = get_policy(self.sys.place_type, self)
+        self.network = copy.deepcopy(self.sys.network)
         #----------------------------------
 
 
