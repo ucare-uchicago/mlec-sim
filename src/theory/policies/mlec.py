@@ -1,5 +1,5 @@
 import math
-import total
+import policies.total
 
 ##############################
 # mlec clustered
