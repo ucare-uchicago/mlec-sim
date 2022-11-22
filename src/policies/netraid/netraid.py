@@ -95,6 +95,10 @@ class NetRAID(Policy):
             else:
                 # If we do not have enough bandwidth to carry out repair, we delay the repair
                 # logging.warning("Not enough bandwidth, delaying repair")
+                # if self.sys.network.inter_rack_avail == 0:
+                #     logging.warning("Caused by interrack bandwidth being 0")
+                # else:
+                #     logging.warning("Not enough surviving peers. Only available peer %s, total of %s", disk_to_read_from, len())
                 self.state.simulation.delay_repair_queue.append(diskId)
                 return
             
