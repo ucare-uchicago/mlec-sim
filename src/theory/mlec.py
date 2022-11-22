@@ -111,6 +111,51 @@ def survival_count_rack_group(k_net, p_net, k_local, p_local, num_mlec_groups, n
     return count
 
 
+# -- Step 3: 
+#    Consider a system with g rack roups. Count the numebr of instances to survive f failures in r racks.
+#    Now it's very similar to netraid
+survival_count_dic = {}
+def survival_count_system(k_net, p_net, k_local, p_local, num_rackgroups, drives_per_rack, num_failed_disks, num_affected_racks):
+    key = (k_net, p_net, k_local, p_local, num_rackgroups, drives_per_rack, num_failed_disks, num_affected_racks)
+    if key in survival_count_dic:
+        return survival_count_dic[key]
+
+    n_net = k_net + p_net
+    n_local = k_local + p_local
+    if num_failed_disks < num_affected_racks:
+        return 0
+    if num_failed_disks > num_affected_racks * drives_per_rack:
+        return 0
+    if num_affected_racks == 0:
+        # when reach here, we must have num_failed_disks == 0
+        return 1
+    num_mlec_groups = drives_per_rack // n_local
+    if num_rackgroups == 1:
+        return survival_count_rack_group(k_net, p_net, k_local, p_local, num_mlec_groups, num_failed_disks, num_affected_racks)
+    
+    max_failures_per_rackgroup = min(drives_per_rack*n_net, num_failed_disks)
+    max_affected_racks_per_rackgroup = min(n_net, num_affected_racks)
+    count = 0
+    # suppose we have i disk failures in the rack group
+    for i in range(max_failures_per_rackgroup+1):
+        # suppose we have j affected racks in the rack group
+        for j in range(max_affected_racks_per_rackgroup+1):
+            if j > i:
+                # we cannot have affected racks more than disk failures. So break, go to next i.
+                break
+            count += survival_count_rack_group(k_net, p_net, k_local, p_local, num_mlec_groups, i, j) * (
+                        survival_count_system(k_net, p_net, k_local, p_local, num_rackgroups-1, drives_per_rack, num_failed_disks-i, num_affected_racks-j)
+                    )
+    survival_count_dic[key] = count
+    return count
+
+def survival_count(k_net, p_net, k_local, p_local, total_drives, drives_per_rack, num_failed_disks, num_affected_racks):
+    n_net = k_net + p_net
+    num_disks_per_rackgroup = drives_per_rack * n_net
+    num_rackgroups = total_drives // num_disks_per_rackgroup
+    return survival_count_system(k_net, p_net, k_local, p_local, num_rackgroups, drives_per_rack, num_failed_disks, num_affected_racks)
+
+
 
 if __name__ == "__main__":
     # survival_cases = survival_count_mlec_group_k_p(3, 2, 3, 2, 12, 3)
@@ -119,10 +164,11 @@ if __name__ == "__main__":
     # dl_prob = 1 - survival_cases / total_cases
     # print("dl prob: \t{}\n".format(dl_prob))    # brute force is 0.9340659341. Result should match
     # print(survival_count_mlec_group_dic)
-    for failed_disks in range(3,21):
-        for affected_racks in range(3,4):
-            survival_cases = survival_count_rack_group(3, 2, 3, 2, 2, failed_disks, affected_racks)
-            total_cases = total.total_cases_fixed_racks(5, 10, failed_disks, affected_racks)
+    for num_failed_disks in range(3,21):
+        for num_affected_racks in range(3,4):
+            # survival_cases = survival_count_rack_group(3, 2, 3, 2, 2, failed_disks, affected_racks)
+            survival_cases = survival_count(9, 1, 9, 1, 32000, 800, num_failed_disks, num_affected_racks)
+            total_cases = total.total_cases_fixed_racks(40, 800, num_failed_disks, num_affected_racks)
             print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
             dl_prob = 1 - survival_cases / total_cases
             print("dl prob: \t{}\n".format(dl_prob))    # brute force is 0.9340659341. Result should match
