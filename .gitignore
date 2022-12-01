@@ -2,6 +2,5 @@
 __pycache__
 *.log
 *temp.txt
-*.png
-logs/
 .vscode/
+log/
