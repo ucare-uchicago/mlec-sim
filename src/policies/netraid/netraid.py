@@ -1,4 +1,4 @@
-from disk import Disk
+from components.disk import Disk
 import logging
 from policies.policy import Policy
 from pdl import net_raid_pdl
