@@ -92,7 +92,7 @@ class GoogleBurst:
     def __init__(self, disks_per_rack, num_racks):
         self.num_racks = num_racks
         self.disks_per_rack = disks_per_rack
-        googleOccurances = pd.read_csv("failures/google/{}-rack-{}-node.csv".format(num_racks, disks_per_rack))
+        googleOccurances = pd.read_csv("failures/exp/google/{}-rack-{}-node.csv".format(num_racks, disks_per_rack))
         self.population = []
         self.probs = []
         for index, row in googleOccurances.iterrows():
