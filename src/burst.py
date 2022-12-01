@@ -159,7 +159,7 @@ def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
 # -----------------------------
 # simulate against bursts
 # -----------------------------
-def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
+def burst_sim(afr, io_speed, cap, adapt, k_net, p_net, k_local, p_local,
                 total_drives, drives_per_rack, placement, distribution):
     # logging.basicConfig(level=logging.INFO)
     for num_failed_racks in range(2,20):
@@ -266,5 +266,5 @@ if __name__ == "__main__":
 
     dist = args.dist
 
-    burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
+    burst_sim(afr, io_speed, cap, adapt, k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, placement, dist)
