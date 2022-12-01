@@ -1,30 +1,17 @@
-from inspect import trace
-from multiprocessing.pool import ThreadPool
-from placement import Placement
-from repair import Repair
-from state import State
-from disk import Disk
-from rack import Rack
-from heapq import *
 import logging
-import time
-import sys
-from constants import debug, YEAR
 import numpy as np
-import time
 import os
 from mytimer import Mytimer
-import random
+from system import System
+from constants.PlacementType import PlacementType
 #----------------------------
 # Logging Settings
 #----------------------------
 
 class Simulate:
-    def __init__(self, num_disks, sys = None, repair = None, placement = None):
+    def __init__(self, num_disks, sys):
         #---------------------------------------
-        self.sys = sys
-        self.repair = repair
-        self.placement = placement
+        self.sys: System = sys
         self.place_type = sys.place_type
         #---------------------------------------
         self.num_disks = num_disks
@@ -34,21 +21,23 @@ class Simulate:
     #----------------------------------------------------------------
     # run simulation based on statistical model or production traces
     #----------------------------------------------------------------
-    def run_simulation(self, failureGenerator, mytimer):
+    def run_simulation(self, failureGenerator, mytimer) -> int:
         logging.info("---------")
 
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
         failures = failureGenerator.gen_failure_burst(self.sys.num_disks_per_rack, self.sys.num_racks)
-        if self.place_type == 0:
+        if self.place_type == PlacementType.RAID:
             return self.flat_cluster_check_burst(failures)
-        if self.place_type == 1:
+        if self.place_type == PlacementType.DP:
             return self.flat_decluster_check_burst(failures)
-        if self.place_type == 2:
+        if self.place_type == PlacementType.MLEC:
             return self.mlec_cluster_check_burst(failures)
-        if self.place_type == 3:
+        if self.place_type == PlacementType.RAID_NET:
             return self.network_cluster_check_burst(failures)
-        if self.place_type == 4:
+        if self.place_type == PlacementType.MLEC_DP:
             return self.mlec_decluster_check_burst(failures)
+        
+        raise NotImplementedError("placement type not recognized")
 
 
     def flat_cluster_check_burst(self, failures):

@@ -213,6 +213,6 @@ def priority_percent(state, disk,failed_disk_per_rack, max_priority, priority):
     elif (max_priority == 3):
         return three_failure(r, B, n, disk, failed_disk_per_rack, priority)
     elif (max_priority == disk.priority):
-        return fnpn_distinct(r,B,n)
+        return fnpn_distinct(r,B,n,priority)
     else:
         raise Exception("Unknown failure state")

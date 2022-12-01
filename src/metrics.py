@@ -1,11 +1,11 @@
 class Metrics:
     def __init__(self):
-        self.total_rebuild_io_per_year = 0
+        self.total_rebuild_io_per_year = 0.0
         self.total_net_traffic = 0
         self.failure_count = 0
         self.iter_count = 0
-        self.total_rebuild_time = 0
-        self.total_net_repair_time = 0
+        self.total_rebuild_time = 0.0
+        self.total_net_repair_time = 0.0
         self.total_net_repair_count = 0
 
     def __add__(self, otherMetrics):
