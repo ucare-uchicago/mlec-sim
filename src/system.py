@@ -9,9 +9,6 @@ from policies.policy_factory import config_system_layout
 from typing import Dict
 from numpy.typing import NDArray
 
-from typing import Dict, List
-from numpy.typing import NDArray
-
 
 #----------------------------
 # Configuration of the system
