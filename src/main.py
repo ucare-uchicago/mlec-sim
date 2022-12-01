@@ -79,7 +79,7 @@ def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
 # -----------------------------
 def normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
-    # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
+    logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
 
     mission = YEAR
     failureGenerator = FailureGenerator(afr)

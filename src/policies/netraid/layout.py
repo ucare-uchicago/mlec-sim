@@ -1,5 +1,6 @@
 from __future__ import annotations
 import typing
+import logging
 
 if typing.TYPE_CHECKING:
     from system import System
@@ -10,6 +11,8 @@ def net_raid_layout(sys: System):
     num_rack_group = sys.num_racks // stripe_width
     # How many stripesets in total can we have, non-overlapping disks
     num_stripesets = sys.num_disks_per_rack * num_rack_group
+    
+    # logging.info("Stripe width: %s, num_racks: %s, num_rack_group: %s, num_stripesets: %s", stripe_width, sys.num_racks, num_rack_group, num_stripesets)
     
     sets = {}
     for i in range(num_stripesets):
