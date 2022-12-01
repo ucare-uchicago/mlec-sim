@@ -8,12 +8,9 @@ import random
 
 # Custom stuff
 from failure_generator import FailureGenerator, GoogleBurst
+from constants.PlacementType import PlacementType, parse_placement
 from util import wait_futures
-from constants import debug, YEAR
-
-from placement import Placement
 from system import System
-from repair import Repair
 
 from simulate_burst import Simulate
 from mytimer import Mytimer
@@ -158,23 +155,6 @@ def simulate(afr, failure_list, placement, drives_per_rack, iters, epochs, concu
     
     return combined_results
 
-
-
-def get_placement_index(placement):
-    place_type = -1
-    if placement == 'RAID':
-        place_type = 0
-    elif placement == 'DP':
-        place_type = 1
-    elif placement == 'MLEC':
-        place_type = 2
-    elif placement == 'RAID_NET':
-        place_type = 3
-    elif placement == 'MLEC_DP':
-        place_type = 4
-    return place_type
-
-
 # -----------------------------
 # simulate against bursts
 # -----------------------------
@@ -190,7 +170,7 @@ def burst_sim(afr, io_speed, cap, adapt, k_net, p_net, k_local, p_local,
     # failure_list.append((2,4))
     iters = 500
     epochs = 200
-    place_type = get_placement_index(placement)
+    place_type = parse_placement(placement)
     start  = time.time()
 
     results = simulate(afr, failure_list, placement, drives_per_rack, iters, epochs, epochs, 

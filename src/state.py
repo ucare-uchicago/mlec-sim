@@ -1,6 +1,17 @@
-from disk import Disk
-from rack import Rack
-from policies import *
+from __future__ import annotations
+import typing
+if typing.TYPE_CHECKING:
+    from simulate import Simulate
+
+import copy
+from components.disk import Disk
+from components.rack import Rack
+from system import System
+from typing import Dict
+from mytimer import Mytimer
+from constants.PlacementType import PlacementType
+from policies.policy_factory import get_policy
+from policies.policy import Policy
 
 class State:
     #--------------------------------------
@@ -12,18 +23,20 @@ class State:
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
-    def __init__(self, sys, mytimer=None):
+    def __init__(self, sys, mytimer, simulation):
         #----------------------------------
-        self.sys = sys
-        self.n = sys.k + sys.m
-        self.racks = {}
+        self.simulation: Simulate = simulation
+        self.sys: System = sys
+        self.n: int = sys.k + sys.m
+        self.racks: Dict[int, Rack] = {}
         self.disks = self.sys.disks
+        
         for diskId in self.disks:
             disk = self.disks[diskId]
             disk.state = Disk.STATE_NORMAL
             disk.priority = 0
             disk.repair_time = {}
-        if self.sys.place_type == 2:
+        if self.sys.place_type == PlacementType.MLEC:
             # rack_repair_data = sys.diskSize * self.n
             rack_repair_data = sys.diskSize * (self.sys.m + 1)
         else:
@@ -33,29 +46,16 @@ class State:
         self.stripeset_num_per_rack = sys.num_disks_per_rack // self.n
         for rackId in self.sys.racks:
             self.racks[rackId] = Rack(rackId, rack_repair_data, self.stripeset_num_per_rack)
-        self.curr_time = 0
+        self.curr_time: float = 0.0
         self.failed_disks = {}
         self.failed_racks = {}
         self.repairing = True
         self.repair_start_time = 0
 
-        self.mytimer = mytimer
-
-        if self.sys.place_type == 0:
-            self.policy = RAID(self)
-        elif self.sys.place_type == 1:
-            self.policy = Decluster(self)
-        elif self.sys.place_type == 2:
-            self.policy = MLEC(self)
-        elif self.sys.place_type == 3:
-            self.policy = NetRAID(self)
-        elif self.sys.place_type == 4:
-            self.policy = MLECDP(self)
-        elif self.sys.place_type == 5:
-            self.policy = NetDP(self)
+        self.mytimer: Mytimer = mytimer
+        self.policy: Policy = get_policy(self.sys.place_type, self)
+        self.network = copy.deepcopy(self.sys.network)
         #----------------------------------
-        
-
 
 
     def update_curr_time(self, curr_time):
@@ -64,43 +64,6 @@ class State:
 
 
 
-    #----------------------------------------------
-    # update disk state
-    #----------------------------------------------
-    def update_disk_state(self, event_type, diskId):
-        return self.policy.update_disk_state(event_type, diskId)
-
-
-    #----------------------------------------------
-    # update disk priority and compute disk repair time
-    #----------------------------------------------
-    def update_disk_priority(self, event_type, diskset):
-        return self.policy.update_disk_priority(event_type, diskset)
-
-
-    #----------------------------------------------
-    # update rack state
-    #----------------------------------------------
-    def update_rack_state(self, event_type, diskId):
-        return self.policy.update_rack_state(event_type, diskId)
-
-
-
-
-                                
-    
-    #----------------------------------------------
-    # update network-level priority
-    #----------------------------------------------
-    def update_rack_priority(self, event_type, new_failed_rack, diskId):
-        self.policy.update_rack_priority(event_type, new_failed_rack, diskId)
-
-
-
-    def update_diskgroup_state(self, event_type, diskId):
-        return self.policy.update_diskgroup_state(event_type, diskId)
-
-    
     # This returns array [{rackId: failedDisks}, numRacksWithFailure]
     def get_failed_disks_each_rack(self):
         failures = {}
@@ -113,15 +76,25 @@ class State:
                 num_racks_with_failure += 1
     
         return [failures, num_racks_with_failure]
-        
-    def update_diskgroup_priority(self, event_type, new_failed_rack, diskId):
-        self.policy.update_diskgroup_priority(event_type, new_failed_rack, diskId)
-
+    
+    # This returns dict {stripeId: [disksId]}
+    # WARNING: only use for debug. This will cause long simulation time
+    def get_failed_disks_each_stripeset(self):
+        stripesets = self.sys.net_raid_stripesets_layout
+        result = {}
+        for ssid in stripesets:
+            failed_disks = []
+            for diskId in stripesets[ssid]:
+                if self.disks[diskId].state == Disk.STATE_FAILED:
+                    failed_disks.append(diskId)
+            
+            if len(failed_disks) != 0:
+                result[ssid] = failed_disks
+        return result            
 
     def get_failed_disks_per_rack(self, rackId):
         # logging.info("sedrver {} get: {}".format(rackId, list(self.racks[rackId].failed_disks.keys())))
         return list(self.racks[rackId].failed_disks.keys())
-
 
     def get_failed_disks_per_stripeset(self, stripesetId):
         failed_disks = []

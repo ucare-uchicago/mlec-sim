@@ -1,11 +1,11 @@
-from disk import Disk
-import operator as op
-import numpy as np
 import logging
-from functools import reduce
-from rack import Rack
+from components.disk import Disk
+from components.rack import Rack
+from policies.policy import Policy
+from .pdl import flat_cluster_pdl
+from .repair import raid_repair
 
-class RAID:
+class RAID(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
@@ -18,23 +18,6 @@ class RAID:
         self.curr_time = state.curr_time
         self.failed_disks = state.failed_disks
         self.failed_racks = state.failed_racks
-
-
-    def update_disk_state(self, event_type, diskId):
-        rackId = diskId // self.sys.num_disks_per_rack
-        if event_type == Disk.EVENT_REPAIR:
-            self.disks[diskId].state = Disk.STATE_NORMAL
-            self.racks[rackId].failed_disks.pop(diskId, None)
-            self.failed_disks.pop(diskId, None)
-            # logging.info("rack {} after pop: {}".format(rackId, self.racks[rackId].failed_disks))
-            
-            
-        if event_type == Disk.EVENT_FAIL:
-            self.disks[diskId].state = Disk.STATE_FAILED
-            self.racks[rackId].failed_disks[diskId] = 1
-            self.failed_disks[diskId] = 1
-            # logging.info("rack {} after add: {}".format(rackId, self.racks[rackId].failed_disks))
-    
 
     def update_disk_priority(self, event_type, diskId):
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
@@ -97,4 +80,9 @@ class RAID:
         disk.repair_start_time = max(self.curr_time, rack.stripesets_repair_finish[stripesetId])
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
         rack.stripesets_repair_finish[stripesetId] = disk.estimate_repair_time
-        
+    
+    def check_pdl(self):
+        return flat_cluster_pdl(self.state)
+    
+    def update_repair_events(self, repair_queue):
+        return raid_repair(self.state, repair_queue)

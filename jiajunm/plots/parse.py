@@ -35,5 +35,5 @@ def parse_calc_result(path: str):
     
     return result
 
-if __name__ == "__main__":
-    print(parse_result('src/s-result-DP_NET.log'))
+# if __name__ == "__main__":
+#     print(parse_result('src/s-result-DP_NET.log'))

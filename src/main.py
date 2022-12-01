@@ -7,30 +7,21 @@ import traceback
 import logging
 
 # Custom stuff
-from drive_args import DriveArgs
 from failure_generator import FailureGenerator, Weibull, GoogleBurst
 from util import wait_futures
-from constants import debug, YEAR
+from constants.time import YEAR
+from constants.PlacementType import parse_placement, PlacementType
 
-from placement import Placement
 from system import System
-from repair import Repair
 
 from simulate import Simulate
 from mytimer import Mytimer
 from metrics import Metrics
-import time
 
+import time
 import argparse
 
 from helpers.weibullNines import calculate_weibull_nines
-
-
-def factorial(n):
-    if n == 0:
-        return 1
-    else:
-        return n * factorial(n - 1)
 
 
 def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
@@ -38,19 +29,20 @@ def iter(failureGenerator_: FailureGenerator, sys_, iters, mission):
         res = 0
         failureGenerator = copy.deepcopy(failureGenerator_)
         sys = copy.deepcopy(sys_)
-        mytimer = Mytimer()
-        repair = Repair(sys, sys.place_type)
-        placement = Placement(sys, sys.place_type)
+        mytimer: Mytimer = Mytimer()
 
         start = time.time()
         for iter in range(0, iters):
             # logging.info("")
+            iter_start = time.time()
             temp = time.time()
-            sim = Simulate(mission, sys.num_disks, sys, repair, placement)
+            sim = Simulate(mission, sys.num_disks, sys)
             mytimer.simInitTime += time.time() - temp
             res += sim.run_simulation(failureGenerator, mytimer)
+            iter_end = time.time()
+            # print("Finishing iter " + str(iter) + " taking " + str((iter_end - iter_start) * 1000) + "ms")
         end = time.time()
-        # print("totaltime: {}".format(end - start))
+        # print("totaltime: {}".format((end - start) * 1000))
         # print(mytimer)
         return (res, mytimer, sys.metrics)
     except Exception as e:
@@ -82,75 +74,54 @@ def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
     return [failed_instances, epochs * iters, metrics]
 
 
-
-def get_placement_index(placement):
-    place_type = -1
-    if placement == 'RAID':
-        place_type = 0
-    elif placement == 'DP':
-        place_type = 1
-    elif placement == 'MLEC':
-        place_type = 2
-    elif placement == 'RAID_NET':
-        place_type = 3
-    elif placement == 'MLEC_DP':
-        place_type = 4
-    elif placement == 'DP_NET':
-        place_type = 5
-    return place_type
-
-
-
 # -----------------------------
 # normal Monte Carlo simulation
 # -----------------------------
-def normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
+def normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
-        # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
+    logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
 
-    # for afr in range(2, 11):
-        mission = YEAR
-        failureGenerator = FailureGenerator(afr)
+    mission = YEAR
+    failureGenerator = FailureGenerator(afr)
 
-        place_type = get_placement_index(placement)
-        
-        sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
-                io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
+    place_type = parse_placement(placement)
+    
+    sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
+            io_speed, intrarack_speed, interrack_speed, 1, k_net, p_net, adapt, rack_fail = 0)
 
-        failed_iters = 0
-        total_iters = 0
-        metrics = Metrics()
+    failed_iters = 0
+    total_iters = 0
+    metrics = Metrics()
 
-        # temp = simulate(sys_state1, iters=10000, epochs=1, concur=1, mission=mission)
-        # return
+    # temp = simulate(sys_state1, iters=10000, epochs=1, concur=1, mission=mission)
+    # return
 
-        # We need to get enough failures in order to compute accurate nines #
-        while failed_iters < 20:
-            logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
-            start  = time.time()
-            res = simulate(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
-            failed_iters += res[0]
-            total_iters += res[1]
-            metrics += res[2]
-            # print(metrics)
-            simulationTime = time.time() - start
-            print("simulation time: {}".format(simulationTime))
-            print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
+    # We need to get enough failures in order to compute accurate nines #
+    while failed_iters < 20:
+        logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+        start  = time.time()
+        res = simulate(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
+        failed_iters += res[0]
+        total_iters += res[1]
+        metrics += res[2]
+        # print(metrics)
+        simulationTime = time.time() - start
+        print("simulation time: {}".format(simulationTime))
+        print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
 
-        total_iters *= mission/YEAR
+    total_iters *= mission/YEAR
 
-        # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
-        nines = str(round(-math.log10(failed_iters/total_iters),3))
-        sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
-        print("Num of Nine: " + nines)
-        print("error sigma: " + sigma)
-        print()
-
-        output = open("s-result-{}.log".format(placement), "a")
-        output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
-            k_net, p_net, k_local, p_local, total_drives,
-            afr, cap, io_speed, nines, sigma, failed_iters, total_iters, "adapt" if adapt else "notadapt"))
-        output.close()
+    # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+    nines = str(round(-math.log10(failed_iters/total_iters),3))
+    sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
+    print("Num of Nine: " + nines)
+    print("error sigma: " + sigma)
+    
+    output = open("s-result-{}.log".format(placement), "a")
+    output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
+        k_net, p_net, k_local, p_local, total_drives,
+        afr, cap, io_speed, nines, sigma, failed_iters, total_iters, "adapt" if adapt else "notadapt"))
+    output.close()
 
 
 
@@ -169,10 +140,10 @@ def manual_1_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_
     
     for afr in range(5, 6):
         # 1. get P(rack 1 fails)
-        place_type = get_placement_index(placement)
-        local_place_type = 0        # local RAID
-        if place_type == 4:         # if MLEC_DP
-            local_place_type = 1    # local DP
+        place_type = parse_placement(placement)
+        local_place_type = PlacementType.RAID        # local RAID
+        if place_type == PlacementType.MLEC_DP:         # if MLEC_DP
+            local_place_type = PlacementType.DP    # local DP
         failureGenerator = FailureGenerator(afr)
         sys = System(drives_per_rack, drives_per_rack, k_local, p_local, local_place_type, cap * 1024 * 1024,
                 io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
@@ -263,10 +234,10 @@ def manual_2_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_
                     total_drives, drives_per_rack, placement, dist):
     for cap in range(100, 110, 10):
         # 1. get P(rack 1 fails)
-        place_type = get_placement_index(placement)
-        local_place_type = 0        # local RAID
-        if place_type == 4:         # if MLEC_DP
-            local_place_type = 1    # local DP
+        place_type = parse_placement(placement)
+        local_place_type = PlacementType.RAID        # local RAID
+        if place_type == PlacementType.MLEC_DP:         # if MLEC_DP
+            local_place_type = PlacementType.DP    # local DP
         failureGenerator = FailureGenerator(afr)
         sys = System(drives_per_rack, drives_per_rack, k_local, p_local, local_place_type, cap * 1024 * 1024,
                 io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
@@ -347,59 +318,59 @@ def manual_2_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_
 
 def io_over_year(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution):
-    # logging.basicConfig(level=logging.INFO)
-    rebuildio_prev_year = 0
-    place_type = get_placement_index(placement)
+    pass
+    # # logging.basicConfig(level=logging.INFO)
+    # rebuildio_prev_year = 0
+    # place_type = get_placement_index(placement)
 
-    for years in range(1,51,1):
-        mission = years*YEAR
-        drive_args1 = DriveArgs(d_shards=k_local, p_shards=p_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
-        sys_state1 = FailureGenerator(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
-                        top_d_shards=k_net, top_p_shards=p_net, adapt=adapt, rack_fail = 0, distribution = distribution)
+    # for years in range(1,51,1):
+    #     mission = years*YEAR
+    #     drive_args1 = DriveArgs(d_shards=k_local, p_shards=p_local, afr=afr, drive_cap=cap, rec_speed=io_speed)
+    #     sys_state1 = FailureGenerator(total_drives=total_drives, drive_args=drive_args1, placement=placement, drives_per_rack=drives_per_rack, 
+    #                     top_d_shards=k_net, top_p_shards=p_net, adapt=adapt, rack_fail = 0, distribution = distribution)
 
-        res = [0, 0, Metrics()]
-        start  = time.time()
-        temp = simulate(sys_state1, iters=int(10000000/200/years), epochs=200, concur=200, mission=mission)
-        res[0] += temp[0]
-        res[1] += temp[1]
-        res[2] += temp[2]
-        print(res[2])
-        simulationTime = time.time() - start
-        print("simulation time: {}".format(simulationTime))
-        # res = simulate(sys_state1, iters=1000, epochs=1, concur=1)
-        print('++++++++++++++++++++++++++++++++')
-        print('Total Fails: ' + str(res[0]))
-        print('Total Iters: ' + str(res[1]))
+    #     res = [0, 0, Metrics()]
+    #     start  = time.time()
+    #     temp = simulate(sys_state1, iters=int(10000000/200/years), epochs=200, concur=200, mission=mission)
+    #     res[0] += temp[0]
+    #     res[1] += temp[1]
+    #     res[2] += temp[2]
+    #     print(res[2])
+    #     simulationTime = time.time() - start
+    #     print("simulation time: {}".format(simulationTime))
+    #     # res = simulate(sys_state1, iters=1000, epochs=1, concur=1)
+    #     print('++++++++++++++++++++++++++++++++')
+    #     print('Total Fails: ' + str(res[0]))
+    #     print('Total Iters: ' + str(res[1]))
 
-        res[1] *= years
+    #     res[1] *= years
 
-        rebuildio = res[2].getAverageRebuildIO() - rebuildio_prev_year
-        rebuildio_prev_year = res[2].getAverageRebuildIO()
+    #     rebuildio = res[2].getAverageRebuildIO() - rebuildio_prev_year
+    #     rebuildio_prev_year = res[2].getAverageRebuildIO()
 
-        if res[0] == 0:
-            print("NO FAILURE!")
-            nn = 'N/A'
-            sigma = 'N/A'
-        else:
-            # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
-            nn = str(round(-math.log10(res[0]/res[1]),3))
-            sigma = str(round(1/(math.log(10) * (res[0]**0.5)),3))
-            print("Num of Nine: " + nn)
-            print("error sigma: " + sigma)
+    #     if res[0] == 0:
+    #         print("NO FAILURE!")
+    #         nn = 'N/A'
+    #         sigma = 'N/A'
+    #     else:
+    #         # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+    #         nn = str(round(-math.log10(res[0]/res[1]),3))
+    #         sigma = str(round(1/(math.log(10) * (res[0]**0.5)),3))
+    #         print("Num of Nine: " + nn)
+    #         print("error sigma: " + sigma)
 
-        output = open("s-rebuildio-{}.log".format(placement), "a")
-        output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {} {} {}\n".format(
-            k_local, p_local, k_net, p_net, total_drives,
-            afr, cap, io_speed, nn, sigma, res[0], res[1], "adapt" if adapt else "notadapt",
-            years, rebuildio))
-        output.close()
-
+    #     output = open("s-rebuildio-{}.log".format(placement), "a")
+    #     output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {} {} {}\n".format(
+    #         k_local, p_local, k_net, p_net, total_drives,
+    #         afr, cap, io_speed, nn, sigma, res[0], res[1], "adapt" if adapt else "notadapt",
+    #         years, rebuildio))
+    #     output.close()
 
 
 def weibull_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution):
     # logging.basicConfig(level=logging.INFO)
-    place_type = get_placement_index(placement)
+    place_type = parse_placement(placement)
     
     for beta in np.arange(1, 2.2, 0.2):
         mission = YEAR
@@ -469,7 +440,7 @@ def weibull_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 # --------------------------------
 def metric_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution):
-    place_type = get_placement_index(placement)
+    place_type = parse_placement(placement)
 
     for afr in range(2, 6):
         mission = YEAR
@@ -521,7 +492,7 @@ def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     mission = YEAR
     failureGenerator = FailureGenerator(afr, GoogleBurst(50, 50), is_burst=True)
 
-    place_type = get_placement_index(placement)
+    place_type = parse_placement(placement)
     
     sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
             io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
@@ -571,6 +542,8 @@ if __name__ == "__main__":
     parser.add_argument('-sim_mode', type=int, help="simulation mode. Default is 0", default=0)
     parser.add_argument('-afr', type=int, help="disk annual failure rate.", default=5)
     parser.add_argument('-io_speed', type=int, help="disk repair rate (MB/s).", default=30)
+    parser.add_argument('-intrarack_speed', type=int, help="Intra-rack speed (Gb/s).", default=100)
+    parser.add_argument('-interrack_speed', type=int, help="Inter-rack speed (Gb/s).", default=10)
     parser.add_argument('-cap', type=int, help="disk capacity (TB)", default=20)
     parser.add_argument('-adapt', type=bool, help="assume seagate adapt or not", default=False)
     parser.add_argument('-k_local', type=int, help="number of data chunks in local EC", default=7)
@@ -596,6 +569,9 @@ if __name__ == "__main__":
     p_local = args.p_local
     k_net = args.k_net
     p_net = args.p_net
+    
+    intrarack_speed = args.intrarack_speed
+    interrack_speed = args.interrack_speed
     
     # Multi-threading stuff
     concur = args.concur
@@ -624,7 +600,7 @@ if __name__ == "__main__":
     dist = args.dist
 
     if sim_mode == 0:
-        normal_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
+        normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
                     total_drives, drives_per_rack, placement, dist, concur, epoch, iters)
     elif sim_mode == 1:
         manual_1_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
