@@ -79,15 +79,28 @@ def simulate(failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
 # -----------------------------
 def normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
-    logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
+    # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
 
     mission = YEAR
     failureGenerator = FailureGenerator(afr)
 
     place_type = parse_placement(placement)
     
-    sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
-            io_speed, intrarack_speed, interrack_speed, 1, k_net, p_net, adapt, rack_fail = 0)
+    sys = System(
+        num_disks=total_drives, 
+        num_disks_per_rack=drives_per_rack, 
+        k=k_local, 
+        m=p_local, 
+        place_type=place_type, 
+        diskCap=cap * 1024 * 1024,
+        rebuildRate=io_speed, 
+        intrarack_speed=intrarack_speed, 
+        interrack_speed=interrack_speed, 
+        utilizeRatio=1, 
+        top_k=k_net, 
+        top_m=p_net, 
+        adapt=adapt, 
+        rack_fail=0)
 
     failed_iters = 0
     total_iters = 0
@@ -133,8 +146,8 @@ def normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_lo
 # 4. P(system fails) = P(system fails | rack 1 fails) * P(rack 1 fails) / P(rack 1 fails | system fails)
 # ------------------------
 
-def manual_1_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
-                    total_drives, drives_per_rack, placement, dist):
+def manual_1_rack_failure(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
+                    total_drives, drives_per_rack, placement, dist, concur, epoch, iters):
     # logging.basicConfig(level=logging.INFO)
 
     
@@ -145,8 +158,21 @@ def manual_1_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_
         if place_type == PlacementType.MLEC_DP:         # if MLEC_DP
             local_place_type = PlacementType.DP    # local DP
         failureGenerator = FailureGenerator(afr)
-        sys = System(drives_per_rack, drives_per_rack, k_local, p_local, local_place_type, cap * 1024 * 1024,
-                io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
+        sys = System(
+            num_disks=drives_per_rack, 
+            num_disks_per_rack=drives_per_rack, 
+            k=k_local, 
+            m=p_local, 
+            place_type=local_place_type, 
+            diskCap=cap * 1024 * 1024,
+            rebuildRate=io_speed, 
+            intrarack_speed=intrarack_speed, 
+            interrack_speed=interrack_speed, 
+            utilizeRatio=1, 
+            top_k=k_net, 
+            top_m=p_net, 
+            adapt=adapt, 
+            rack_fail=0)
 
         res = [0, 0, Metrics()]
 
@@ -179,8 +205,21 @@ def manual_1_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_
 
         # Compute P(system fails | rack 1 fails)
         failureGenerator2 = FailureGenerator(afr)
-        sys2 = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
-                io_speed, 1, k_net, p_net, adapt, rack_fail = 1)
+        sys2 = System(
+            num_disks=total_drives, 
+            num_disks_per_rack=drives_per_rack, 
+            k=k_local, 
+            m=p_local, 
+            place_type=place_type, 
+            diskCap=cap * 1024 * 1024,
+            rebuildRate=io_speed, 
+            intrarack_speed=intrarack_speed, 
+            interrack_speed=interrack_speed, 
+            utilizeRatio=1, 
+            top_k=k_net, 
+            top_m=p_net, 
+            adapt=adapt, 
+            rack_fail=1)
 
         res = [0, 0, Metrics()]
 
@@ -230,8 +269,8 @@ def manual_1_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_
 # 4. get P(system fails | rack 1,2 fails) by manually inject 2 rack failure in each simulation
 # 5. P(system fails) = P(system fails | rack 1,2 fail) * P(rack 1,2 fails) / P(rack 1,2 fails | system fails)
 # ------------------------
-def manual_2_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
-                    total_drives, drives_per_rack, placement, dist):
+def manual_2_rack_failure(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
+                    total_drives, drives_per_rack, placement, dist, concur, epoch, iters):
     for cap in range(100, 110, 10):
         # 1. get P(rack 1 fails)
         place_type = parse_placement(placement)
@@ -239,8 +278,21 @@ def manual_2_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_
         if place_type == PlacementType.MLEC_DP:         # if MLEC_DP
             local_place_type = PlacementType.DP    # local DP
         failureGenerator = FailureGenerator(afr)
-        sys = System(drives_per_rack, drives_per_rack, k_local, p_local, local_place_type, cap * 1024 * 1024,
-                io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
+        sys = System(
+            num_disks=drives_per_rack, 
+            num_disks_per_rack=drives_per_rack, 
+            k=k_local, 
+            m=p_local, 
+            place_type=local_place_type, 
+            diskCap=cap * 1024 * 1024,
+            rebuildRate=io_speed, 
+            intrarack_speed=intrarack_speed, 
+            interrack_speed=interrack_speed, 
+            utilizeRatio=1, 
+            top_k=k_net, 
+            top_m=p_net, 
+            adapt=adapt, 
+            rack_fail=0)
 
         res = [0, 0, Metrics()]
 
@@ -271,8 +323,21 @@ def manual_2_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_
 
         # 4. get P(system fails | rack 1,2 fails) by manually inject 2 rack failure in each simulation
         failureGenerator2 = FailureGenerator(afr)
-        sys2 = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
-                io_speed, 1, k_net, p_net, adapt, rack_fail = 2)
+        sys2 = System(
+            num_disks=total_drives, 
+            num_disks_per_rack=drives_per_rack, 
+            k=k_local, 
+            m=p_local, 
+            place_type=place_type, 
+            diskCap=cap * 1024 * 1024,
+            rebuildRate=io_speed, 
+            intrarack_speed=intrarack_speed, 
+            interrack_speed=interrack_speed, 
+            utilizeRatio=1, 
+            top_k=k_net, 
+            top_m=p_net, 
+            adapt=adapt, 
+            rack_fail=2)
 
         res = [0, 0, Metrics()]
 
@@ -316,8 +381,8 @@ def manual_2_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_
 # Ignore this function for now
 # ------------------------
 
-def io_over_year(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
-                total_drives, drives_per_rack, placement, distribution):
+def io_over_year(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
+                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
     pass
     # # logging.basicConfig(level=logging.INFO)
     # rebuildio_prev_year = 0
@@ -367,8 +432,8 @@ def io_over_year(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
     #     output.close()
 
 
-def weibull_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
-                total_drives, drives_per_rack, placement, distribution):
+def weibull_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
+                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
     # logging.basicConfig(level=logging.INFO)
     place_type = parse_placement(placement)
     
@@ -438,8 +503,8 @@ def weibull_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 # No need to get enough failures
 # Just run enough simulations so that we get the average metrics
 # --------------------------------
-def metric_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
-                total_drives, drives_per_rack, placement, distribution):
+def metric_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
+                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
     place_type = parse_placement(placement)
 
     for afr in range(2, 6):
@@ -485,8 +550,8 @@ def metric_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
 # -----------------------------
 # simulate against bursts
 # -----------------------------
-def burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net,
-                total_drives, drives_per_rack, placement, distribution):
+def burst_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
+                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
     # logging.basicConfig(level=logging.INFO)
     
     mission = YEAR
@@ -555,7 +620,7 @@ if __name__ == "__main__":
     parser.add_argument('-placement', type=str, help="placement policy. Can be RAID/DP/MLEC/LRC", default='MLEC')
     parser.add_argument('-dist', type=str, help="disk failure distribution. Can be exp/weibull", default='exp')
     parser.add_argument('-concur', type=int, help="how many threads to use concurrently", default=200)
-    parser.add_argument('-epoch', type=int, help="how many epochs to run", default=20)
+    parser.add_argument('-epoch', type=int, help="how many epochs to run", default=200)
     parser.add_argument('-iter', type=int, help="how many iterations in a epoch in a thread to run", default=50000)
     args = parser.parse_args()
 
@@ -600,26 +665,33 @@ if __name__ == "__main__":
     dist = args.dist
 
     if sim_mode == 0:
-        normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
-                    total_drives, drives_per_rack, placement, dist, concur, epoch, iters)
+        normal_sim(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+                   cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
+                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, distribution=dist, concur=concur, epoch=epoch, iters=iters)
     elif sim_mode == 1:
-        manual_1_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
-                    total_drives, drives_per_rack, placement, dist)
+        manual_1_rack_failure(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+                   cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
+                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, dist=dist)
     elif sim_mode == 2:
-        manual_2_rack_failure(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
-                    total_drives, drives_per_rack, placement, dist)
+        manual_2_rack_failure(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+                   cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
+                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, dist=dist)
     elif sim_mode == 3:
-        io_over_year(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
-                    total_drives, drives_per_rack, placement, dist)
+        io_over_year(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+                   cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
+                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
     elif sim_mode == 4:
-        weibull_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
-                    total_drives, drives_per_rack, placement, dist)
+        weibull_sim(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+                   cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
+                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
     elif sim_mode == 5:
-        metric_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
-                    total_drives, drives_per_rack, placement, dist)
+        metric_sim(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+                   cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
+                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
     elif sim_mode == 6:
-        burst_sim(afr, io_speed, cap, adapt, k_local, p_local, k_net, p_net, 
-                    total_drives, drives_per_rack, placement, dist)
+        burst_sim(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+                   cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
+                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
 
 
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_afr=50&d_cap=20&dr_rw_speed=50&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&spares=0&rec_wr_spd_alloc=100
