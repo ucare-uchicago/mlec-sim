@@ -14,6 +14,14 @@ class Policy:
     def __init__(self, state: State) -> None:
         self.state: State = state
         self.sys: System = state.sys
+        self.n = state.n
+        self.top_n = self.sys.top_k + self.sys.top_m
+        self.racks = state.racks
+        self.disks = state.disks
+        self.curr_time = state.curr_time
+        self.failed_disks = state.failed_disks
+        self.failed_racks = state.failed_racks
+        self.mytimer = state.mytimer
         
         self.curr_time: float = state.curr_time
     

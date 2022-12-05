@@ -10,14 +10,7 @@ class RAID(Policy):
     # system state consists of disks state
     #--------------------------------------
     def __init__(self, state):
-        self.state = state
-        self.sys = state.sys
-        self.n = state.n
-        self.racks = state.racks
-        self.disks = state.disks
-        self.curr_time = state.curr_time
-        self.failed_disks = state.failed_disks
-        self.failed_racks = state.failed_racks
+        super().__init__(state)
 
     def update_disk_priority(self, event_type, diskId):
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:

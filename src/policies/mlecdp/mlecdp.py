@@ -20,13 +20,6 @@ class MLECDP(Policy):
     #--------------------------------------
     def __init__(self, state: State):
         super().__init__(state)
-        self.sys: System = state.sys
-        self.n: int = state.n
-        self.racks = state.racks
-        self.disks = state.disks
-        self.curr_time = state.curr_time
-        self.failed_disks = state.failed_disks
-        self.failed_racks = state.failed_racks
         self.num_rack_groups = self.sys.num_racks // self.sys.top_n 
         self.rack_group_failures = [0] * self.num_rack_groups
 
