@@ -14,13 +14,6 @@ class Decluster(Policy):
     #--------------------------------------
     def __init__(self, state):
         super().__init__(state)
-        self.sys = state.sys
-        self.n = state.n
-        self.racks = state.racks
-        self.disks = state.disks
-        self.curr_time = state.curr_time
-        self.failed_disks = state.failed_disks
-        self.failed_racks = state.failed_racks
 
     def update_disk_priority(self, event_type, diskId):
         logging.info("Event %s, dID %s, time: %s", event_type, diskId, self.state.curr_time)

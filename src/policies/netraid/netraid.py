@@ -16,13 +16,6 @@ class NetRAID(Policy):
     #--------------------------------------
     def __init__(self, state):
         super().__init__(state)
-        self.sys = state.sys
-        self.n = state.n
-        self.racks = state.racks
-        self.disks = state.disks
-        self.curr_time = state.curr_time
-        self.failed_disks = state.failed_disks
-        self.failed_racks = state.failed_racks
 
     #----------------------------------------------
     # raid net
@@ -117,7 +110,6 @@ class NetRAID(Policy):
         assert network_usage is not None
         # logging.info("Repairing with network bandwidth of %s", network_usage.inter_rack)
         repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / fail_per_stripeset)
-        # repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_stripeset)
         logging.info("Repaired percent %s, Repair time %s", repaired_percent, repair_time)
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
