@@ -45,7 +45,7 @@ class MLEC(Policy):
             
         if event_type == Disk.EVENT_FAIL:
             self.disks[diskId].state = Disk.STATE_FAILED
-            self.diskgroups[diskgroupId].failed_disks[diskId]=1
+            self.diskgroups[diskgroupId].failed_disks[diskId] = 1
             self.failed_disks[diskId] = 1
 
 
@@ -55,10 +55,12 @@ class MLEC(Policy):
         if event_type == Disk.EVENT_FAIL:
             diskgroupId = diskId // self.n
 
+            # If the diskgroup is already failing, we do nothing
             if self.diskgroups[diskgroupId].state == Diskgroup.STATE_FAILED:
                 return
             
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
+            
             #--------------------------------------------
             # calculate repair time for disk failures
             # all the failed disks need to read data from other surviving disks in the group to rebuild data
@@ -67,7 +69,7 @@ class MLEC(Policy):
             #--------------------------------------------
             self.disks[diskId].repair_start_time = self.curr_time
             for failedDiskId in fail_per_diskgroup:
-                self.update_disk_repair_time(failedDiskId, len(fail_per_diskgroup))
+                self.update_disk_repair_time(failedDiskId, fail_per_diskgroup)
 
         # if disk repair event
         if event_type == Disk.EVENT_REPAIR:
@@ -83,10 +85,11 @@ class MLEC(Policy):
                 return
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
             for failedDiskId in fail_per_diskgroup:
-                    self.update_disk_repair_time(failedDiskId, len(fail_per_diskgroup))
+                    self.update_disk_repair_time(failedDiskId, fail_per_diskgroup)
 
 
     def update_disk_repair_time(self, diskId, fail_per_diskgroup):
+        num_fail_per_diskgroup = len(fail_per_diskgroup)
         start = time.time()
         disk = self.disks[diskId]
         repaired_time = self.curr_time - disk.repair_start_time
@@ -96,7 +99,7 @@ class MLEC(Policy):
         else:
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
-        repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_diskgroup)
+        repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/num_fail_per_diskgroup)
 
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
