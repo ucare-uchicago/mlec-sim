@@ -1,3 +1,5 @@
+import numpy as np
+
 class Diskgroup:
     #----------------------------
     # The 2 possible disk states
@@ -14,7 +16,7 @@ class Diskgroup:
     #----------------------------------
     # Initialize the rack
     #----------------------------------
-    def __init__(self, diskgroupId, repair_data):
+    def __init__(self, diskgroupId, repair_data, n: int):
         self.diskgroupId = diskgroupId
         self.state = self.STATE_NORMAL
         #-------------------------------
@@ -28,6 +30,9 @@ class Diskgroup:
         self.repair_time = {}
         self.repair_data = repair_data
         #-------------------------------
-        # self.repair_start_time = 0
-        # self.curr_repair_data_remaining = 0
+        self.repair_start_time = 0.0
+        self.curr_repair_data_remaining = 0.0
+        self.init_repair_start_time = 0.0
+        #-------------------------------
         self.failed_disks = {}
+        self.disks = list(range(diskgroupId * n, (diskgroupId + 1) * n))
