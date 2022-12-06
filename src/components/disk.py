@@ -22,12 +22,12 @@ class Disk:
     #----------------------------------
     # Initialize the disk
     #----------------------------------
-    def __init__(self, diskId, repair_data):
+    def __init__(self, diskId, repair_data, rackId):
         #-------------------------------
         # initialize the state be normal
         #-------------------------------
         self.diskId: int = diskId
-        self.rackId: int = 0
+        self.rackId: int = rackId
         self.stripesetId: int = 0
         #-------------------------------
         # initialize the state be normal
