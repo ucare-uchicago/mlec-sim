@@ -37,7 +37,7 @@ class NetRAID(Policy):
             #  If there is only one failure in the stripeset, this would not be run
             for diskId in failed_disks_per_stripeset:
                 # If the disk is being delayed for repair, we do not update its time
-                if diskId not in self.state.simulation.delay_repair_queue:
+                if diskId not in self.state.simulation.delay_repair_queue[Components.DISK]:
                     self.update_disk_repair_time(diskId, failed_disks_per_stripeset)
 
         if event_type in [Disk.EVENT_FAIL, Disk.EVENT_DELAYED_FAIL]:
@@ -57,7 +57,7 @@ class NetRAID(Policy):
             # we need to update the repair rate for all failed disks, because every failed disk gets less share now
             #--------------------------------------------
             for diskId_per_stripeset in failed_disks_per_stripeset:
-                if diskId_per_stripeset not in self.state.simulation.delay_repair_queue:
+                if diskId_per_stripeset not in self.state.simulation.delay_repair_queue[Components.DISK]:
                     self.update_disk_repair_time(diskId_per_stripeset, failed_disks_per_stripeset)
     
     
@@ -165,7 +165,7 @@ class NetRAID(Policy):
         netraid_repair(self.state, repair_queue)
         
     def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:
-        logging.info("Trying to intercept event with delay repair queue length of %s", len(self.state.simulation.delay_repair_queue))
+        logging.info("Trying to intercept event with delay repair queue length of %s", len(self.state.simulation.delay_repair_queue[Components.DISK]))
         # Check whether there are delayed repaired disks that satisfy the requirement
         if len(self.state.simulation.delay_repair_queue[Components.DISK]) == 0 \
                 or self.state.network.inter_rack_avail == 0:
