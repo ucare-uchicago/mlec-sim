@@ -16,6 +16,7 @@ class Diskgroup:
     #----------------------------------
     EVENT_FAIL = "<diskgroup failure>"
     EVENT_REPAIR = "<diskgroup repair>"
+    EVENT_DELAYED_FAIL = "<diskgroup delayed fail>"
 
     #----------------------------------
     # Initialize the rack
