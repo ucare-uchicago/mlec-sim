@@ -38,13 +38,8 @@ class Policy:
             self.state.failed_disks.pop(diskId, None)
             
             # If this disk has network usage, we return those to the network state
-            if disk.network_usage is not None:
-                logging.info("Replenishing bandwidth")
-                self.state.network.inter_rack_avail += disk.network_usage.inter_rack
-                logging.info("Replenish %s inter rack", disk.network_usage.inter_rack)
-                for rackId in disk.network_usage.intra_rack:
-                    self.state.network.intra_rack_avail[rackId] += disk.network_usage.intra_rack[rackId]
-                    logging.info("Replenish %s intrarack for rack %s", disk.network_usage.intra_rack[rackId], rackId)
+            self.state.network.replenish(disk.network_usage)
+            disk.network_usage = None
             
             logging.info("Network bandwidth after replenish: %s", self.state.network.__dict__)
             
