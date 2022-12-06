@@ -3,6 +3,7 @@ import time
 import numpy as np
 from typing import Optional, List, Dict, Tuple
 
+from constants.Components import Components
 from components.disk import Disk
 from components.rack import Rack
 from components.network import NetworkUsage
@@ -92,7 +93,7 @@ class NetRAID(Policy):
                 #     logging.warning("Caused by interrack bandwidth being 0")
                 # else:
                 #     logging.warning("Not enough surviving peers. Only available peer %s, total of %s", disk_to_read_from, len())
-                self.state.simulation.delay_repair_queue.append(diskId)
+                self.state.simulation.delay_repair_queue[Components.DISK].append(diskId)
                 return
             
             repaired_percent = 0
@@ -170,14 +171,14 @@ class NetRAID(Policy):
             return None
         
         # We check all the disks that have been delayed for repairs
-        for diskId in self.state.simulation.delay_repair_queue:
+        for diskId in self.state.simulation.delay_repair_queue[Components.DISK]:
             disk = self.state.disks[diskId]
             # This means that we have enough bandwidth to carry out the repair
             disk_to_read_from = self.disks_to_read_for_repair(disk)
             logging.info("Trying to initiate delayed repair for disk %s with inter-rack of %s and avail peer of %s (k=%s)", diskId, self.state.network.inter_rack_avail, len(disk_to_read_from), self.sys.top_k)
             if self.state.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
                 logging.info("Delayed disk %s now has enough bandwidth, repairing", diskId)
-                self.state.simulation.delay_repair_queue.remove(diskId)
+                self.state.simulation.delay_repair_queue[Components.DISK].remove(diskId)
                 return (prev_event[0], Disk.EVENT_DELAYED_FAIL, diskId)
         
         return None
