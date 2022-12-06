@@ -1,12 +1,14 @@
 import logging
 import time
+from typing import List, Dict
 
 from components.disk import Disk
 from components.diskgroup import Diskgroup
-from heapq import heappush
+from components.network import NetworkUsage
 from policies.policy import Policy
 from .pdl import mlec_cluster_pdl
 from .repair import mlec_repair
+from .network import update_network_state, update_network_state_diskgroup
 
 class MLEC(Policy):
     #--------------------------------------
@@ -14,26 +16,23 @@ class MLEC(Policy):
     #--------------------------------------
     def __init__(self, state):
         super().__init__(state)
-        self.sys = state.sys
-        self.n = state.n
-        self.top_n = self.sys.top_k + self.sys.top_m
-        self.racks = state.racks
-        self.disks = state.disks
-        self.curr_time = state.curr_time
-        self.failed_disks = state.failed_disks
+
         self.failed_diskgroups = {}
-        self.mytimer = state.mytimer
 
         self.failed_diskgroups_per_stripeset = []
         self.num_diskgroup_stripesets = self.sys.num_disks // self.n // self.top_n
         for i in range(self.num_diskgroup_stripesets):
             self.failed_diskgroups_per_stripeset.append({})
         
+        self.num_diskgroups_per_rack = self.sys.num_disks_per_rack // self.sys.n
         self.num_diskgroups = self.sys.num_disks // self.n
         diskgroup_repair_data = self.sys.diskSize * self.n  # when disk group fails, we repair the whole disk group
-        self.diskgroups = {}
+        self.diskgroups: Dict[int, Diskgroup] = {}
         for diskgroupId in range(self.num_diskgroups):
-            self.diskgroups[diskgroupId] = Diskgroup(diskgroupId, diskgroup_repair_data)
+            num_diskgroup_per_rack = self.sys.num_disks_per_rack // self.n
+            diskgroupStripesetId = (diskgroupId % num_diskgroup_per_rack) + (diskgroupId // (num_diskgroup_per_rack * self.sys.top_n)) * num_diskgroup_per_rack
+            rackId = self.num_diskgroups // self.num_diskgroups_per_rack
+            self.diskgroups[diskgroupId] = Diskgroup(diskgroupId, diskgroup_repair_data, self.n, rackId, diskgroupStripesetId)
 
     def update_disk_state(self, event_type, diskId):
         diskgroupId = diskId // self.n
@@ -96,10 +95,13 @@ class MLEC(Policy):
         if repaired_time == 0:
             repaired_percent = 0
             disk.curr_repair_data_remaining = disk.repair_data
+            
+            # This means that we just begun repair for this disk, we need to check network
+            update_network_state(disk, fail_per_diskgroup, self)
         else:
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
-        repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/num_fail_per_diskgroup)
+        repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / num_fail_per_diskgroup)
 
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
@@ -109,7 +111,6 @@ class MLEC(Policy):
 
         end = time.time()
         self.mytimer.updateDiskRepairTime += end - start
-
 
     #----------------------------------------------
     # update diskgroup state
@@ -201,10 +202,6 @@ class MLEC(Policy):
                 for dgId in failed_diskgroups_per_stripeset:
                     self.update_diskgroup_repair_time(dgId, len(failed_diskgroups_per_stripeset))
     
-
-                
-        
-
     
     def update_diskgroup_repair_time(self, diskgroupId, failed_diskgroups_per_stripeset):
         diskgroup = self.diskgroups[diskgroupId]
@@ -212,8 +209,10 @@ class MLEC(Policy):
         if repaired_time == 0:
             repaired_percent = 0
             diskgroup.curr_repair_data_remaining = diskgroup.repair_data
-        else:
             
+            # This means that we just begun repair for this disk, we need to check network
+            update_network_state_diskgroup(diskgroup, failed_diskgroups_per_stripeset, self)
+        else:
             repaired_percent = repaired_time / diskgroup.repair_time[0]
             diskgroup.curr_repair_data_remaining = diskgroup.curr_repair_data_remaining * (1 - repaired_percent)
         repair_time = float(diskgroup.curr_repair_data_remaining)/(self.sys.diskIO * self.n / failed_diskgroups_per_stripeset)
