@@ -1,4 +1,8 @@
-import numpy as np
+import typing
+if typing.TYPE_CHECKING:
+    from components.network import NetworkUsage
+
+from typing import Optional
 
 class Diskgroup:
     #----------------------------
@@ -16,8 +20,10 @@ class Diskgroup:
     #----------------------------------
     # Initialize the rack
     #----------------------------------
-    def __init__(self, diskgroupId, repair_data, n: int):
+    def __init__(self, diskgroupId, repair_data, n, rackId, diskgroupStripesetId):
         self.diskgroupId = diskgroupId
+        self.rackId = rackId
+        self.diskgroupStripesetId = diskgroupStripesetId
         self.state = self.STATE_NORMAL
         #-------------------------------
         # initialize the repair priority
@@ -30,9 +36,12 @@ class Diskgroup:
         self.repair_time = {}
         self.repair_data = repair_data
         #-------------------------------
+        self.estimate_repair_time = 0.0
         self.repair_start_time = 0.0
         self.curr_repair_data_remaining = 0.0
         self.init_repair_start_time = 0.0
         #-------------------------------
         self.failed_disks = {}
         self.disks = list(range(diskgroupId * n, (diskgroupId + 1) * n))
+        #-------------------------------
+        self.network_usage: Optional[NetworkUsage] = None
