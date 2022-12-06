@@ -60,6 +60,9 @@ class NetworkUsage:
             split_intra_rack[rackId] = self.intra_rack[rackId] / portion
             
         return NetworkUsage(self.inter_rack / portion, split_intra_rack)
+    
+    def has_intra_rack(self):
+        return len(self.intra_rack) != 0
         
     def __str__(self):
         return "<inter: {}| intra {}>".format(self.inter_rack, self.intra_rack)

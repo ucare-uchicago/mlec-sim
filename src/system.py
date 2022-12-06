@@ -27,7 +27,7 @@ class System:
         self.num_disks: int = num_disks
         self.disks: Dict[int, Disk] = {}
         for diskId in range(num_disks):
-            disk = Disk(diskId, diskCap)
+            disk = Disk(diskId, diskCap, diskId // num_disks_per_rack)
             self.disks[diskId] = disk
         #--------------------------------------------
         # Set the system system layout
