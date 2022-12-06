@@ -32,7 +32,7 @@ class Simulate:
         self.num_disks = num_disks
         self.failure_queue = []
         self.repair_queue = []
-        self.delay_repair_queue: Dict[Components, List[int]] = {}
+        self.delay_repair_queue: Dict[Components, List[int]] = {Components.DISK: [], Components.DISKGROUP: []}
         self.network_queue = []
         self.prev_event = None
 
@@ -48,7 +48,7 @@ class Simulate:
     def reset(self, failureGenerator, mytimer):
         self.failure_queue = []
         self.repair_queue = []
-        self.delay_repair_queue = {}
+        self.delay_repair_queue = {Components.DISK: [], Components.DISKGROUP: []}
         self.network_queue = []
 
         # self.sys.priority_per_set = {}
