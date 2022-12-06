@@ -167,7 +167,8 @@ class NetRAID(Policy):
     def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:
         logging.info("Trying to intercept event with delay repair queue length of %s", len(self.state.simulation.delay_repair_queue))
         # Check whether there are delayed repaired disks that satisfy the requirement
-        if len(self.state.simulation.delay_repair_queue) == 0 or self.state.network.inter_rack_avail == 0:
+        if len(self.state.simulation.delay_repair_queue[Components.DISK]) == 0 \
+                or self.state.network.inter_rack_avail == 0:
             return None
         
         # We check all the disks that have been delayed for repairs
