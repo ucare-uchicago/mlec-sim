@@ -1,14 +1,15 @@
 import logging
 import time
-from typing import List, Dict
+from typing import List, Dict, Optional, Tuple
 
 from components.disk import Disk
 from components.diskgroup import Diskgroup
 from components.network import NetworkUsage
+from constants.Components import Components
 from policies.policy import Policy
 from .pdl import mlec_cluster_pdl
 from .repair import mlec_repair
-from .network import update_network_state, update_network_state_diskgroup
+from .network import update_network_state, update_network_state_diskgroup, diskgroup_to_read_for_repair, disks_to_read_for_repair
 
 class MLEC(Policy):
     #--------------------------------------
@@ -41,6 +42,8 @@ class MLEC(Policy):
             self.diskgroups[diskgroupId].failed_disks.pop(diskId, None)
             self.failed_disks.pop(diskId, None)
             
+            self.state.network.replenish(self.disks[diskId].network_usage)
+            self.disks[diskId].network_usage = None
             
         if event_type == Disk.EVENT_FAIL:
             self.disks[diskId].state = Disk.STATE_FAILED
@@ -169,6 +172,10 @@ class MLEC(Policy):
             
             for dId in range(diskgroupId*self.n, (diskgroupId+1)*self.n):
                 self.disks[diskId].state = Disk.STATE_NORMAL 
+                
+            # We return the network resources this diskgroup was using
+            self.state.network.replenish(self.diskgroups[diskgroupId].network_usage)
+            self.diskgroups[diskgroupId].network_usage = None
             
             self.sys.metrics.total_net_traffic += self.diskgroups[diskgroupId].repair_data * (self.sys.top_k + 1)
             self.sys.metrics.total_net_repair_time += self.curr_time - self.diskgroups[diskgroupId].init_repair_start_time
@@ -234,3 +241,33 @@ class MLEC(Policy):
     
     def update_repair_events(self, repair_queue):
         mlec_repair(self.diskgroups, self.get_failed_diskgroups(), self.state, repair_queue)
+    
+    def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:
+        if (len(self.state.simulation.delay_repair_queue[Components.DISK]) == 0 \
+            and len(self.state.simulation.delay_repair_queue[Components.DISKGROUP]) == 0) \
+                or self.state.network.inter_rack_avail == 0:
+            return None
+
+        
+        # We first check whether any waiting disk groups can be repaired
+        #  We prioritize disk groups ahead of disks because they are more important
+        for diskgroupId in self.state.simulation.delay_repair_queue[Components.DISKGROUP]:
+            diskgroup = self.diskgroups[diskgroupId]
+            diskgroups_to_read = diskgroup_to_read_for_repair(diskgroup.diskgroupStripesetId, self)
+            if self.state.network.inter_rack_avail != 0 \
+                and len(diskgroups_to_read) >= self.sys.top_k:
+                    self.state.simulation.delay_repair_queue[Components.DISKGROUP].remove(diskgroupId)
+                    return (prev_event[0], Diskgroup.EVENT_DELAYED_FAIL, diskgroupId)
+        
+        # Check whether there are disks that can be repaired
+        for diskId in self.state.simulation.delay_repair_queue[Components.DISK]:
+            disk = self.state.disks[diskId]
+            # This means that we have enough bandwidth to carry out the repair
+            disk_to_read_from = disks_to_read_for_repair(disk, self)
+            logging.info("Trying to initiate delayed repair for disk %s with inter-rack of %s and avail peer of %s (k=%s)", diskId, self.state.network.inter_rack_avail, len(disk_to_read_from), self.sys.top_k)
+            if self.state.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
+                logging.info("Delayed disk %s now has enough bandwidth, repairing", diskId)
+                self.state.simulation.delay_repair_queue[Components.DISK].remove(diskId)
+                return (prev_event[0], Disk.EVENT_DELAYED_FAIL, diskId)
+            
+        return None
