@@ -3,8 +3,10 @@ from system import System
 from components.disk import Disk
 from components.rack import Rack
 from constants.PlacementType import PlacementType
+from constants.Components import Components
 from mytimer import Mytimer
 from heapq import heappush, heappop
+from typing import Dict, List
 
 from constants.time import YEAR
 
@@ -30,7 +32,7 @@ class Simulate:
         self.num_disks = num_disks
         self.failure_queue = []
         self.repair_queue = []
-        self.delay_repair_queue = []
+        self.delay_repair_queue: Dict[Components, List[int]] = {}
         self.network_queue = []
         self.prev_event = None
 
@@ -46,7 +48,7 @@ class Simulate:
     def reset(self, failureGenerator, mytimer):
         self.failure_queue = []
         self.repair_queue = []
-        self.delay_repair_queue = []
+        self.delay_repair_queue = {}
         self.network_queue = []
 
         # self.sys.priority_per_set = {}
