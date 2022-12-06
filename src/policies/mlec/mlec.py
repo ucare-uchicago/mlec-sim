@@ -38,6 +38,7 @@ class MLEC(Policy):
     def update_disk_state(self, event_type, diskId):
         diskgroupId = diskId // self.n
         logging.info("diskId %s, diskgroupId %s", diskId, diskgroupId)
+        logging.info("Network state - inter: %s, intra: %s", self.state.network.inter_rack_avail, self.state.network.intra_rack_avail)
         if event_type == Disk.EVENT_REPAIR:
             self.disks[diskId].state = Disk.STATE_NORMAL
             self.diskgroups[diskgroupId].failed_disks.pop(diskId, None)
