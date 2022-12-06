@@ -6,7 +6,7 @@ from components.network import Network
 from constants.PlacementType import PlacementType
 from policies.policy_factory import config_system_layout
 
-from typing import Dict
+from typing import Dict, List
 from numpy.typing import NDArray
 
 
@@ -62,7 +62,7 @@ class System:
         self.net_raid_stripesets_layout = {}
         self.num_diskgroups = 0
         self.num_diskgroup_stripesets = 0
-        self.diskgroup_stripesets = []
+        self.diskgroup_stripesets: Dict[int, List[int]] = {}
         
         config_system_layout(self.place_type, self)
         #--------------------------------------------
