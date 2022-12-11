@@ -108,7 +108,6 @@ class MLEC(Policy):
             # This means that we just begun repair for this disk, we need to check network
             updated = update_network_state(disk, fail_per_diskgroup, self)
             if not updated:
-                logging.warn("Returning, disk has repair start time of " + str(disk.repair_start_time))
                 return
             
             repaired_percent = 0

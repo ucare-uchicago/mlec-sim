@@ -20,7 +20,7 @@ class NormalSim(Simulator):
     # -----------------------------
     def normal_sim(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
                     total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
-        logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
+        # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
 
         mission = YEAR
         failureGenerator = FailureGenerator(afr)
@@ -51,17 +51,17 @@ class NormalSim(Simulator):
         # return
 
         # We need to get enough failures in order to compute accurate nines #
-        # while failed_iters < 20:
-        logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
-        start  = time.time()
-        res = self.run(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
-        failed_iters += res[0]
-        total_iters += res[1]
-        metrics += res[2]
-        # print(metrics)
-        simulationTime = time.time() - start
-        print("simulation time: {}".format(simulationTime))
-        print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
+        while failed_iters < 20:
+            logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+            start  = time.time()
+            res = self.run(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
+            failed_iters += res[0]
+            total_iters += res[1]
+            metrics += res[2]
+            # print(metrics)
+            simulationTime = time.time() - start
+            print("simulation time: {}".format(simulationTime))
+            print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
 
         total_iters *= mission/YEAR
 
