@@ -101,14 +101,15 @@ class MLEC(Policy):
         start = time.time()
         disk = self.disks[diskId]
         repaired_time = self.curr_time - disk.repair_start_time
+        logging.info("Disk %s has repaired time of %s", diskId, repaired_time)
         if repaired_time == 0:
-            repaired_percent = 0
-            disk.curr_repair_data_remaining = disk.repair_data
-            
             # This means that we just begun repair for this disk, we need to check network
             updated = update_network_state(disk, fail_per_diskgroup, self)
             if not updated:
                 return
+            
+            repaired_percent = 0
+            disk.curr_repair_data_remaining = disk.repair_data
         else:
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
@@ -224,13 +225,14 @@ class MLEC(Policy):
         diskgroup = self.diskgroups[diskgroupId]
         repaired_time = self.curr_time - diskgroup.repair_start_time
         if repaired_time == 0:
-            repaired_percent = 0
-            diskgroup.curr_repair_data_remaining = diskgroup.repair_data
             
             # This means that we just begun repair for this disk, we need to check network
             updated = update_network_state_diskgroup(diskgroup, failed_diskgroups_per_stripeset, self)
             if not updated:
                 return
+            
+            repaired_percent = 0
+            diskgroup.curr_repair_data_remaining = diskgroup.repair_data
         else:
             repaired_percent = repaired_time / diskgroup.repair_time[0]
             diskgroup.curr_repair_data_remaining = diskgroup.curr_repair_data_remaining * (1 - repaired_percent)
@@ -281,5 +283,7 @@ class MLEC(Policy):
                 logging.info("Delayed disk %s now has enough bandwidth, repairing", diskId)
                 self.state.simulation.delay_repair_queue[Components.DISK].remove(diskId)
                 return (prev_event[0], Disk.EVENT_DELAYED_FAIL, diskId)
+        
+        logging.info("No delayed repairs can be processed")
             
         return None

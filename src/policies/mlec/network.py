@@ -132,6 +132,7 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
             return False
             
     elif len(fail_per_diskgroup) > mlec.sys.m:
+        logging.info("More than bottom_m failures, resort to diskgroup repair")
         # This means that the local diskgroup has failed. We need to repair the disk group
         #  this is going to be handled in the diskgroup network state update
         # But we need to return false so that we do not assign repair time for the disk
