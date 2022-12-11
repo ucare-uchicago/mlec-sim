@@ -77,7 +77,8 @@ class MLEC(Policy):
             #--------------------------------------------
             self.disks[diskId].repair_start_time = self.curr_time
             for failedDiskId in fail_per_diskgroup:
-                self.update_disk_repair_time(failedDiskId, fail_per_diskgroup)
+                if failedDiskId not in self.state.simulation.delay_repair_queue[Components.DISK]:
+                    self.update_disk_repair_time(failedDiskId, fail_per_diskgroup)
 
         # if disk repair event
         if event_type == Disk.EVENT_REPAIR:
@@ -93,6 +94,7 @@ class MLEC(Policy):
                 return
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
             for failedDiskId in fail_per_diskgroup:
+                if failedDiskId not in self.state.simulation.delay_repair_queue[Components.DISK]:
                     self.update_disk_repair_time(failedDiskId, fail_per_diskgroup)
 
 
@@ -106,6 +108,7 @@ class MLEC(Policy):
             # This means that we just begun repair for this disk, we need to check network
             updated = update_network_state(disk, fail_per_diskgroup, self)
             if not updated:
+                logging.warn("Returning, disk has repair start time of " + str(disk.repair_start_time))
                 return
             
             repaired_percent = 0
@@ -206,19 +209,22 @@ class MLEC(Policy):
                 self.diskgroups[diskgroupId].init_repair_start_time = self.curr_time
                 failed_diskgroups_per_stripeset = self.get_failed_diskgroups_per_stripeset(diskgroupStripesetId)
                 for dgId in failed_diskgroups_per_stripeset:
-                    self.update_diskgroup_repair_time(dgId, failed_diskgroups_per_stripeset)
+                    if dgId not in self.state.simulation.delay_repair_queue[Components.DISKGROUP]:
+                        self.update_diskgroup_repair_time(dgId, failed_diskgroups_per_stripeset)
 
         if event_type == Diskgroup.EVENT_FAIL:
                 self.diskgroups[diskgroupId].repair_start_time = self.curr_time
                 self.diskgroups[diskgroupId].init_repair_start_time = self.curr_time
                 failed_diskgroups_per_stripeset = self.get_failed_diskgroups_per_stripeset(diskgroupStripesetId)
                 for dgId in failed_diskgroups_per_stripeset:
-                    self.update_diskgroup_repair_time(dgId, failed_diskgroups_per_stripeset)
+                    if dgId not in self.state.simulation.delay_repair_queue[Components.DISKGROUP]:
+                        self.update_diskgroup_repair_time(dgId, failed_diskgroups_per_stripeset)
 
         if event_type == Diskgroup.EVENT_REPAIR:
                 failed_diskgroups_per_stripeset = self.get_failed_diskgroups_per_stripeset(diskgroupStripesetId)
                 for dgId in failed_diskgroups_per_stripeset:
-                    self.update_diskgroup_repair_time(dgId, failed_diskgroups_per_stripeset)
+                    if dgId not in self.state.simulation.delay_repair_queue[Components.DISKGROUP]:
+                        self.update_diskgroup_repair_time(dgId, failed_diskgroups_per_stripeset)
     
     
     def update_diskgroup_repair_time(self, diskgroupId, failed_diskgroups_per_stripeset):
