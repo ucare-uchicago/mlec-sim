@@ -35,6 +35,8 @@ class MLEC(Policy):
             diskgroupStripesetId = (diskgroupId % num_diskgroup_per_rack) + (diskgroupId // (num_diskgroup_per_rack * self.sys.top_n)) * num_diskgroup_per_rack
             rackId = diskgroupId // self.num_diskgroups_per_rack
             self.diskgroups[diskgroupId] = Diskgroup(diskgroupId, diskgroup_repair_data, self.n, rackId, diskgroupStripesetId)
+            for diskId in self.diskgroups[diskgroupId].disks:
+                self.disks[diskId].diskgroupId = diskgroupId
 
     def update_disk_state(self, event_type, diskId):
         diskgroupId = diskId // self.n
@@ -162,6 +164,8 @@ class MLEC(Policy):
             # otherwise, we need to check if a new diskgroup fails
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
             if len(fail_per_diskgroup) > self.sys.m:
+                logging.error("Diskgroup %s failed due to the disk failure, it has failed disks %s", diskgroupId, self.get_failed_disks_per_diskgroup(diskgroupId))
+
                 self.diskgroups[diskgroupId].state = Diskgroup.STATE_FAILED
                 self.failed_diskgroups[diskgroupId] = 1
                 self.failed_diskgroups_per_stripeset[diskgroupStripesetId][diskgroupId] = 1
@@ -216,7 +220,7 @@ class MLEC(Policy):
                 failed_diskgroups_per_stripeset = self.get_failed_diskgroups_per_stripeset(diskgroupStripesetId)
                 for dgId in failed_diskgroups_per_stripeset:
                     if dgId not in self.state.simulation.delay_repair_queue[Components.DISKGROUP]:
-                        self.update_diskgroup_repair_time(dgId, failed_diskgroups_per_stripeset)
+                        self.update_diskgroup_repair_time(dgId, diskId, failed_diskgroups_per_stripeset)
 
         if event_type == Diskgroup.EVENT_FAIL:
                 self.diskgroups[diskgroupId].repair_start_time = self.curr_time
@@ -224,16 +228,16 @@ class MLEC(Policy):
                 failed_diskgroups_per_stripeset = self.get_failed_diskgroups_per_stripeset(diskgroupStripesetId)
                 for dgId in failed_diskgroups_per_stripeset:
                     if dgId not in self.state.simulation.delay_repair_queue[Components.DISKGROUP]:
-                        self.update_diskgroup_repair_time(dgId, failed_diskgroups_per_stripeset)
+                        self.update_diskgroup_repair_time(dgId, diskId, failed_diskgroups_per_stripeset)
 
         if event_type == Diskgroup.EVENT_REPAIR:
                 failed_diskgroups_per_stripeset = self.get_failed_diskgroups_per_stripeset(diskgroupStripesetId)
                 for dgId in failed_diskgroups_per_stripeset:
                     if dgId not in self.state.simulation.delay_repair_queue[Components.DISKGROUP]:
-                        self.update_diskgroup_repair_time(dgId, failed_diskgroups_per_stripeset)
+                        self.update_diskgroup_repair_time(dgId, diskId, failed_diskgroups_per_stripeset)
     
     
-    def update_diskgroup_repair_time(self, diskgroupId, failed_diskgroups_per_stripeset):
+    def update_diskgroup_repair_time(self, diskgroupId, diskId, failed_diskgroups_per_stripeset):
         diskgroup = self.diskgroups[diskgroupId]
         repaired_time = self.curr_time - diskgroup.repair_start_time
         pause_repair = []
@@ -247,6 +251,7 @@ class MLEC(Policy):
             elif type(update_result) is list:
                 # This means that these are the disks that we need to pause repair for
                 pause_repair += update_result
+                logging.warn("We are pausing repairs for disks %s", pause_repair)
             
             repaired_percent = 0
             diskgroup.curr_repair_data_remaining = diskgroup.repair_data
@@ -256,11 +261,14 @@ class MLEC(Policy):
         repair_time = float(diskgroup.curr_repair_data_remaining)/(self.sys.diskIO * self.n / len(failed_diskgroups_per_stripeset))
         
         for pauseRepairDiskId in pause_repair:
-            self.disks[pauseRepairDiskId].repair_time[0] += (repair_time / 3600 / 24)
+            if pauseRepairDiskId != diskId:
+                logging.info("Updating disk %s repair time from %s to %s", pauseRepairDiskId, self.disks[pauseRepairDiskId].repair_time[0], self.disks[pauseRepairDiskId].repair_time[0] + (repair_time / 3600 / 24))
+                self.disks[pauseRepairDiskId].repair_time[0] += (repair_time / 3600 / 24)
             
         diskgroup.repair_time[0] = repair_time / 3600 / 24
         diskgroup.repair_start_time = self.curr_time
         diskgroup.estimate_repair_time = self.curr_time + diskgroup.repair_time[0]
+        logging.info("Diskgroup %s will be repaired at %s", diskgroupId, diskgroup.estimate_repair_time)
 
     def get_failed_disks_per_diskgroup(self, diskgroupId):
         return list(self.diskgroups[diskgroupId].failed_disks.keys())
