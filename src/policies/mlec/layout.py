@@ -34,9 +34,11 @@ def mlec_cluster_layout(sys: System):
     diskgroup_each_rack = sys.num_disks_per_rack // sys.n
     diskgroups: List[List[int]] = np.arange(0, sys.num_diskgroups).reshape((-1, diskgroup_each_rack, )).tolist()
     
+    # print(diskgroups)
     diskgroup_stripesets = {}
     for stripesetId in range(sys.num_diskgroup_stripesets):
         stripeset = []
+        # print(diskgroups)
         # For each stripeset, we need to select sys.top_n diskgroups
         for diskgroupId in range(sys.top_n):
             stripeset.append(diskgroups[diskgroupId].pop(0))
