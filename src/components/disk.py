@@ -28,6 +28,7 @@ class Disk:
         #-------------------------------
         self.diskId: int = diskId
         self.rackId: int = rackId
+        self.diskgroupId: int = 0
         self.stripesetId: int = 0
         #-------------------------------
         # initialize the state be normal

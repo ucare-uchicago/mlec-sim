@@ -62,7 +62,7 @@ class State:
         self.curr_time = curr_time
         self.policy.curr_time = curr_time
 
-
+    
 
     # This returns array [{rackId: failedDisks}, numRacksWithFailure]
     def get_failed_disks_each_rack(self):
