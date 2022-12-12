@@ -1,6 +1,7 @@
 import typing
 if typing.TYPE_CHECKING:
     from components.network import NetworkUsage
+    from policies.mlec.mlec import MLEC
 
 from typing import Optional
 
@@ -44,5 +45,6 @@ class Diskgroup:
         #-------------------------------
         self.failed_disks = {}
         self.disks = list(range(diskgroupId * n, (diskgroupId + 1) * n))
+        
         #-------------------------------
         self.network_usage: Optional[NetworkUsage] = None
