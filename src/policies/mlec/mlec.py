@@ -20,6 +20,7 @@ class MLEC(Policy):
 
         self.failed_diskgroups = {}
 
+        self.repairing_stripeset = []
         self.failed_diskgroups_per_stripeset = []
         self.num_diskgroup_stripesets = self.sys.num_disks // self.n // self.top_n
         for i in range(self.num_diskgroup_stripesets):
@@ -37,10 +38,13 @@ class MLEC(Policy):
 
     def update_disk_state(self, event_type, diskId):
         diskgroupId = diskId // self.n
-        logging.info("diskId %s, diskgroupId %s", diskId, diskgroupId)
+        rackId = self.state.disks[diskId].rackId
+        logging.info("diskId %s, diskgroupId %s, rackId %s", diskId, diskgroupId, self.disks[diskId].rackId)
+        logging.info(self.failed_diskgroups_per_stripeset)
         logging.info("Network state - inter: %s, intra: %s", self.state.network.inter_rack_avail, self.state.network.intra_rack_avail)
         if event_type == Disk.EVENT_REPAIR:
             self.disks[diskId].state = Disk.STATE_NORMAL
+            self.racks[rackId].failed_disks.pop(diskId, None)
             self.diskgroups[diskgroupId].failed_disks.pop(diskId, None)
             self.failed_disks.pop(diskId, None)
             
@@ -49,6 +53,7 @@ class MLEC(Policy):
             
         if event_type == Disk.EVENT_FAIL:
             self.disks[diskId].state = Disk.STATE_FAILED
+            self.racks[rackId].failed_disks[diskId] = 1
             self.diskgroups[diskgroupId].failed_disks[diskId] = 1
             self.failed_disks[diskId] = 1
             
@@ -65,9 +70,11 @@ class MLEC(Policy):
 
             # If the diskgroup is already failing, we do nothing
             if self.diskgroups[diskgroupId].state == Diskgroup.STATE_FAILED:
+                logging.info("Diskgroup already in failed state, ignoring")
                 return
             
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
+
             
             #--------------------------------------------
             # calculate repair time for disk failures
@@ -229,12 +236,17 @@ class MLEC(Policy):
     def update_diskgroup_repair_time(self, diskgroupId, failed_diskgroups_per_stripeset):
         diskgroup = self.diskgroups[diskgroupId]
         repaired_time = self.curr_time - diskgroup.repair_start_time
+        pause_repair = []
         if repaired_time == 0:
             
             # This means that we just begun repair for this disk, we need to check network
-            updated = update_network_state_diskgroup(diskgroup, failed_diskgroups_per_stripeset, self)
-            if not updated:
-                return
+            update_result = update_network_state_diskgroup(diskgroup, failed_diskgroups_per_stripeset, self)
+            if type(update_result) is bool:
+                if not update_result:
+                    return
+            elif type(update_result) is list:
+                # This means that these are the disks that we need to pause repair for
+                pause_repair += update_result
             
             repaired_percent = 0
             diskgroup.curr_repair_data_remaining = diskgroup.repair_data
@@ -242,6 +254,10 @@ class MLEC(Policy):
             repaired_percent = repaired_time / diskgroup.repair_time[0]
             diskgroup.curr_repair_data_remaining = diskgroup.curr_repair_data_remaining * (1 - repaired_percent)
         repair_time = float(diskgroup.curr_repair_data_remaining)/(self.sys.diskIO * self.n / len(failed_diskgroups_per_stripeset))
+        
+        for pauseRepairDiskId in pause_repair:
+            self.disks[pauseRepairDiskId].repair_time[0] += (repair_time / 3600 / 24)
+            
         diskgroup.repair_time[0] = repair_time / 3600 / 24
         diskgroup.repair_start_time = self.curr_time
         diskgroup.estimate_repair_time = self.curr_time + diskgroup.repair_time[0]
@@ -262,6 +278,7 @@ class MLEC(Policy):
         mlec_repair(self.diskgroups, self.get_failed_diskgroups(), self.state, repair_queue)
     
     def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:
+        logging.info("Trying to intercept event")
         if (len(self.state.simulation.delay_repair_queue[Components.DISK]) == 0 \
             and len(self.state.simulation.delay_repair_queue[Components.DISKGROUP]) == 0) \
                 or self.state.network.inter_rack_avail == 0:
@@ -273,6 +290,7 @@ class MLEC(Policy):
         for diskgroupId in self.state.simulation.delay_repair_queue[Components.DISKGROUP]:
             diskgroup = self.diskgroups[diskgroupId]
             diskgroups_to_read = diskgroup_to_read_for_repair(diskgroup.diskgroupStripesetId, self)
+            logging.info("Trying to repair diskgroup %s with readable sibling %s (top_k=%s)", diskgroupId, diskgroups_to_read, self.sys.top_k)
             if self.state.network.inter_rack_avail != 0 \
                 and len(diskgroups_to_read) >= self.sys.top_k:
                     self.state.simulation.delay_repair_queue[Components.DISKGROUP].remove(diskgroupId)
