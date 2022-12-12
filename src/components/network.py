@@ -1,6 +1,8 @@
 from __future__ import annotations
 import numpy as np
 import typing
+import logging
+import copy
 from typing import Dict, Optional
 
 if typing.TYPE_CHECKING:
@@ -54,12 +56,23 @@ class NetworkUsage:
             rack_usage = self.intra_rack.get(rackId, 0) + usage.intra_rack[rackId]
             self.intra_rack[rackId] = rack_usage
             
-    def split(self, portion: int):
+    def split(self, portion: int) -> NetworkUsage:
         split_intra_rack = {}
         for rackId in self.intra_rack.keys():
             split_intra_rack[rackId] = self.intra_rack[rackId] / portion
             
         return NetworkUsage(self.inter_rack / portion, split_intra_rack)
+    
+    # The other should be a subset of base
+    def subtract(self, other: NetworkUsage) -> NetworkUsage:
+        base = copy.deepcopy(self)
+        base.inter_rack -= other.inter_rack
+        logging.info("Base %s", base)
+        logging.info("Other %s", other)
+        for rackId in base.intra_rack.keys():
+            if base.intra_rack[rackId] >= other.intra_rack.get(rackId, 0):
+                base.intra_rack[rackId] -= other.intra_rack.get(rackId, 0)
+        return base
     
     def has_intra_rack(self):
         return len(self.intra_rack) != 0
