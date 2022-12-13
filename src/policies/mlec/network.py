@@ -62,27 +62,32 @@ def initial_repair(disk: Disk, disk_to_read_from: List[int], mlec: MLEC) -> Netw
     
     return NetworkUsage(0, intra_rack)
 
-def initial_repair_diskgroup(diskgroups_to_read_from: List[int], mlec: MLEC):
+# If dry run is true, we will only produce the network usage, without really taking it away from the system
+def initial_repair_diskgroup(diskgroups_to_read_from: List[int], mlec: MLEC, dry_run = False):
     intra_rack = {}
     for diskgroupId in diskgroups_to_read_from:
         # They might be of the same rack!
         rackId = mlec.diskgroups[diskgroupId].rackId
         if (mlec.sys.diskIO * mlec.sys.n) <= mlec.state.network.intra_rack_avail[rackId]:
             intra_rack[rackId] = intra_rack.get(rackId, 0) + mlec.sys.diskIO * mlec.sys.n
-            mlec.state.network.intra_rack_avail[rackId] -= mlec.sys.diskIO * mlec.sys.n
+            if not dry_run:
+                mlec.state.network.intra_rack_avail[rackId] -= mlec.sys.diskIO * mlec.sys.n
         else:
             intra_rack[rackId] = intra_rack.get(rackId, 0) + mlec.state.network.intra_rack_avail[rackId]
-            mlec.state.network.intra_rack_avail[rackId] = 0
+            if not dry_run:
+                mlec.state.network.intra_rack_avail[rackId] = 0
             
     # If the total upload from racks are larger than the avail inter-rack, we use all
     # TODO: if this is the case, we also need to adjust intra-rack bandwidth of each rack
     total_upload_bandwidth = np.sum(list(intra_rack.values()))
     if total_upload_bandwidth > mlec.state.network.inter_rack_avail:
         inter_rack = mlec.state.network.inter_rack_avail
-        mlec.state.network.inter_rack_avail = 0
+        if not dry_run:
+            mlec.state.network.inter_rack_avail = 0
     else:
         inter_rack = total_upload_bandwidth
-        mlec.state.network.inter_rack_avail -= total_upload_bandwidth
+        if not dry_run:
+            mlec.state.network.inter_rack_avail -= total_upload_bandwidth
     
     return NetworkUsage(inter_rack, intra_rack)
         
@@ -121,7 +126,7 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
         else:
             # This means that we do not have enough bandwidth to start the repair
             mlec.state.simulation.delay_repair_queue[Components.DISK].append(disk.diskId)
-            logging.warn("Disk %s repair is being delayed due to insufficient sibling or bandwidth", disk.diskId)
+            # logging.warn("Disk %s repair is being delayed due to insufficient sibling or bandwidth", disk.diskId)
             return False
         
     elif len(fail_per_diskgroup) <= mlec.sys.m:
@@ -143,7 +148,7 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
             for diskId in fail_per_diskgroup:
                 mlec.state.disks[diskId].network_usage = NetworkUsage(0, {rackId: usage_aggregator.intra_rack[rackId] / num_fail_per_diskgroup})
         else:
-            logging.warn("Disk %s repair is being delayed due to insufficient sibling or bandwidth", disk.diskId)
+            # logging.warn("Disk %s repair is being delayed due to insufficient sibling or bandwidth", disk.diskId)
             mlec.state.simulation.delay_repair_queue[Components.DISK].append(disk.diskId)
             return False
             
@@ -175,17 +180,37 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
                 diskgroup.network_usage = initial_repair_diskgroup(diskgroups_to_read, mlec)
         else:
             pause_repair = []
+            yielded_network_usage = NetworkUsage(0, {})
             # TODO: this is some insanely expensive operation
             # If there is not, we PAUSE all the bottom layer repairs that use resources requested by this repair
-            #  1. Look for each rack that this repair needs bandwidth from
-            for diskgroupId in mlec.state.sys.diskgroup_stripesets[diskgroup.diskgroupStripesetId]:
+            #  1. Look for the racks that are lacking bandwidth
+            diff_diskgroup = set(mlec.state.sys.diskgroup_stripesets[diskgroup.diskgroupStripesetId]) - set(diskgroups_to_read)
+            for diskgroupId in diff_diskgroup:
                 rackId = mlec.diskgroups[diskgroupId].rackId
                 # Check which bottom layer repair is using this rack
-                # How do we know which repair is using this rack?
+                # We need to know how much bandwidth they are using in total
                 for failedDiskId in mlec.state.get_failed_disks_per_rack(rackId):
                     # This returns the diskId, we delay the repair of this disk
-                    pause_repair.append(failedDiskId)
-                
+                    if len(mlec.disks[failedDiskId].repair_time) != 0:
+                        pause_repair.append(failedDiskId)
+                        yielded_network_usage.join(mlec.disks[failedDiskId].network_usage)
+            logging.info("Yielded network %s", yielded_network_usage)
+            
+            # We give network bandwidth back to the system first to allow initial repair
+            mlec.state.network.replenish(yielded_network_usage)
+            diskgroups_to_read = diskgroup_to_read_for_repair(diskgroup.diskgroupStripesetId, mlec)
+            logging.info("New diskgroup to read %s, (top_k=%s)", diskgroups_to_read, mlec.sys.top_k)
+            repair_network_usage = initial_repair_diskgroup(diskgroups_to_read, mlec, True)
+            mlec.state.network.use(yielded_network_usage)
+            
+            
+            logging.info("Repair will be using network %s", repair_network_usage)
+            # We only give the usage - collected to diskgroup network usage. The other will be returned when paused disk repair are done
+            repair_network_usage = repair_network_usage.subtract(yielded_network_usage)
+            diskgroup.network_usage = repair_network_usage
+            mlec.state.network.use(diskgroup.network_usage)
+            logging.info("Diskgroup repair assigned network usage %s", diskgroup.network_usage)
+            
             # logging.warn("Diskgroup %s repair is being delayed due to insufficient sibling or bandwidth", diskgroup.diskgroupId)
             # mlec.state.simulation.delay_repair_queue[Components.DISKGROUP].append(diskgroup.diskgroupId)
             # return False
@@ -203,7 +228,7 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
             for diskgroupId in fail_per_stripeset:
                 mlec.diskgroups[diskgroupId].network_usage = usage_aggregator.split(num_fail_per_stripeset)
         else:
-            logging.warn("Diskgroup %s repair is being delayed due to insufficient sibling or bandwidth", diskgroup.diskgroupId)
+            # logging.warn("Diskgroup %s repair is being delayed due to insufficient sibling or bandwidth", diskgroup.diskgroupId)
             mlec.state.simulation.delay_repair_queue[Components.DISKGROUP].append(diskgroup.diskgroupId)
             return False
             

@@ -164,7 +164,7 @@ class MLEC(Policy):
             # otherwise, we need to check if a new diskgroup fails
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
             if len(fail_per_diskgroup) > self.sys.m:
-                logging.error("Diskgroup %s failed due to the disk failure, it has failed disks %s", diskgroupId, self.get_failed_disks_per_diskgroup(diskgroupId))
+                # logging.error("Diskgroup %s failed due to the disk failure, it has failed disks %s", diskgroupId, self.get_failed_disks_per_diskgroup(diskgroupId))
 
                 self.diskgroups[diskgroupId].state = Diskgroup.STATE_FAILED
                 self.failed_diskgroups[diskgroupId] = 1
@@ -251,7 +251,7 @@ class MLEC(Policy):
             elif type(update_result) is list:
                 # This means that these are the disks that we need to pause repair for
                 pause_repair += update_result
-                logging.warn("We are pausing repairs for disks %s", pause_repair)
+                # logging.warn("We are pausing repairs for disks %s", pause_repair)
             
             repaired_percent = 0
             diskgroup.curr_repair_data_remaining = diskgroup.repair_data
@@ -309,7 +309,7 @@ class MLEC(Policy):
             disk = self.state.disks[diskId]
             # This means that we have enough bandwidth to carry out the repair
             disk_to_read_from = disks_to_read_for_repair(disk, self)
-            logging.info("Trying to initiate delayed repair for disk %s with inter-rack of %s and avail peer of %s (k=%s)", diskId, self.state.network.inter_rack_avail, len(disk_to_read_from), self.sys.top_k)
+            # logging.info("Trying to initiate delayed repair for disk %s with inter-rack of %s and avail peer of %s (k=%s)", diskId, self.state.network.inter_rack_avail, len(disk_to_read_from), self.sys.top_k)
             if self.state.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
                 logging.info("Delayed disk %s now has enough bandwidth, repairing", diskId)
                 self.state.simulation.delay_repair_queue[Components.DISK].remove(diskId)
