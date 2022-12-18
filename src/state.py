@@ -94,7 +94,7 @@ class State:
 
     def get_failed_disks_per_rack(self, rackId):
         # logging.info("sedrver {} get: {}".format(rackId, list(self.racks[rackId].failed_disks.keys())))
-        return list(self.racks[rackId].failed_disks.keys())
+        return self.racks[rackId].failed_disks.keys()
 
     def get_failed_disks_per_stripeset(self, stripesetId):
         failed_disks = []
@@ -119,7 +119,7 @@ class State:
 
 
     def get_failed_disks(self):
-        return list(self.failed_disks.keys())
+        return self.failed_disks.keys()
 
     def get_failed_racks(self):
-        return list(self.failed_racks.keys())
+        return self.failed_racks.keys()

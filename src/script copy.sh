@@ -1,0 +1,59 @@
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=2 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=2
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=2 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=3
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=2 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=4
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=2 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=5
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=2 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=6
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=2 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=7
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=2 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=8
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=2 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=9
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=2 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=10
+
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=10 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=2
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=10 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=3
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=10 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=4
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=10 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=5
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=10 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=6
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=10 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=7
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=10 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=8
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=10 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=9
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=10 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=10
+
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=20 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=2
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=20 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=3
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=20 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=4
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=20 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=5
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=20 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=6
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=20 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=7
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=20 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=8
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=20 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=9
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=20 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=10
+
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=50 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=2
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=50 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=3
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=50 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=4
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=50 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=5
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=50 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=6
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=50 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=7
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=50 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=8
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=50 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=9
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=50 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=10
+
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=100 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=2
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=100 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=3
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=100 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=4
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=100 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=5
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=100 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=6
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=100 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=7
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=100 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=8
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=100 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=9
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=100 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=10
+
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=400 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=2
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=400 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=3
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=400 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=4
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=400 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=5
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=400 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=6
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=400 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=7
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=400 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=8
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=400 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=9
+python main.py -k_net 20 -p_net 5 -total_drives 4000 -drives_per_rack 40 -placement=RAID_NET -interrack_speed=400 -intrarack_speed=100 -concur=256 -epoch=256 -iter=30000 -afr=10

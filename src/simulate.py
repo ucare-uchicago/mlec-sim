@@ -32,7 +32,7 @@ class Simulate:
         self.num_disks = num_disks
         self.failure_queue = []
         self.repair_queue = []
-        self.delay_repair_queue: Dict[Components, List[int]] = {Components.DISK: [], Components.DISKGROUP: []}
+        self.delay_repair_queue: Dict[Components, Dict[int, bool]] = {Components.DISK: {}, Components.DISKGROUP: {}}
         self.network_queue = []
         self.prev_event = None
 
@@ -48,7 +48,7 @@ class Simulate:
     def reset(self, failureGenerator, mytimer):
         self.failure_queue = []
         self.repair_queue = []
-        self.delay_repair_queue = {Components.DISK: [], Components.DISKGROUP: []}
+        self.delay_repair_queue = {Components.DISK: {}, Components.DISKGROUP: {}}
         self.network_queue = []
 
         # self.sys.priority_per_set = {}
@@ -136,7 +136,7 @@ class Simulate:
         loss_events = 0
         
         logging.info("Initial network - inter: %s, intra: %s", self.state.network.inter_rack_avail, self.state.network.intra_rack_avail)
-        
+        events = 0
         while True:
             event_start = time.time()
             self.mytimer.eventInitTime = event_start
@@ -231,14 +231,18 @@ class Simulate:
             event_end = time.time()
             # print("Event time " + str((event_end - event_start) * 1000) + "ms")
             # print(self.mytimer)
+            events += 1
             logging.info("------------END EVENT---------------")
+            # print(self.mytimer)
+            # print("Event " + str(events) + " took " + str((event_end - event_start) * 1000) + " ms")
+        # print("Iteration has " + str(events) + " events")
         return prob
 
 
     def update_repair_event(self, curr_time):
         self.repair_queue.clear()
         self.state.policy.update_repair_events(self.repair_queue)
-            
+        
         if len(self.repair_queue) > 0:
             if not self.state.repairing:
                 self.state.repairing = True
