@@ -15,10 +15,10 @@ from components.diskgroup import Diskgroup
 # update the repair event queue
 def mlec_repair(diskgroups, failed_diskgroups, state: State, repair_queue):
     for diskgroupId in failed_diskgroups:
-        if diskgroupId not in state.simulation.delay_repair_queue[Components.DISKGROUP]:
+        if not state.simulation.delay_repair_queue[Components.DISKGROUP].get(diskgroupId, False):
             heappush(repair_queue, (diskgroups[diskgroupId].estimate_repair_time, Diskgroup.EVENT_REPAIR, diskgroupId))
     
     for diskId in state.get_failed_disks():
         diskgroupId = diskId // state.sys.n
-        if diskgroups[diskgroupId].state == Diskgroup.STATE_NORMAL and diskId not in state.simulation.delay_repair_queue[Components.DISK]:
+        if diskgroups[diskgroupId].state == Diskgroup.STATE_NORMAL and not state.simulation.delay_repair_queue[Components.DISK].get(diskId, False):
             heappush(repair_queue, (state.disks[diskId].estimate_repair_time, Disk.EVENT_REPAIR, diskId))

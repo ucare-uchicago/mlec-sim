@@ -86,7 +86,7 @@ class MLEC(Policy):
             #--------------------------------------------
             self.disks[diskId].repair_start_time = self.curr_time
             for failedDiskId in fail_per_diskgroup:
-                if failedDiskId not in self.state.simulation.delay_repair_queue[Components.DISK]:
+                if not self.state.simulation.delay_repair_queue[Components.DISK].get(failedDiskId, False):
                     self.update_disk_repair_time(failedDiskId, fail_per_diskgroup)
 
         # if disk repair event
@@ -103,7 +103,7 @@ class MLEC(Policy):
                 return
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
             for failedDiskId in fail_per_diskgroup:
-                if failedDiskId not in self.state.simulation.delay_repair_queue[Components.DISK]:
+                if not self.state.simulation.delay_repair_queue[Components.DISK].get(failedDiskId, False):
                     self.update_disk_repair_time(failedDiskId, fail_per_diskgroup)
 
 
@@ -219,7 +219,7 @@ class MLEC(Policy):
                 self.diskgroups[diskgroupId].init_repair_start_time = self.curr_time
                 failed_diskgroups_per_stripeset = self.get_failed_diskgroups_per_stripeset(diskgroupStripesetId)
                 for dgId in failed_diskgroups_per_stripeset:
-                    if dgId not in self.state.simulation.delay_repair_queue[Components.DISKGROUP]:
+                    if not self.state.simulation.delay_repair_queue[Components.DISKGROUP].get(dgId, False):
                         self.update_diskgroup_repair_time(dgId, diskId, failed_diskgroups_per_stripeset)
 
         if event_type == Diskgroup.EVENT_FAIL:
@@ -227,13 +227,13 @@ class MLEC(Policy):
                 self.diskgroups[diskgroupId].init_repair_start_time = self.curr_time
                 failed_diskgroups_per_stripeset = self.get_failed_diskgroups_per_stripeset(diskgroupStripesetId)
                 for dgId in failed_diskgroups_per_stripeset:
-                    if dgId not in self.state.simulation.delay_repair_queue[Components.DISKGROUP]:
+                    if not self.state.simulation.delay_repair_queue[Components.DISKGROUP].get(dgId, False):
                         self.update_diskgroup_repair_time(dgId, diskId, failed_diskgroups_per_stripeset)
 
         if event_type == Diskgroup.EVENT_REPAIR:
                 failed_diskgroups_per_stripeset = self.get_failed_diskgroups_per_stripeset(diskgroupStripesetId)
                 for dgId in failed_diskgroups_per_stripeset:
-                    if dgId not in self.state.simulation.delay_repair_queue[Components.DISKGROUP]:
+                    if not self.state.simulation.delay_repair_queue[Components.DISKGROUP].get(dgId, False):
                         self.update_diskgroup_repair_time(dgId, diskId, failed_diskgroups_per_stripeset)
     
     
@@ -295,24 +295,24 @@ class MLEC(Policy):
         
         # We first check whether any waiting disk groups can be repaired
         #  We prioritize disk groups ahead of disks because they are more important
-        for diskgroupId in self.state.simulation.delay_repair_queue[Components.DISKGROUP]:
+        for diskgroupId in self.state.simulation.delay_repair_queue[Components.DISKGROUP].keys():
             diskgroup = self.diskgroups[diskgroupId]
             diskgroups_to_read = diskgroup_to_read_for_repair(diskgroup.diskgroupStripesetId, self)
             logging.info("Trying to repair diskgroup %s with readable sibling %s (top_k=%s)", diskgroupId, diskgroups_to_read, self.sys.top_k)
             if self.state.network.inter_rack_avail != 0 \
                 and len(diskgroups_to_read) >= self.sys.top_k:
-                    self.state.simulation.delay_repair_queue[Components.DISKGROUP].remove(diskgroupId)
+                    del self.state.simulation.delay_repair_queue[Components.DISKGROUP][diskgroupId]
                     return (prev_event[0], Diskgroup.EVENT_DELAYED_FAIL, diskgroupId)
         
         # Check whether there are disks that can be repaired
-        for diskId in self.state.simulation.delay_repair_queue[Components.DISK]:
+        for diskId in self.state.simulation.delay_repair_queue[Components.DISK].keys():
             disk = self.state.disks[diskId]
             # This means that we have enough bandwidth to carry out the repair
             disk_to_read_from = disks_to_read_for_repair(disk, self)
             # logging.info("Trying to initiate delayed repair for disk %s with inter-rack of %s and avail peer of %s (k=%s)", diskId, self.state.network.inter_rack_avail, len(disk_to_read_from), self.sys.top_k)
             if self.state.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
                 logging.info("Delayed disk %s now has enough bandwidth, repairing", diskId)
-                self.state.simulation.delay_repair_queue[Components.DISK].remove(diskId)
+                del self.state.simulation.delay_repair_queue[Components.DISK][diskId]
                 return (prev_event[0], Disk.EVENT_DELAYED_FAIL, diskId)
         
         logging.info("No delayed repairs can be processed")

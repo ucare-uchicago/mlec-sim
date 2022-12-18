@@ -37,7 +37,7 @@ class NetRAID(Policy):
             #  If there is only one failure in the stripeset, this would not be run
             for diskId in failed_disks_per_stripeset:
                 # If the disk is being delayed for repair, we do not update its time
-                if diskId not in self.state.simulation.delay_repair_queue[Components.DISK]:
+                if not self.state.simulation.delay_repair_queue[Components.DISK].get(diskId, False):
                     self.update_disk_repair_time(diskId, failed_disks_per_stripeset)
 
         if event_type in [Disk.EVENT_FAIL, Disk.EVENT_DELAYED_FAIL]:
@@ -57,7 +57,7 @@ class NetRAID(Policy):
             # we need to update the repair rate for all failed disks, because every failed disk gets less share now
             #--------------------------------------------
             for diskId_per_stripeset in failed_disks_per_stripeset:
-                if diskId_per_stripeset not in self.state.simulation.delay_repair_queue[Components.DISK]:
+                if not self.state.simulation.delay_repair_queue[Components.DISK].get(diskId_per_stripeset, False):
                     self.update_disk_repair_time(diskId_per_stripeset, failed_disks_per_stripeset)
     
     
@@ -93,7 +93,7 @@ class NetRAID(Policy):
                 #     logging.warning("Caused by interrack bandwidth being 0")
                 # else:
                 #     logging.warning("Not enough surviving peers. Only available peer %s, total of %s", disk_to_read_from, len())
-                self.state.simulation.delay_repair_queue[Components.DISK].append(diskId)
+                self.state.simulation.delay_repair_queue[Components.DISK][diskId] = True
                 return
             
             repaired_percent = 0
@@ -172,14 +172,14 @@ class NetRAID(Policy):
             return None
         
         # We check all the disks that have been delayed for repairs
-        for diskId in self.state.simulation.delay_repair_queue[Components.DISK]:
+        for diskId in self.state.simulation.delay_repair_queue[Components.DISK].keys():
             disk = self.state.disks[diskId]
             # This means that we have enough bandwidth to carry out the repair
             disk_to_read_from = self.disks_to_read_for_repair(disk)
             logging.info("Trying to initiate delayed repair for disk %s with inter-rack of %s and avail peer of %s (k=%s)", diskId, self.state.network.inter_rack_avail, len(disk_to_read_from), self.sys.top_k)
             if self.state.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
                 logging.info("Delayed disk %s now has enough bandwidth, repairing", diskId)
-                self.state.simulation.delay_repair_queue[Components.DISK].remove(diskId)
+                del self.state.simulation.delay_repair_queue[Components.DISK][diskId]
                 return (prev_event[0], Disk.EVENT_DELAYED_FAIL, diskId)
         
         return None

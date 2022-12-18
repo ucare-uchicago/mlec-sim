@@ -33,11 +33,11 @@ class Simulator:
             for iter in range(0, iters):
                 # logging.info("")
                 iter_start = time.time()
-                temp = time.time()
                 sim = Simulate(mission, sys.num_disks, sys)
-                mytimer.simInitTime += time.time() - temp
+                mytimer.simInitTime += time.time() - iter_start
                 res += sim.run_simulation(failureGenerator, mytimer)
                 iter_end = time.time()
+                # print(mytimer)
                 # print("Finishing iter " + str(iter) + " taking " + str((iter_end - iter_start) * 1000) + "ms")
             end = time.time()
             # print("totaltime: {}".format((end - start) * 1000))
