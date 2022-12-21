@@ -9,7 +9,7 @@ from constants.Components import Components
 from components.disk import Disk
 from components.rack import Rack
 
-from heapq import heappush
+from heapq import heappush, heapify
 
 def netraid_repair(state: State, repair_queue):
     for diskId in state.get_failed_disks():
@@ -25,3 +25,4 @@ def netraid_repair(state: State, repair_queue):
             estimate_time  += repair_time
             # Generate repair event
             heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+            
