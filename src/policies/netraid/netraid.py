@@ -17,6 +17,7 @@ class NetRAID(Policy):
     #--------------------------------------
     def __init__(self, state):
         super().__init__(state)
+        self.max_prio = 0
 
     #----------------------------------------------
     # raid net
@@ -30,6 +31,7 @@ class NetRAID(Policy):
             
             stripesetId = disk.stripesetId
             failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(stripesetId)
+            self.max_prio = max(self.max_prio, len(failed_disks_per_stripeset))
             logging.info("Repair event of disk %s on stripe %s", diskId, stripesetId)
             # logging.info("Failed stripesets: %s", self.state.get_failed_disks_each_stripeset())
             
@@ -47,6 +49,7 @@ class NetRAID(Policy):
             disk.repair_start_time = self.curr_time
 
             failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(disk.stripesetId)
+            self.max_prio = max(self.max_prio, len(failed_disks_per_stripeset))
             # logging.info("Failed stripesets: %s", self.state.get_failed_disks_each_stripeset())
             logging.info("  update_disk_priority_raid_net event: {} stripesetId: {} failed_disks_per_stripeset: {}".format(
                             event_type, disk.stripesetId, failed_disks_per_stripeset))
@@ -159,7 +162,7 @@ class NetRAID(Policy):
         return NetworkUsage(inter_rack, intra_rack) 
         
     def check_pdl(self):
-        return net_raid_pdl(self.state)
+        return net_raid_pdl(self, self.state)
     
     def update_repair_events(self, repair_queue):
         netraid_repair(self.state, repair_queue)
