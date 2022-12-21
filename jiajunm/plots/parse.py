@@ -30,8 +30,8 @@ def parse_calc_result(path: str):
         matcher = re.findall(r'(.*) (.*)', row)
         (calc_afr_, calc_nines_) = matcher[0]
         
-        result['afr'] = (result.get('afr', []) + [calc_afr_])
-        result['nines'] = (result.get('nines', []) + [calc_nines_])
+        result['afr'] = (result.get('afr', []) + [float(calc_afr_)])
+        result['nines'] = (result.get('nines', []) + [float(calc_nines_)])
     
     return result
 
