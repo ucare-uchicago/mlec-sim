@@ -167,7 +167,7 @@ def iter(afr, failure_list, placement, num_chunks_per_disk, drives_per_rack, ite
 # This is a parallel/multi-iter wrapper around iter() function
 # We run X threads in parallel to run the simulation. X = concur.
 # ----------------------------
-def simulate(afr, failure_list, placement, drives_per_rack, iters_list, epochs, concur=10, *arg):
+def simulate(afr, failure_list, placement, num_chunks_per_disk, drives_per_rack, iters_list, epochs, concur=10, *arg):
     # So tick(state) is for a single system, and we want to simulate multiple systems
     executor = ProcessPoolExecutor(concur)
     
@@ -258,11 +258,11 @@ def burst_sim(afr, io_speed, cap, adapt, k_net, p_net, k_local, p_local,
     # for num_failed_racks in range(1,21):
     #     for num_failed_disks in range(20, 21):
     #         failure_list.append((num_failed_racks, num_failed_disks))
-    for num_failed_disks in range(4, 5):
+    for num_failed_disks in range(3, 4):
         # for num_failed_racks in range(1, num_failed_disks+1):
-        for num_failed_racks in range(4, 5):
+        for num_failed_racks in range(3, 4):
             failure_list.append((num_failed_racks, num_failed_disks))
-            iters_list.append(1)
+            iters_list.append(1000)
     # for num_failed_disks in range(1,21):
     #     for num_failed_racks in range(1, num_failed_disks+1):
     # #     # for num_failed_racks in range(3, 4):
@@ -323,7 +323,7 @@ if __name__ == "__main__":
     parser.add_argument('-total_drives', type=int, help="number of total drives in the system", default=-1)
     parser.add_argument('-drives_per_rack', type=int, help="number of drives per rack", default=-1)
     parser.add_argument('-placement', type=str, help="placement policy. Can be RAID/DP/MLEC/LRC", default='MLEC')
-    parser.add_argument('-num_chunks_per_disk', type=str, help="num chunks per disk. Ideally we assume infinite, but in reality it's a finite number ", default=1000)
+    parser.add_argument('-num_chunks_per_disk', type=int, help="num chunks per disk. Ideally we assume infinite, but in reality it's a finite number ", default=1000)
     parser.add_argument('-dist', type=str, help="disk failure distribution. Can be exp/weibull", default='exp')
     args = parser.parse_args()
 
