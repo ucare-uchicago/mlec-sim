@@ -120,8 +120,7 @@ class Simulate:
                 return 1
         return 0
 
-    def network_decluster_check_burst(self, failures):
-        num_chunks_per_disk = 100000
+    def network_decluster_check_burst(self, failures, num_chunks_per_disk):
         num_chunks_total = self.sys.num_racks * self.sys.num_disks_per_rack * num_chunks_per_disk
         num_stripes_total = num_chunks_total // (self.sys.top_n)
 
@@ -140,24 +139,21 @@ class Simulate:
         return 0
     
 
-    def network_decluster_check_burst(self, failures):
-        num_chunks_per_disk = 100000
+    def network_decluster_check_burst_theory(self, failures, num_chunks_per_disk):
         num_chunks_total = self.sys.num_racks * self.sys.num_disks_per_rack * num_chunks_per_disk
         num_stripes_total = num_chunks_total // (self.sys.top_n)
 
-        stripeid_per_disk_all, stripes = net_dp_layout_chunk(self.sys.num_racks, self.sys.num_disks_per_rack, num_chunks_per_disk, self.sys.top_n)
-        failed_disks = []
-        stripe_damage = [0 for i in range(num_stripes_total)]
-        affected_stripes = {}
-        for _, diskId in failures:
-            # similar to mlec diskgroupStripesetId
-            for stripeid in stripeid_per_disk_all[diskId]:
-                stripe_damage[stripeid] += 1
-                affected_stripes[stripeid] = 1
-        for affected_stripe in affected_stripes:
-            if stripe_damage[affected_stripe] > self.sys.top_m:
-                return 1
+        
         return 0
+    
+    def network_decluster_check_loss(failures_per_rack, num_chunks_per_disk, k, p):
+        
+        num_racks = len(failures_per_rack)
+        if k+p > num_racks:
+            
+        prob_pick_rack_0 = math.comb(len(failures_per_rack)-1, )math.comb(len(failures_per_rack), k+p)
+
+
 
     def mlec_decluster_check_burst(self, failures):
         num_enclosures = self.sys.num_disks // self.sys.num_disks_per_enclosure
