@@ -63,4 +63,4 @@ class NormalSim(Simulator):
 
         total_iters *= mission/YEAR
         
-        return SimulationResult(failed_iters, int(total_iters))
+        return SimulationResult(failed_iters, int(total_iters), metrics)

@@ -77,6 +77,6 @@ class WeibullSim(Simulator):
 
             if res[0] == 0:
                 print("NO FAILURE!")
-                return SimulationResult(0, res[1])
+                return SimulationResult(0, res[1], res[2])
             else:            
-                return SimulationResult(res[0], res[1])
+                return SimulationResult(res[0], res[1], res[2])
