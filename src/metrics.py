@@ -49,7 +49,7 @@ class Metrics:
                 "avg_net_repair_time:{} "
                 "iter_count:{} "
                 "total_net_repair_count:{} "
-                "total_delayed_disks:{} "
+                "total_delayed_disks:{}\n"
                 ).format(
             self.total_rebuild_io_per_year / (1024*1024) / self.iter_count,
             self.total_net_traffic / (1024*1024) / self.iter_count,
