@@ -4,9 +4,9 @@ def parse_sim_result(path: str):
     result = {}
     
     for row in open(path, 'r'):
-        matcher = re.findall(r'\((.*)\+(.*)\)\((.*)\+(.*)\) (.*) (.*) (.*) (.*) (.*) (.*) (.*) (.*) (.*)', row)
+        matcher = re.findall(r'^\(kn:(.*)\+pn:(.*)\)\(kl:(.*)\+pl:(.*)\) td:(.*) afr:(.*) cap:(.*) io:(.*) ibw:(.*) cbw:(.*) nn:(.*) sd:(.*) f:(.*) t:(.*) ad:(.*)', row)
         
-        (k_net_, p_net_, k_local_, p_local_, total_drives_, afr_, cap_, io_speed_, nines_, sigma_, failed_iters_, total_iters_, adapt_) = matcher[0]
+        (k_net_, p_net_, k_local_, p_local_, total_drives_, afr_, cap_, io_speed_, intra_rack_, inter_rack_, nines_, sigma_, failed_iters_, total_iters_, adapt_) = matcher[0]
         
         result['k_net'] = (result.get('k_net', []) + [int(k_net_)])
         result['k_local'] = (result.get('k_local', []) + [int(k_local_)])
@@ -16,6 +16,8 @@ def parse_sim_result(path: str):
         result['afr'] = (result.get('afr', []) + [float(afr_)])
         result['cap'] = (result.get('cap', []) + [int(cap_)])
         result['io_speed'] = (result.get('io_speed', []) + [int(io_speed_)])
+        result['intra_bw'] = (result.get('intra_bw', []) + [float(intra_rack_)])
+        result['inter_bw'] = (result.get('inter_bw', []) + [float(inter_rack_)])
         result['nines'] = (result.get('nines', []) + [float(nines_)])
         result['sigma'] = (result.get('sigma', []) + [float(sigma_)])
         result['failed_iters'] = (result.get('failed_iters', []) + [int(failed_iters_)])
