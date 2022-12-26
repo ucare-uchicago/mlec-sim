@@ -46,7 +46,7 @@ class MetricSim(Simulator):
             res = [0, 0, Metrics()]
 
             start  = time.time()
-            temp = temp = self.run(failureGenerator, sys, iters=50000, epochs=200, concur=200, mission=mission)
+            temp = self.run(failureGenerator, sys, iters=50000, epochs=200, concur=200, mission=mission)
             res[0] += temp[0]
             res[1] += temp[1]
             res[2] += temp[2]
@@ -63,9 +63,8 @@ class MetricSim(Simulator):
 
             res[1] *= mission/YEAR
             
-
             if res[0] == 0:
                 print("NO FAILURE!")
                 # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
             
-            return SimulationResult(res[0], res[1])
+            return SimulationResult(res[0], res[1], res[2])

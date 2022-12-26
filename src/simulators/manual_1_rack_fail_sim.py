@@ -102,6 +102,7 @@ class ManualFailOneRackSim(Simulator):
                 temp = self.run(failureGenerator2, sys2, iters=50000, epochs=200, concur=200)
                 res[0] += temp[0]
                 res[1] += temp[1]
+                res[2] += temp[2]
                 simulationTime = time.time() - start
                 print("simulation time: {}".format(simulationTime))
                 print(res)
@@ -123,4 +124,4 @@ class ManualFailOneRackSim(Simulator):
 
             # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
 
-            return SimulationResult(res[0], res[1])
+            return SimulationResult(res[0], res[1], res[2])

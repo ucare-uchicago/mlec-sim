@@ -98,9 +98,11 @@ class ManualFailTwoRackSim(Simulator):
                 temp = self.run(failureGenerator2, sys2, iters=50000, epochs=200, concur=200)
                 res[0] += temp[0]
                 res[1] += temp[1]
+                res[2] += temp[2]
                 simulationTime = time.time() - start
                 print("simulation time: {}".format(simulationTime))
                 print(res)
+                
             conditional_prob = res[0] / res[1]
             print('------------')
             print('Total Fails: ' + str(res[0]))
@@ -116,4 +118,4 @@ class ManualFailTwoRackSim(Simulator):
             print('Total Iters: ' + str(res[1]))
             print('Probability that the system fails: {}'.format(aggr_prob))
 
-            return SimulationResult(res[0], res[1])
+            return SimulationResult(res[0], res[1], res[2])
