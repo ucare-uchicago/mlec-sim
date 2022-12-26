@@ -41,6 +41,26 @@ class Metrics:
             self.total_delayed_disks
         )
     
+    def single_line(self):
+        return ("avg_rebuild_io_per_year:{} "
+                "avg_net_traffic:{} "
+                "avg_failure_count:{} "
+                "avg_rebuild_time:{} "
+                "avg_net_repair_time:{} "
+                "iter_count:{} "
+                "total_net_repair_count:{} "
+                "total_delayed_disks:{} "
+                ).format(
+            self.total_rebuild_io_per_year / (1024*1024) / self.iter_count,
+            self.total_net_traffic / (1024*1024) / self.iter_count,
+            self.failure_count / self.iter_count,
+            self.total_rebuild_time / self.iter_count,
+            0 if self.total_net_repair_count == 0 else self.total_net_repair_time / self.total_net_repair_count,
+            self.iter_count,
+            self.total_net_repair_count,
+            self.total_delayed_disks
+        )
+    
     def getAverageRebuildIO(self):
         return self.total_rebuild_io_per_year / (1024*1024) / self.iter_count
     

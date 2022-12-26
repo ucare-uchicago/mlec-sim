@@ -35,6 +35,7 @@ if __name__ == "__main__":
     parser.add_argument('-concur', type=int, help="how many threads to use concurrently", default=200)
     parser.add_argument('-epoch', type=int, help="how many epochs to run", default=200)
     parser.add_argument('-iter', type=int, help="how many iterations in a epoch in a thread to run", default=50000)
+    parser.add_argument('-metric', type=bool, help="Output metric line below result line in result file", default=False)
     args = parser.parse_args()
 
     sim_mode = args.sim_mode
@@ -76,6 +77,7 @@ if __name__ == "__main__":
         p_local = 0
 
     dist = args.dist
+    metric = args.metric
 
     if sim_mode == 0:
         result = NormalSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
@@ -120,6 +122,12 @@ if __name__ == "__main__":
             k_net, p_net, k_local, p_local, total_drives,
             afr, cap, io_speed, intrarack_speed, interrack_speed, nines, sigma, result.failed_iter, result.total_iter, "adapt" if adapt else "notadapt"))
         output.close()
+        
+        if metric:
+            metric_output = open("s-metric-{}.log".format(placement), "a")
+            metric_output.write(result.metrics.single_line())
+            metric_output.close()
+        
         
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_afr=50&d_cap=20&dr_rw_speed=50&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&spares=0&rec_wr_spd_alloc=100
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&ec_mode=3&d_afr=2&d_cap=20&dr_rw_speed=30&ndatashards=7&nredundancy=1&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&tnhost_per_chass=8&tndrv_per_dg=8&ph_nspares=0&tnchassis=1&tnrack=1&rec_wr_spd_alloc=100
