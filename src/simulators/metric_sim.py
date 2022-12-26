@@ -5,7 +5,7 @@ import time
 
 from failure_generator import FailureGenerator
 from simulators.Simulator import Simulator
-from constants.PlacementType import parse_placement, PlacementType
+from constants.SimulationResult import SimulationResult
 from constants.time import YEAR
 from system import System
 from metrics import Metrics
@@ -22,7 +22,6 @@ class MetricSim(Simulator):
     # --------------------------------
     def metric_sim(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
                     total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
-        place_type = parse_placement(placement)
 
         for afr in range(2, 6):
             mission = YEAR
@@ -33,7 +32,7 @@ class MetricSim(Simulator):
                 num_disks_per_rack=drives_per_rack, 
                 k=k_local, 
                 m=p_local, 
-                place_type=place_type, 
+                place_type=placement, 
                 diskCap=cap * 1024 * 1024,
                 rebuildRate=io_speed, 
                 intrarack_speed=intrarack_speed, 
@@ -68,10 +67,5 @@ class MetricSim(Simulator):
             if res[0] == 0:
                 print("NO FAILURE!")
                 # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
-
-            output = open("s-metric-{}.log".format(placement), "a")
-            output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {} {}\n".format(
-                k_local, p_local, k_net, p_net, total_drives,
-                afr, cap, io_speed, res[0], res[1], "adapt" if adapt else "notadapt",
-                res[2].getAverageRebuildIO(), res[2].getAverageNetTraffic(), res[2].getAvgNetRepairTime()))
-            output.close()
+            
+            return SimulationResult(res[0], res[1])

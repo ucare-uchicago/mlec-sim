@@ -3,9 +3,7 @@ import logging
 import math
 import time
 
-from failure_generator import FailureGenerator
 from simulators.Simulator import Simulator
-from constants.PlacementType import parse_placement, PlacementType
 from constants.time import YEAR
 from system import System
 from metrics import Metrics

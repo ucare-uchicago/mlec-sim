@@ -13,13 +13,14 @@ from mytimer import Mytimer
 from simulate import Simulate
 from metrics import Metrics
 from constants.time import YEAR
+from constants.SimulationResult import SimulationResult
 
 from util import wait_futures
 
 class Simulator:
     
     def simulate(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
-                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
+                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters) -> SimulationResult:
         raise NotImplementedError("simulate() not implemented")
 
     def iter(self, failureGenerator_: FailureGenerator, sys_, iters, mission):

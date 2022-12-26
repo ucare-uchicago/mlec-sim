@@ -5,7 +5,7 @@ import time
 
 from failure_generator import FailureGenerator
 from simulators.Simulator import Simulator
-from constants.PlacementType import parse_placement, PlacementType
+from constants.SimulationResult import SimulationResult
 from constants.time import YEAR
 from system import System
 from metrics import Metrics
@@ -24,15 +24,13 @@ class NormalSim(Simulator):
 
         mission = YEAR
         failureGenerator = FailureGenerator(afr)
-
-        place_type = parse_placement(placement)
         
         sys = System(
             num_disks=total_drives, 
             num_disks_per_rack=drives_per_rack, 
             k=k_local, 
             m=p_local, 
-            place_type=place_type, 
+            place_type=placement, 
             diskCap=cap * 1024 * 1024,
             rebuildRate=io_speed, 
             intrarack_speed=intrarack_speed, 
@@ -64,15 +62,5 @@ class NormalSim(Simulator):
             print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
 
         total_iters *= mission/YEAR
-
-        # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
-        nines = str(round(-math.log10(failed_iters/total_iters),3))
-        sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
-        print("Num of Nine: " + nines)
-        print("error sigma: " + sigma)
         
-        output = open("s-result-{}.log".format(placement), "a")
-        output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
-            k_net, p_net, k_local, p_local, total_drives,
-            afr, cap, io_speed, nines, sigma, failed_iters, total_iters, "adapt" if adapt else "notadapt"))
-        output.close()
+        return SimulationResult(failed_iters, int(total_iters))
