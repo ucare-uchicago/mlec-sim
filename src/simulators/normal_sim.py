@@ -49,7 +49,7 @@ class NormalSim(Simulator):
         # return
 
         # We need to get enough failures in order to compute accurate nines #
-        while failed_iters < 1:
+        while failed_iters < 20:
             logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
             start  = time.time()
             res = self.run(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
