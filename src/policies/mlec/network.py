@@ -51,12 +51,12 @@ def initial_repair(disk: Disk, disk_to_read_from: List[int], mlec: MLEC) -> Netw
             # They might be of the same rack!
             intra_rack[rackId] = intra_rack.get(rackId, 0) + mlec.sys.diskIO
             mlec.state.network.intra_rack_avail[rackId] -= mlec.sys.diskIO
-            # logging.info("Using %s net bandwidth from rack %s", self.sys.diskIO, rackId)
+            # logging.info("Using %s net bandwidth from rack %s", mlec.sys.diskIO, rackId)
         else:
             # We have less bandwidth than the diskIO, we then take all
             intra_rack[rackId] = intra_rack.get(rackId, 0) + mlec.state.network.intra_rack_avail[rackId]
             mlec.state.network.intra_rack_avail[rackId] = 0
-            # logging.info("Using %s net bandwidth from rack %s", self.state.network.intra_rack_avail[rackId], rackId)
+            # logging.info("Using %s net bandwidth from rack %s", mlec.state.network.intra_rack_avail[rackId], rackId)
     
     # There is no cross-rack traffic for with-in diskgroup repair for MLEC-RAID
     
@@ -194,9 +194,12 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
                 # We need to know how much bandwidth they are using in total
                 for failedDiskId in mlec.state.get_failed_disks_per_rack(rackId):
                     # This returns the diskId, we delay the repair of this disk
-                    if len(mlec.disks[failedDiskId].repair_time) != 0:
+                    if len(mlec.disks[failedDiskId].repair_time) != 0 \
+                        and not mlec.disks[failedDiskId].paused:
                         pause_repair.append(failedDiskId)
                         yielded_network_usage.join(mlec.disks[failedDiskId].network_usage)
+                        mlec.disks[failedDiskId].paused = True
+            diskgroup.paused_disks += pause_repair
             logging.info("Yielded network %s", yielded_network_usage)
             
             # We give network bandwidth back to the system first to allow initial repair

@@ -3,7 +3,7 @@ if typing.TYPE_CHECKING:
     from components.network import NetworkUsage
     from policies.mlec.mlec import MLEC
 
-from typing import Optional
+from typing import Optional, List
 
 class Diskgroup:
     #----------------------------
@@ -48,3 +48,5 @@ class Diskgroup:
         
         #-------------------------------
         self.network_usage: Optional[NetworkUsage] = None
+        # This is the list of disks that yielde their bandwidth for this diskgroup repair
+        self.paused_disks: List[int] = []
