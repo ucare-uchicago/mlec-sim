@@ -8,7 +8,7 @@ if __name__ == "__main__":
     to_parse = ["0_1", "0_5", "1", "2", "4"]
     
     for bw in to_parse:
-        result[bw] = parse_sim_result("src/logs/mlec-validation/100TB_100MBps/s-result-MLEC_{}.log".format(bw))
+        result[bw] = parse_sim_result("src/logs/mlec-validation/20TB_30MBps_infIBW/s-result-MLEC_{}.log".format(bw))
         
     fig, ax = plt.subplots()
     ylim = (0, 7)
