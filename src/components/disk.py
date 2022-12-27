@@ -56,6 +56,7 @@ class Disk:
         #   none value means its not using any
         #-------------------------------
         self.network_usage: Optional[NetworkUsage] = None
+        self.paused: bool = False
         #-------------------------------
 
 
