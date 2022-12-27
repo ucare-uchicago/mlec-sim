@@ -8,10 +8,10 @@ if __name__ == "__main__":
     to_parse = ["0_1", "0_5", "1", "2", "4"]
     
     for bw in to_parse:
-        result[bw] = parse_sim_result("src/s-result-MLEC_" + bw + ".log")
+        result[bw] = parse_sim_result("src/logs/mlec-validation/100TB_100MBps/s-result-MLEC_{}.log".format(bw))
         
     fig, ax = plt.subplots()
-    ylim = (2, 7)
+    ylim = (0, 7)
     
     y_major_ticks = list(range(ylim[0], ylim[1]))
     y_minor_ticks = np.array(list(range(ylim[0], ylim[1] * 2))) / 2
@@ -21,11 +21,11 @@ if __name__ == "__main__":
     ax.grid(which="minor")
     
     for bw in to_parse:
-        plt.errorbar(result[bw]['afr'], result[bw]['nines'], yerr=result[bw]['sigma'], label=bw)
+        plt.errorbar(result[bw]['afr'], result[bw]['nines'], yerr=result[bw]['sigma'], label=bw.replace("_", ".") + " Gbps")
     
     plt.legend(loc="upper right")
     plt.ylim(ylim)
-    plt.xlim((0,13))
+    plt.xlim((0,16))
     
     plt.xlabel("Annual Failure Rate in %")
     plt.ylabel("Durability (Num of Nines)")

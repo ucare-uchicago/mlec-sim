@@ -37,5 +37,20 @@ def parse_calc_result(path: str):
     
     return result
 
-# if __name__ == "__main__":
-#     print(parse_result('src/s-result-DP_NET.log'))
+def parse_metric_result(path: str):
+    result = {}
+    
+    for row in open(path, 'r'):
+        matcher = re.findall(r'^avg_rebuild_io_per_year:(.*) avg_net_traffic:(.*) avg_failure_count:(.*) avg_rebuild_time:(.*) avg_net_repair_time:(.*) iter_count:(.*) total_net_repair_count:(.*) total_delayed_disks:(.*)', row)
+        (avg_rebuild_io_per_year, avg_net_traffic, avg_failure_count, avg_rebuild_time, avg_net_repair_time, iter_count, total_net_repair_count, total_delayed_disks) = matcher[0]
+                
+        result['avg_rebuild_io_per_year'] = (result.get('avg_rebuild_io_per_year', []) + [float(avg_rebuild_io_per_year)])
+        result['avg_net_traffic'] = (result.get('avg_net_traffic', []) + [float(avg_net_traffic)])
+        result['avg_failure_count'] = (result.get('avg_failure_count', []) + [float(avg_failure_count)])
+        result['avg_rebuild_time'] = (result.get('avg_rebuild_time', []) + [float(avg_rebuild_time)])
+        result['avg_net_repair_time'] = (result.get('avg_net_repair_time', []) + [float(avg_net_repair_time)])
+        result['iter_count'] = (result.get('iter_count', []) + [float(iter_count)])
+        result['total_net_repair_count'] = (result.get('total_net_repair_count', []) + [float(total_net_repair_count)])
+        result['total_delayed_disks'] = (result.get('total_delayed_disks', []) + [float(total_delayed_disks)])
+    
+    return result
