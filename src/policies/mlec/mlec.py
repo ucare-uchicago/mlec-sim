@@ -50,6 +50,8 @@ class MLEC(Policy):
             self.diskgroups[diskgroupId].failed_disks.pop(diskId, None)
             self.failed_disks.pop(diskId, None)
             
+            self.sys.metrics.total_net_bandwidth_replenish_time += 1
+            # logging.info("Replenishing network bandwidth")
             self.state.network.replenish(self.disks[diskId].network_usage)
             self.disks[diskId].network_usage = None
             
@@ -262,8 +264,9 @@ class MLEC(Policy):
         
         for pauseRepairDiskId in pause_repair:
             if pauseRepairDiskId != diskId:
-                logging.info("Updating disk %s repair time from %s to %s", pauseRepairDiskId, self.disks[pauseRepairDiskId].repair_time[0], self.disks[pauseRepairDiskId].repair_time[0] + (repair_time / 3600 / 24))
+                # logging.info("Updating disk %s repair time from %s to %s, finish at %s", pauseRepairDiskId, self.disks[pauseRepairDiskId].repair_time[0], self.disks[pauseRepairDiskId].repair_time[0] + (repair_time / 3600 / 24), self.disks[pauseRepairDiskId].repair_start_time + self.disks[pauseRepairDiskId].repair_time[0] + (repair_time / 3600 / 24))
                 self.disks[pauseRepairDiskId].repair_time[0] += (repair_time / 3600 / 24)
+                self.disks[pauseRepairDiskId].estimate_repair_time += (repair_time / 3600 / 24)
             
         diskgroup.repair_time[0] = repair_time / 3600 / 24
         diskgroup.repair_start_time = self.curr_time
