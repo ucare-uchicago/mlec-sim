@@ -8,6 +8,7 @@ class Metrics:
         self.total_net_repair_time = 0.0
         self.total_net_repair_count = 0
         self.total_delayed_disks = 0
+        self.total_net_bandwidth_replenish_time = 0
 
     def __add__(self, otherMetrics):
         res = Metrics()
@@ -19,6 +20,7 @@ class Metrics:
         res.total_net_repair_time = self.total_net_repair_time + otherMetrics.total_net_repair_time
         res.total_net_repair_count = self.total_net_repair_count + otherMetrics.total_net_repair_count
         res.total_delayed_disks = self.total_delayed_disks + otherMetrics.total_delayed_disks
+        res.total_net_bandwidth_replenish_time = self.total_net_bandwidth_replenish_time + otherMetrics.total_net_bandwidth_replenish_time
         return res
 
     def __str__(self):
@@ -30,6 +32,7 @@ class Metrics:
                 "iter_count:\t\t{}\n"
                 "total_net_repair_count:\t\t{}\n"
                 "total_delayed_disks:\t\t{}\n"
+                "total_net_bandwidth_replenish_time:\t\t{}\n"
                 ).format(
             self.total_rebuild_io_per_year / (1024*1024) / self.iter_count,
             self.total_net_traffic / (1024*1024) / self.iter_count,
@@ -38,7 +41,8 @@ class Metrics:
             0 if self.total_net_repair_count == 0 else self.total_net_repair_time / self.total_net_repair_count,
             self.iter_count,
             self.total_net_repair_count,
-            self.total_delayed_disks
+            self.total_delayed_disks,
+            self.total_net_bandwidth_replenish_time
         )
     
     def single_line(self):
