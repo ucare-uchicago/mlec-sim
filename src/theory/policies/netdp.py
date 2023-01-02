@@ -38,7 +38,16 @@ def stripe_total_cases(k_net, p_net, total_drives, drives_per_rack):
 
 
 if __name__ == "__main__":
-    print(stripe_total_cases(8, 2, 40000, 1000))
-    print(stripe_fail_cases(9, 1, 1000, [1,1,0,0,0,0,0,0,0,0], 0))
+    n_net = 10
+    total_drives = 1000
+    total_cases = stripe_total_cases(8, 2, 1000, 100)
+    failure_cases = stripe_fail_cases(10, 3, 100, [1,1,1,0,0,0,0,0,0,0], 0)
+    stripe_failure_prob = failure_cases / total_cases
+    chunks_per_drive = 1
+    num_stripes = chunks_per_drive * total_drives // n_net
+    print(num_stripes)
+    print(stripe_failure_prob)
+    no_failure_prob = (1-stripe_failure_prob) ** num_stripes
+    print(1-no_failure_prob)
     
 

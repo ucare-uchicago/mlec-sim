@@ -39,8 +39,8 @@ class Simulate:
         if self.place_type == PlacementType.RAID_NET:
             return self.network_cluster_check_burst(failures)
         if self.place_type == PlacementType.DP_NET:
-            # return self.network_decluster_check_burst(failures, num_chunks_per_disk)
-            return self.network_decluster_check_burst_theory(failures, num_chunks_per_disk)
+            return self.network_decluster_check_burst(failures, num_chunks_per_disk)
+            # return self.network_decluster_check_burst_theory(failures, num_chunks_per_disk)
         if self.place_type == PlacementType.MLEC_DP:
             return self.mlec_decluster_check_burst(failures)
         
@@ -146,12 +146,12 @@ class Simulate:
         
         return 0
     
-    def network_decluster_check_loss(failures_per_rack, num_chunks_per_disk, k, p):
+    # def network_decluster_check_loss(failures_per_rack, num_chunks_per_disk, k, p):
         
-        num_racks = len(failures_per_rack)
-        if k+p > num_racks:
+    #     num_racks = len(failures_per_rack)
+    #     if k+p > num_racks:
             
-        prob_pick_rack_0 = math.comb(len(failures_per_rack)-1, )math.comb(len(failures_per_rack), k+p)
+    #     prob_pick_rack_0 = math.comb(len(failures_per_rack)-1, )math.comb(len(failures_per_rack), k+p)
 
 
 
