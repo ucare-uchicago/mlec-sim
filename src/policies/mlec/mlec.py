@@ -260,7 +260,7 @@ class MLEC(Policy):
             elif type(update_result) is list:
                 # This means that these are the disks that we need to pause repair for
                 pause_repair += update_result
-                # logging.warn("We are pausing repairs for disks %s", pause_repair)
+                logging.warn("We are pausing repairs for disks %s", pause_repair)
             
             repaired_percent = 0
             diskgroup.curr_repair_data_remaining = diskgroup.repair_data
