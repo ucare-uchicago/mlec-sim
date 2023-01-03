@@ -135,6 +135,7 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
         if mlec.state.disks[diskId].network_usage is not None:
             num_repairing += 1
     
+    # If this disk's repair would require network bandwidth from an on-gonig top-layer repair, or a delayed top-layer repair, we delay its repair
     if used_for_repair_top_level(mlec, disk):
         mlec.sys.metrics.total_delayed_disks += 1
         mlec.state.simulation.delay_repair_queue[Components.DISK][disk.diskId] = True
