@@ -12,6 +12,30 @@ from components.rack import Rack
 from components.diskgroup import Diskgroup
 from components.network import NetworkUsage
 
+def used_for_repair_top_level(mlec: MLEC, disk: Disk):
+    # TODO: Optimize this
+    # We delay all bottom layer repairs that compete resources with repairing top layer stripes
+    #  -> if the rack of this failing disk is being used for repairing a top layer diskgroup or
+    #     is needed for a diskgroup in delay queue, we do not start the repair
+    stripeset_to_check = []
+    stripeset_to_check += mlec.repairing_stripeset
+    for delayedDiskgroupId in mlec.state.simulation.delay_repair_queue[Components.DISKGROUP]:
+        stripeset_to_check += [mlec.diskgroups[delayedDiskgroupId].diskgroupStripesetId]
+    
+    logging.info("Stripeset to check %s", stripeset_to_check)
+    logging.info("Stripesets %s", mlec.sys.diskgroup_stripesets)
+    for stripesetId in stripeset_to_check:
+        repairing_rack = []
+        for diskgroupId_ in mlec.sys.diskgroup_stripesets[stripesetId]:
+            repairing_rack.append(mlec.diskgroups[diskgroupId_].rackId)
+        
+        if disk.rackId in repairing_rack:
+            # This means that to repair the current bottom layer diskgroup, we need bandwidth from repairing top layer stripe
+            #   we will delay the repair of this disk
+            logging.warn("This disk's rack is being used for top level repair, delaying repair")
+            logging.warn("Repairing stripeset %s", mlec.repairing_stripeset)
+            return False
+
 def disks_to_read_for_repair(disk: Disk, mlec: MLEC) -> List[int]:
     diskgroupId = disk.diskId // mlec.n
     disks_to_read = []
@@ -99,30 +123,18 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
     rackId = disk.rackId
     diskgroupId = disk.diskId // mlec.sys.n
     num_fail_per_diskgroup = len(fail_per_diskgroup)
+    
+    # Get how many disks are repairing in the diskgroup 
+    #  -> used to check whether this diskgroup just had its first failure, or failed, or in degraded state
     num_repairing = 0
     for diskId in fail_per_diskgroup:
         if mlec.state.disks[diskId].network_usage is not None:
             num_repairing += 1
     
-    # We delay all bottom layer repairs that compete resources with repairing top layer stripes
-    stripeset_to_check = []
-    stripeset_to_check += mlec.repairing_stripeset
-    for delayedDiskgroupId in mlec.state.simulation.delay_repair_queue[Components.DISKGROUP]:
-        stripeset_to_check += [mlec.diskgroups[delayedDiskgroupId].diskgroupStripesetId]
-    
-    logging.info("Stripeset to check %s", stripeset_to_check)
-    logging.info("Stripesets %s", mlec.sys.diskgroup_stripesets)
-    for stripesetId in stripeset_to_check:
-        repairing_rack = []
-        for diskgroupId_ in mlec.sys.diskgroup_stripesets[stripesetId]:
-            repairing_rack.append(mlec.diskgroups[diskgroupId_].rackId)
-        
-        if rackId in repairing_rack:
-            # This means that to repair the current bottom layer diskgroup, we need bandwidth from repairing top layer stripe
-            #   we will delay the repair of this disk
-            mlec.sys.metrics.total_delayed_disks += 1
-            mlec.state.simulation.delay_repair_queue[Components.DISK][disk.diskId] = True
-            return False
+    if used_for_repair_top_level(mlec, disk):
+        mlec.sys.metrics.total_delayed_disks += 1
+        mlec.state.simulation.delay_repair_queue[Components.DISK][disk.diskId] = True
+        return False
     
     if num_repairing == 0:
         logging.info("First failure in disk group, initial repair")
@@ -138,7 +150,7 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
             # This means that we do not have enough bandwidth to start the repair
             mlec.sys.metrics.total_delayed_disks += 1
             mlec.state.simulation.delay_repair_queue[Components.DISK][disk.diskId] = True
-            logging.warn("Disk %s repair is being delayed due to insufficient sibling or bandwidth", disk.diskId)
+            # logging.warn("Disk %s repair is being delayed due to insufficient sibling or bandwidth", disk.diskId)
             return False
         
     elif len(fail_per_diskgroup) <= mlec.sys.m:
@@ -160,7 +172,7 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
             for diskId in fail_per_diskgroup:
                 mlec.state.disks[diskId].network_usage = NetworkUsage(0, {rackId: usage_aggregator.intra_rack[rackId] / num_fail_per_diskgroup})
         else:
-            logging.warn("Disk %s repair is being delayed due to insufficient sibling or bandwidth", disk.diskId)
+            # logging.warn("Disk %s repair is being delayed due to insufficient sibling or bandwidth", disk.diskId)
             mlec.sys.metrics.total_delayed_disks += 1
             mlec.state.simulation.delay_repair_queue[Components.DISK][disk.diskId] = True
             return False
@@ -214,7 +226,7 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
             diskgroups_to_read = diskgroup_to_read_for_repair(diskgroup.diskgroupStripesetId, mlec)
             # If the new diskgroup_to_read after yielding network is still not enough, we delay reair
             if len(diskgroups_to_read) < mlec.sys.top_k:
-                logging.error("Diskgroup %s repair is being delayed due to insufficient sibling or bandwidth", diskgroup.diskgroupId)
+                # logging.error("Diskgroup %s repair is being delayed due to insufficient sibling or bandwidth", diskgroup.diskgroupId)
                 mlec.state.network.use(yielded_network_usage)
                 mlec.state.simulation.delay_repair_queue[Components.DISKGROUP][diskgroup.diskgroupId] = True
                 return False
@@ -255,7 +267,7 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
             for diskgroupId in fail_per_stripeset:
                 mlec.diskgroups[diskgroupId].network_usage = usage_aggregator.split(num_fail_per_stripeset)
         else:
-            logging.warn("Diskgroup %s repair is being delayed due to insufficient sibling or bandwidth", diskgroup.diskgroupId)
+            # logging.warn("Diskgroup %s repair is being delayed due to insufficient sibling or bandwidth", diskgroup.diskgroupId)
             mlec.state.simulation.delay_repair_queue[Components.DISKGROUP][diskgroup.diskgroupId] = True
             return False
             

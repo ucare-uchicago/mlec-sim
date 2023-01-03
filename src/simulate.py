@@ -150,6 +150,9 @@ class Simulate:
             (event_time, event_type, diskId) = next_event
             logging.info("Event %s on disk %s occured at %s", event_type, diskId, event_time)
             logging.info("Delayed repair queue: %s", self.delay_repair_queue)
+            logging.info("Repair queue: %s", self.repair_queue)
+            logging.info("Failure queue length: %s", len(self.failure_queue))
+            
             # logging.info("Failed disks per stripe: %s", self.state.get_failed_disks_each_stripeset())
             self.mytimer.getEventTime = (time.time() - self.mytimer.eventInitTime) * 1000
 
