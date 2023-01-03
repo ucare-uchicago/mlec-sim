@@ -65,5 +65,5 @@ class Disk:
         
     # Override toString()
     def __str__(self):
-        return "[dId: {}, rId: {}, sId: {}, state: {}, prio: {}, repair_time: {}, repair start time: {}]".format(self.diskId, self.rackId, self.stripesetId, self.state, self.priority, self.repair_time, self.repair_start_time)
+        return "[dId: {}, rId: {}, sId: {}, state: {}, prio: {}, rep time: {}, rep start: {}, net: {}, paused: {}]".format(self.diskId, self.rackId, self.stripesetId, self.state, self.priority, self.repair_time, self.repair_start_time, self.network_usage, self.paused)
             

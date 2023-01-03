@@ -131,6 +131,7 @@ class MLEC(Policy):
         logging.info("Disk %s has repaired time of %s", diskId, repaired_time)
         if repaired_time == 0:
             # This means that we just begun repair for this disk, we need to check network
+            logging.info("First time repair")
             updated = update_network_state(disk, fail_per_diskgroup, self)
             if not updated:
                 return
@@ -138,9 +139,11 @@ class MLEC(Policy):
             repaired_percent = 0
             disk.curr_repair_data_remaining = disk.repair_data
         else:
+            logging.info("More time repair")
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
         
+        logging.info(str(disk))
         logging.info("DiskIO %s, network usage: %s", self.sys.diskIO, self.disks[diskId].network_usage)
         # Note: this should no longer be sys.diskIO, because there might be lower intra-rack bandwidth available than the diskIO
         assert disk.network_usage is not None
@@ -274,10 +277,11 @@ class MLEC(Policy):
         if repaired_time == 0:
             # This means that we want to begun repair for this disk, we need to check network
             # Since the diskgroup has already failed, we are going to give all its member disk's network usage back to the system
-            for diskId_ in failed_diskgroups_per_stripeset:
+            for diskId_ in self.diskgroups[diskgroupId].disks:
                 if self.disks[diskId_].network_usage != None:
                     self.state.network.replenish(self.disks[diskId_].network_usage)
                     self.disks[diskId_].network_usage = None
+                    self.disks[diskId_].repair_time
             
             update_result = update_network_state_diskgroup(diskgroup, failed_diskgroups_per_stripeset, self)
             if type(update_result) is bool:

@@ -238,6 +238,7 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
                 mlec.state.simulation.delay_repair_queue[Components.DISKGROUP][diskgroup.diskgroupId] = True
                 return False
             
+            
             for failedDiskId in pause_repair:
                 mlec.disks[failedDiskId].paused = True
             
