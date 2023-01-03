@@ -73,6 +73,7 @@ def diskgroup_to_read_for_repair(stripesetId: int, mlec: MLEC) -> List[int]:
 def initial_repair(disk: Disk, disk_to_read_from: List[int], mlec: MLEC) -> NetworkUsage:
     # Calculate intrarack, from k randomly selected drives from the stripeset
     intra_rack = {}
+    logging.info("Initial disk repair reading from disks %s", disk_to_read_from)
     for diskId in disk_to_read_from:
         rackId = mlec.state.disks[diskId].rackId
         if mlec.sys.diskIO <= mlec.state.network.intra_rack_avail[rackId]:
