@@ -12,7 +12,6 @@ from components.diskgroup import Diskgroup
 # def mlec_repair(diskId, rackId, state):
 #     return (state.disks[diskId].estimate_repair_time, Disk.EVENT_REPAIR, diskId)
 
-
 # update the repair event queue
 def mlec_repair(diskgroups, failed_diskgroups, state: State, repair_queue):
     for diskgroupId in failed_diskgroups:

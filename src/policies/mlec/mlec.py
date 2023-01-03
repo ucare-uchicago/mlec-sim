@@ -9,7 +9,7 @@ from constants.Components import Components
 from policies.policy import Policy
 from .pdl import mlec_cluster_pdl
 from .repair import mlec_repair
-from .network import update_network_state, update_network_state_diskgroup, diskgroup_to_read_for_repair, disks_to_read_for_repair
+from .network import update_network_state, update_network_state_diskgroup, diskgroup_to_read_for_repair, disks_to_read_for_repair, used_for_repair_top_level
 
 class MLEC(Policy):
     #--------------------------------------
@@ -39,6 +39,20 @@ class MLEC(Policy):
                 self.disks[diskId].diskgroupId = diskgroupId
 
     def update_disk_state(self, event_type, diskId):
+        # Print the disks using network
+        disks_using_network = []
+        for diskId_ in self.disks.keys():
+            if self.disks[diskId_].network_usage is not None:
+                disks_using_network += [diskId_]
+                
+        diskgroups_using_network = []
+        for diskgroupId_ in self.diskgroups.keys():
+            if self.diskgroups[diskgroupId_].network_usage is not None:
+                diskgroups_using_network += [diskgroupId_]
+                
+        logging.info("Disks using network %s", disks_using_network)
+        logging.info("Diskgroups using network %s", diskgroups_using_network)
+        
         diskgroupId = diskId // self.n
         rackId = self.state.disks[diskId].rackId
         logging.info("diskId %s, diskgroupId %s, rackId %s", diskId, diskgroupId, self.disks[diskId].rackId)
@@ -260,7 +274,7 @@ class MLEC(Policy):
             elif type(update_result) is list:
                 # This means that these are the disks that we need to pause repair for
                 pause_repair += update_result
-                logging.warn("We are pausing repairs for disks %s", pause_repair)
+                # logging.warn("We are pausing repairs for disks %s", pause_repair)
             
             repaired_percent = 0
             diskgroup.curr_repair_data_remaining = diskgroup.repair_data
@@ -302,7 +316,12 @@ class MLEC(Policy):
             and len(self.state.simulation.delay_repair_queue[Components.DISKGROUP]) == 0) \
                 or self.state.network.inter_rack_avail == 0:
             return None
-
+        
+        # # We check whether there are repaired things, if so we always process repair events before delay repair
+        # if len(self.state.simulation.repair_queue) != 0 \
+        #     and len(self.state.simulation.failure_queue) != 0 \
+        #     and self.state.simulation.failure_queue[0][0] > self.state.simulation.repair_queue[0][0]:
+        #         return None
         
         # We first check whether any waiting disk groups can be repaired
         #  We prioritize disk groups ahead of disks because they are more important
@@ -320,11 +339,14 @@ class MLEC(Policy):
             disk = self.state.disks[diskId]
             # This means that we have enough bandwidth to carry out the repair
             disk_to_read_from = disks_to_read_for_repair(disk, self)
+            used_for_top_level = used_for_repair_top_level(self, disk)
             logging.info("Trying to initiate delayed repair for disk %s with inter-rack of %s and avail peer of %s (k=%s)", diskId, self.state.network.inter_rack_avail, len(disk_to_read_from), self.sys.top_k)
-            if self.state.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
-                logging.info("Delayed disk %s now has enough bandwidth, repairing", diskId)
-                del self.state.simulation.delay_repair_queue[Components.DISK][diskId]
-                return (prev_event[0], Disk.EVENT_DELAYED_FAIL, diskId)
+            if not used_for_top_level \
+                and self.state.network.inter_rack_avail != 0 \
+                and len(disk_to_read_from) >= self.sys.top_k:
+                    logging.info("Delayed disk %s now has enough bandwidth, repairing", diskId)
+                    del self.state.simulation.delay_repair_queue[Components.DISK][diskId]
+                    return (prev_event[0], Disk.EVENT_DELAYED_FAIL, diskId)
         
         logging.info("No delayed repairs can be processed")
             
