@@ -10,7 +10,7 @@ if typing.TYPE_CHECKING:
 
 class Network:
     
-    def __init__(self, sys: System, intrarack_bandwidth: int, interrack_bandwidth: int):
+    def __init__(self, sys: System, intrarack_bandwidth: float, interrack_bandwidth: float):
         # Define available bandwidth
         self.inter_rack_avail = float(interrack_bandwidth)
         self.intra_rack_avail = []

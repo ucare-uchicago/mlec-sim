@@ -141,7 +141,13 @@ class MLEC(Policy):
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
         
-        repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / num_fail_per_diskgroup)
+        logging.info("DiskIO %s, network usage: %s", self.sys.diskIO, self.disks[diskId].network_usage)
+        # Note: this should no longer be sys.diskIO, because there might be lower intra-rack bandwidth available than the diskIO
+        assert disk.network_usage is not None
+        # Calculate the real repair rate by the dividing the total bandwidht used by k - that's the effectively write speed
+        repair_speed = disk.network_usage.intra_rack[disk.rackId] / self.sys.k
+        repair_time = float(disk.curr_repair_data_remaining) / (repair_speed / num_fail_per_diskgroup)
+        # repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / num_fail_per_diskgroup)
         logging.info("Repaired percent %s, Repair time %s", repaired_percent, repair_time)
 
         disk.repair_time[0] = repair_time / 3600 / 24
