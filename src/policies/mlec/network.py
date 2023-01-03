@@ -93,6 +93,7 @@ def initial_repair(disk: Disk, disk_to_read_from: List[int], mlec: MLEC) -> Netw
 
 # If dry run is true, we will only produce the network usage, without really taking it away from the system
 def initial_repair_diskgroup(diskgroups_to_read_from: List[int], mlec: MLEC, dry_run = False):
+    logging.info("Initial repairing diskgroup")
     intra_rack = {}
     for diskgroupId in diskgroups_to_read_from:
         # They might be of the same rack!
@@ -181,6 +182,9 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
             
     elif len(fail_per_diskgroup) > mlec.sys.m:
         logging.info("More than bottom_m failures, resort to diskgroup repair")
+        
+        for diskId_ in fail_per_diskgroup:
+            logging.info("Network usage for disk %s is %s", diskId_, mlec.disks[diskId_].network_usage)
         # This means that the local diskgroup has failed. We need to repair the disk group
         #  this is going to be handled in the diskgroup network state update
         # But we need to return false so that we do not assign repair time for the disk
