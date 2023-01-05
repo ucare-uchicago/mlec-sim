@@ -1,5 +1,5 @@
 import math
-import policies.total
+# import policies.total
 
 
 
@@ -95,17 +95,14 @@ if __name__ == "__main__":
     n_net = 10
     total_drives = 1000
     total_cases = stripe_total_cases(8, 2, 1000, 100)
-    failure_cases = stripe_fail_cases(10, 3, 100, [1,1,1,0,0,0,0,0,0,0], 0)
-    # failure_cases = stripe_fail_cases(2, 1, 10, [1,0,0], 0)
-    print(failure_cases)
-    failure_cases_correlated = stripe_fail_cases_correlated(10, 3, 10, 100, 3, 3)
-    print(failure_cases_correlated)
-    # stripe_failure_prob = failure_cases / total_cases
-    # chunks_per_drive = 1
-    # num_stripes = chunks_per_drive * total_drives // n_net
-    # print(num_stripes)
-    # print(stripe_failure_prob)
-    # no_failure_prob = (1-stripe_failure_prob) ** num_stripes
-    # print(1-no_failure_prob)
+    failure_cases = stripe_fail_cases(10, 3, 100, [2,1,1,0,0,0,0,0,0,0], 0)
+    print("total cases: \t{}\nfailure_cases: \t{}".format(total_cases, failure_cases))
+    stripe_failure_prob = failure_cases / total_cases
+    print("stripe fail prob: \t{}".format(stripe_failure_prob))
+
+    chunks_per_drive = 100
+    num_stripes = chunks_per_drive * total_drives // n_net    
+    no_failure_prob = (1-stripe_failure_prob) ** num_stripes
+    print("system fail prob: {}".format(1-no_failure_prob))
     
 

@@ -118,8 +118,8 @@ def burst_theory_net_dp(k_net, p_net, k_local, p_local,
     dl_prob = 1 - stripe_survive_prob ** num_stripes
     print("dl prob: \t{}\n".format(dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
-        output.write("({}+{})({}+{}) {} {} {} {}\n".format(
-            k_net, p_net, k_local, p_local, total_drives,
+        output.write("({}+{})({}+{}) {} {} {} {} {}\n".format(
+            k_net, p_net, k_local, p_local, total_drives, num_chunks_per_disk,
             num_failed_disks, num_affected_racks, dl_prob))
     return dl_prob
 
@@ -223,15 +223,13 @@ if __name__ == "__main__":
 
     num_chunks_per_disk = args.num_chunks_per_disk
 
-    for num_failed_disks in range(4, 5):
+    for num_failed_disks in range(3, 11):
         # for num_affected_racks in range(1, min(num_failed_disks, 20)+1):
         for num_affected_racks in range(3,4):
-    # temp = time.time()
     # for num_failed_disks in range(1, 21):
     #     for num_affected_racks in range(1,num_failed_disks+1):
             burst_theory(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk)
-    print("time: {}".format(time.time()-temp))
     # temp = time.time()
     # for num_failed_disks in range(3, 4):
     #     for num_affected_racks in range(3,4):
