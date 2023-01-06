@@ -76,7 +76,7 @@ plt.legend()
 plt.xlabel('Number of racks affected', fontsize=14)
 plt.ylabel('Number of drives affected', fontsize=14)
 # plt.title('Frequency of failure bursts sorted by racks and drives affected')
-plt.title(occuranceDataLoss.iloc[1]['config'] + ' Delustered local-only SLEC\n'+ r"$\bf{Theoretical}$", fontsize=16)
+plt.title(occuranceDataLoss.iloc[1]['config'] + ' Clustered Network-only SLEC\n'+ r"$\bf{Theoretical}$", fontsize=16)
 
 plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
@@ -95,9 +95,9 @@ plt.text(26, 28, r'$1$')
 import matplotlib as mpl
 import matplotlib.colors as colors
 
-dd = 10**(-16)  # a number that is very close to 0
+dd = 10**(-100)  # a number that is very close to 0
 hc = ['white', 'white', 'yellow', 'yellow','lightgreen', 'lightgreen', 'lightblue', 'lightblue', 'green', 'green', 'blue', 'blue', 'orange',  'orange', 'purple', 'purple',  'red', 'red']
-th = [0,       0.01,  0.01+dd, 0.15,  0.15+dd,  0.29, 0.29+dd,  0.43,      0.43+dd,   0.57,      0.57+dd,   0.71, 0.71+dd, 0.85, 0.85+dd, 0.99, 0.99+dd, 1]
+th = [0,       0.01,  0.01+dd, 0.15,  0.15+dd,  0.29, 0.29+dd,  0.43,      0.43+dd,   0.57,      0.57+dd,   0.71, 0.71+dd, 0.85, 0.85+dd, 0.99, 1-dd, 1]
 
 
 mycolors=list(zip(th, hc))
