@@ -120,6 +120,7 @@ def initial_repair_diskgroup(diskgroups_to_read_from: List[int], mlec: MLEC, dry
         if not dry_run:
             mlec.state.network.inter_rack_avail -= total_upload_bandwidth
     
+    # How much bw does diskgroup repair uses
     return NetworkUsage(inter_rack, intra_rack)
         
 def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) -> bool:
