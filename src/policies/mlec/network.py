@@ -211,6 +211,7 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
             and len(diskgroups_to_read) >= mlec.state.sys.top_k:
                 # If there is, we start the repair.
                 diskgroup.network_usage = initial_repair_diskgroup(diskgroups_to_read, mlec)
+                mlec.state.network.use(diskgroup.network_usage)
         else:
             pause_repair = []
             yielded_network_usage = NetworkUsage(0, {})
@@ -256,6 +257,7 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
             diskgroup.network_usage = repair_network_usage
             mlec.state.network.use(diskgroup.network_usage)
             logging.info("Diskgroup repair assigned network usage %s", diskgroup.network_usage)
+            logging.info("Current network state inter: %s, intra: %s", mlec.state.network.inter_rack_avail, mlec.state.network.intra_rack_avail)
             
             # Note: remnants of earlier implementation where diskgroup repair would get delayed if there is not enough bandwidth
             #   now bottom layer repair yield bandwidth using above logic instead
