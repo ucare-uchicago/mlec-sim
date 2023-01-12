@@ -256,6 +256,8 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
             # We only give the usage - collected to diskgroup network usage. The other will be returned when paused disk repair are done
             repair_network_usage = repair_network_usage.subtract(yielded_network_usage)
             diskgroup.network_usage = repair_network_usage
+            diskgroup.yielded_network_usage = yielded_network_usage
+            
             mlec.state.network.use(diskgroup.network_usage)
             logging.info("Diskgroup repair assigned network usage %s", diskgroup.network_usage)
             logging.info("Current network state inter: %s, intra: %s", mlec.state.network.inter_rack_avail, mlec.state.network.intra_rack_avail)
