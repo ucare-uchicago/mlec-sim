@@ -48,5 +48,8 @@ class Diskgroup:
         
         #-------------------------------
         self.network_usage: Optional[NetworkUsage] = None
+        # This is how much the paused repair disks are yielding to the diskgroup repai
+        # Clear when the diskgroup is repaired
+        self.yielded_network_usage: Optional[NetworkUsage] = None
         # This is the list of disks that yielde their bandwidth for this diskgroup repair
         self.paused_disks: List[int] = []

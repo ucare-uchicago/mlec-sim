@@ -228,6 +228,7 @@ class MLEC(Policy):
             logging.info("Replenishing network from diskgroup repair %s", self.diskgroups[diskgroupId].network_usage)
             self.state.network.replenish(self.diskgroups[diskgroupId].network_usage)
             self.diskgroups[diskgroupId].network_usage = None
+            self.diskgroups[diskgroupId].yielded_network_usage = None
             
             # We unpause all the disks that yielded the resources
             for pausedDiskId in self.diskgroups[diskgroupId].paused_disks:
@@ -303,8 +304,14 @@ class MLEC(Policy):
         # Calculate the repair time from the cross-rack bandwidth usage
         # repair_time = float(diskgroup.curr_repair_data_remaining)/(self.sys.diskIO * self.n / len(failed_diskgroups_per_stripeset))
         # Calculate the real repair rate by the dividing the total bandwidht used by k - that's the effectively write speed
-        assert diskgroup.network_usage != None
-        repair_speed = diskgroup.network_usage.inter_rack / self.sys.top_k
+        assert (diskgroup.network_usage != None or diskgroup.yielded_network_usage != None)
+        iter_rack_speed = diskgroup.network_usage.inter_rack if diskgroup.network_usage != None else 0
+        iter_rack_speed += diskgroup.yielded_network_usage.inter_rack if diskgroup.yielded_network_usage != None else 0
+        repair_speed = iter_rack_speed / self.sys.top_k
+        
+        if (repair_speed == 0):
+            logging.error("Repair speed is 0")
+        
         repair_time = float(diskgroup.curr_repair_data_remaining)/(repair_speed / len(failed_diskgroups_per_stripeset))
 
 
