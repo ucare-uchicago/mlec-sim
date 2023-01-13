@@ -111,12 +111,13 @@ def initial_repair_diskgroup(diskgroups_to_read_from: List[int], mlec: MLEC, dry
     # If the total upload from racks are larger than the avail inter-rack, we use all
     # TODO: if this is the case, we also need to adjust intra-rack bandwidth of each rack
     total_upload_bandwidth = np.sum(list(intra_rack.values()))
+    inter_rack = 0
     if total_upload_bandwidth > mlec.state.network.inter_rack_avail:
-        inter_rack = mlec.state.network.inter_rack_avail
+        inter_rack += mlec.state.network.inter_rack_avail
         if not dry_run:
             mlec.state.network.inter_rack_avail = 0
     else:
-        inter_rack = total_upload_bandwidth
+        inter_rack += total_upload_bandwidth
         if not dry_run:
             mlec.state.network.inter_rack_avail -= total_upload_bandwidth
     
