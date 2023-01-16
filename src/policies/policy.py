@@ -28,6 +28,7 @@ class Policy:
             # This is removing the disk from the failed disk array
             self.state.racks[rackId].failed_disks.pop(diskId, None)
             self.state.failed_disks.pop(diskId, None)
+            self.sys.metrics.disks_aggregate_down_time += self.curr_time - self.disks[diskId].metric_down_start_time
             
             # If this disk has network usage, we return those to the network state
             if disk.network_usage is not None:
@@ -44,6 +45,7 @@ class Policy:
             disk.state = Disk.STATE_FAILED
             self.state.racks[rackId].failed_disks[diskId] = 1
             self.state.failed_disks[diskId] = 1
+            self.disks[diskId].metric_down_start_time = self.curr_time
             
         if event_type == Disk.EVENT_DELAYED_FAIL:
             # Currently this should not do anything because the disk should already be in a failed state
