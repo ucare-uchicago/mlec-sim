@@ -70,6 +70,12 @@ class NormalSim(Simulator):
         sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
         print("Num of Nine: " + nines)
         print("error sigma: " + sigma)
+
+        total_down_time = metrics.getAverageAggregateDownTime()
+        total_time = YEAR * total_drives
+        avail_nines = str(round(-math.log10(total_down_time/total_time),3))
+        print("average aggregate down time: {}\navail_nines:{}".format(
+                    total_down_time, avail_nines))
         
         output = open("s-result-{}.log".format(placement), "a")
         output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(

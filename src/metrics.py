@@ -7,6 +7,7 @@ class Metrics:
         self.total_rebuild_time = 0.0
         self.total_net_repair_time = 0.0
         self.total_net_repair_count = 0
+        self.disks_aggregate_down_time = 0
 
     def __add__(self, otherMetrics):
         res = Metrics()
@@ -17,6 +18,7 @@ class Metrics:
         res.total_rebuild_time = self.total_rebuild_time + otherMetrics.total_rebuild_time
         res.total_net_repair_time = self.total_net_repair_time + otherMetrics.total_net_repair_time
         res.total_net_repair_count = self.total_net_repair_count + otherMetrics.total_net_repair_count
+        res.disks_aggregate_down_time = self.disks_aggregate_down_time + otherMetrics.disks_aggregate_down_time
         return res
 
     def __str__(self):
@@ -48,3 +50,6 @@ class Metrics:
     
     def getAverageRebuildTime(self):
         return self.total_rebuild_time / self.iter_count
+    
+    def getAverageAggregateDownTime(self):
+        return self.disks_aggregate_down_time / self.iter_count
