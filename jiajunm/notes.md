@@ -24,3 +24,5 @@ disk in the already failed diskgroup will be paused, but will not enter the repa
 
 
 Implement network bandwidth sharing for top-level diskgroup stripeset
+---
+Repair across rack, depending on EC, may exceed the cross-rack bandwidth. Limit the repair traffic coming out of the rack.
