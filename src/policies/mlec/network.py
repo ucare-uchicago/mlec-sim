@@ -189,6 +189,8 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
         
         for diskId_ in fail_per_diskgroup:
             logging.info("Network usage for disk %s is %s", diskId_, mlec.disks[diskId_].network_usage)
+            # We give back the network bandwidth to the system
+            
         # This means that the local diskgroup has failed. We need to repair the disk group
         #  this is going to be handled in the diskgroup network state update
         # But we need to return false so that we do not assign repair time for the disk
@@ -213,11 +215,12 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
             and len(diskgroups_to_read) >= mlec.state.sys.top_k:
                 # If there is, we start the repair.
                 diskgroup.network_usage = initial_repair_diskgroup(diskgroups_to_read, mlec)
-                mlec.state.network.use(diskgroup.network_usage)
+                logging.info("Network after use %s", mlec.state.network)
         # We will only consider pausing bottom layer repair if there is still inter-rack bandwidth available
         elif mlec.state.network.inter_rack_avail != 0:
             return handle_pause_bottom_layer_repair(mlec, diskgroup, diskgroups_to_read)
         else:
+            #logging.warn("Delaying diskgroup %s repair", diskgroup.diskgroupId)
             mlec.state.simulation.delay_repair_queue[Components.DISKGROUP][diskgroup.diskgroupId] = True
             return False
             

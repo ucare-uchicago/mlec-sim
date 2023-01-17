@@ -310,11 +310,11 @@ class MLEC(Policy):
         repair_speed = iter_rack_speed / self.sys.top_k
         
         if (repair_speed == 0):
-            logging.error("Repair speed is 0")
+            #logging.error("Repair speed is 0")
             if diskgroup.network_usage is not None:
-                logging.error("Network_usage is inter: %s, intra: %s", diskgroup.network_usage.inter_rack, diskgroup.network_usage.intra_rack)
+                #logging.error("Network_usage is inter: %s, intra: %s", diskgroup.network_usage.inter_rack, diskgroup.network_usage.intra_rack)
             if diskgroup.yielded_network_usage is not None:
-                logging.error("Yielded network usage is inter :%s, intra: %s", diskgroup.yielded_network_usage.inter_rack, diskgroup.yielded_network_usage.intra_rack)
+                #logging.error("Yielded network usage is inter :%s, intra: %s", diskgroup.yielded_network_usage.inter_rack, diskgroup.yielded_network_usage.intra_rack)
         
         repair_time = float(diskgroup.curr_repair_data_remaining)/(repair_speed / len(failed_diskgroups_per_stripeset))
 

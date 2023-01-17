@@ -35,11 +35,13 @@ class Network:
         if usage is None:
             return
         
+        logging.info("Original %s, usage %s", self.inter_rack_avail, usage.inter_rack)
         self.inter_rack_avail -= usage.inter_rack
         for rackId in usage.intra_rack.keys():
             self.intra_rack_avail[rackId] -= usage.intra_rack[rackId]
         
-
+    def __str__(self):
+        return "<inter: {}| intra {}>".format(self.inter_rack_avail, self.intra_rack_avail)
 
 class NetworkUsage:
     
