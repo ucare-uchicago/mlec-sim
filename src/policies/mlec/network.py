@@ -269,7 +269,7 @@ def handle_pause_bottom_layer_repair(mlec: MLEC, diskgroup: Diskgroup, diskgroup
     diskgroups_to_read = diskgroup_to_read_for_repair(diskgroup.diskgroupStripesetId, mlec)
     # If the new diskgroup_to_read after yielding network is still not enough, we delay reair
     if len(diskgroups_to_read) < mlec.sys.top_k:
-        #logging.error("Diskgroup %s repair is being delayed due to insufficient sibling or bandwidth", diskgroup.diskgroupId)
+        logging.error("Diskgroup %s repair is being delayed due to insufficient sibling or bandwidth", diskgroup.diskgroupId)
         mlec.state.network.use(yielded_network_usage)
         mlec.state.simulation.delay_repair_queue[Components.DISKGROUP][diskgroup.diskgroupId] = True
         return False
