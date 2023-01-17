@@ -190,7 +190,7 @@ class MLEC(Policy):
             # otherwise, we need to check if a new diskgroup fails
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
             if len(fail_per_diskgroup) > self.sys.m:
-                #logging.error("Diskgroup %s failed due to the disk failure, it has failed disks %s", diskgroupId, self.get_failed_disks_per_diskgroup(diskgroupId))
+                # logging.error("Diskgroup %s failed due to the disk failure, it has failed disks %s", diskgroupId, self.get_failed_disks_per_diskgroup(diskgroupId))
 
                 self.diskgroups[diskgroupId].state = Diskgroup.STATE_FAILED
                 self.failed_diskgroups[diskgroupId] = 1
@@ -308,13 +308,6 @@ class MLEC(Policy):
         iter_rack_speed = diskgroup.network_usage.inter_rack if diskgroup.network_usage != None else 0
         iter_rack_speed += diskgroup.yielded_network_usage.inter_rack if diskgroup.yielded_network_usage != None else 0
         repair_speed = iter_rack_speed / self.sys.top_k
-        
-        if (repair_speed == 0):
-            #logging.error("Repair speed is 0")
-            if diskgroup.network_usage is not None:
-                #logging.error("Network_usage is inter: %s, intra: %s", diskgroup.network_usage.inter_rack, diskgroup.network_usage.intra_rack)
-            if diskgroup.yielded_network_usage is not None:
-                #logging.error("Yielded network usage is inter :%s, intra: %s", diskgroup.yielded_network_usage.inter_rack, diskgroup.yielded_network_usage.intra_rack)
         
         repair_time = float(diskgroup.curr_repair_data_remaining)/(repair_speed / len(failed_diskgroups_per_stripeset))
 
