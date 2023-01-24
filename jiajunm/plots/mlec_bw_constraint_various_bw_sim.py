@@ -5,10 +5,10 @@ import numpy as np
 
 if __name__ == "__main__":
     result = {}
-    to_parse = ["0_1", "0_5", "1", "2", "4", "40"]
+    to_parse = ["0_1", "0_5", "1", "2", "4", "inf"]
     
     for bw in to_parse:
-        result[bw] = parse_sim_result("src/logs/mlec-validation/20TB_30MBps_infIBW/s-result-MLEC_{}.log".format(bw))
+        result[bw] = parse_sim_result("src/logs/mlec-validation/20TB_calc_assumption/s-result-MLEC_{}.log".format(bw))
         
     fig, ax = plt.subplots()
     ylim = (0, 7)
@@ -30,7 +30,7 @@ if __name__ == "__main__":
     plt.xlabel("Annual Failure Rate in %")
     plt.ylabel("Durability (Num of Nines)")
     
-    plt.title("MLEC Various Network Constraint")
+    plt.title("MLEC Various Cross-Rack Network Constraint")
     # plt.show()
     plt.grid()
     
