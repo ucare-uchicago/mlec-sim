@@ -117,6 +117,7 @@ class MLEC(Policy):
                 # this assumes we treat diskgroup as a blackbox and repair everything together
                 # this is not true when we only repair failed stripes
                 return
+            
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
             for failedDiskId in fail_per_diskgroup:
                 if not self.state.simulation.delay_repair_queue[Components.DISK].get(failedDiskId, False):
@@ -186,6 +187,7 @@ class MLEC(Policy):
             # if diskgroup already fails, we don't need to fail it again.
             if self.diskgroups[diskgroupId].state == Diskgroup.STATE_FAILED:
                 return None
+            
             # otherwise, we need to check if a new diskgroup fails
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
             if len(fail_per_diskgroup) > self.sys.m:
