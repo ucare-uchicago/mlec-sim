@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 if __name__ == "__main__":
-    bws = ["0_1", "0_5", "1", "2", "4", "40"]
+    bws = ["0_1", "0_5", "1", "2", "4", "inf"]
     for bw in bws:
-        comb = "20TB_30MBps_infIBW"
+        comb = "20TB_calc_assumption"
         calc = parse_calc_result("src/logs/mlec-validation/{}/c-result-MLEC_{}.log".format(comb, bw))
         sim = parse_sim_result("src/logs/mlec-validation/{}/s-result-MLEC_{}.log".format(comb, bw))
         
