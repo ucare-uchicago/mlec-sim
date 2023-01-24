@@ -79,9 +79,9 @@ def initial_repair_diskgroup(diskgroups_to_read_from: List[int], mlec: MLEC, dry
         rackId = mlec.diskgroups[diskgroupId].rackId
         logging.info("Diskgroup %s is on rack %s", diskgroupId, mlec.diskgroups[diskgroupId].rackId)
         if (mlec.sys.diskIO * mlec.sys.k) <= mlec.state.network.intra_rack_avail[rackId]:
-            intra_rack[rackId] = intra_rack.get(rackId, 0) + mlec.sys.diskIO * mlec.sys.n
+            intra_rack[rackId] = intra_rack.get(rackId, 0) + mlec.sys.diskIO * mlec.sys.k
             if not dry_run:
-                mlec.state.network.intra_rack_avail[rackId] -= mlec.sys.diskIO * mlec.sys.n
+                mlec.state.network.intra_rack_avail[rackId] -= mlec.sys.diskIO * mlec.sys.k
         else:
             intra_rack[rackId] = intra_rack.get(rackId, 0) + mlec.state.network.intra_rack_avail[rackId]
             if not dry_run:
@@ -178,12 +178,16 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
         # This means that we have diskgroup stripeset failures, we need cross-rack repair
         #    We append the network usage to the disk groups under going repair
         # We split the previously used bandwidth, similar to the disk repair
+        #logging.warn("Multiple failure in stripeset %s", len(fail_per_stripeset))
         usage_aggregator = NetworkUsage(0, {})
         for diskgroupId in fail_per_stripeset:
             usage_aggregator.join(mlec.diskgroups[diskgroupId].network_usage)
+            
+        logging.info("Total network usage %s", usage_aggregator)
         
         for diskgroupId in fail_per_stripeset:
             mlec.diskgroups[diskgroupId].network_usage = usage_aggregator.split(num_fail_per_stripeset)
+            logging.info("Diskgroup %s is assigned with network %s", diskgroupId, mlec.diskgroups[diskgroupId].network_usage)
         
         return True
         # else:
