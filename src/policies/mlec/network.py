@@ -51,6 +51,7 @@ def disks_to_read_for_repair(disk: Disk, mlec: MLEC) -> List[int]:
         
         # No longer consider inter-rack bandwidth
         if mlec.disks[diskId].state == Disk.STATE_NORMAL \
+            and mlec.diskgroups[diskgroupId].state == Diskgroup.STATE_NORMAL \
             and mlec.state.racks[disk.rackId].state == Rack.STATE_NORMAL:
             disks_to_read.append(diskId)
             
@@ -64,7 +65,9 @@ def diskgroup_to_read_for_repair(stripesetId: int, mlec: MLEC) -> List[int]:
         if len(diskgroup_to_read) >= mlec.sys.top_k:
             break
         
+        # Check whether the diskgroup is healthy AND whether RACK is normal AND there is out-going bandwidth
         if mlec.diskgroups[diskgroupId].state == Diskgroup.STATE_NORMAL \
+            and mlec.state.racks[mlec.diskgroups[diskgroupId].rackId].state == Rack.STATE_NORMAL \
             and mlec.state.network.intra_rack_avail[mlec.diskgroups[diskgroupId].rackId] != 0:
                 diskgroup_to_read.append(diskgroupId)
                 
@@ -97,6 +100,8 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
     diskgroupId = disk.diskId // mlec.sys.n
     num_fail_per_diskgroup = len(fail_per_diskgroup)
     
+    logging.info("Fail per diskgroup %s, %s", num_fail_per_diskgroup, fail_per_diskgroup)
+    
     # Get how many disks are repairing in the diskgroup 
     #  -> used to check whether this diskgroup just had its first failure, or failed, or in degraded state
     num_repairing = 0
@@ -111,7 +116,7 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
     #     mlec.state.simulation.delay_repair_queue[Components.DISK][disk.diskId] = True
     #     return RepairResult(False, 0)
     
-    if num_repairing == 0:
+    if num_repairing == 1:
         logging.info("First failure in disk group, initial repair")
         # If there is only one failure in the disk group, we need to check whether there
         #   is enough surviving chunks to carry out the repair
@@ -129,6 +134,7 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
             return RepairResult(False, 0)
         
     elif len(fail_per_diskgroup) <= mlec.sys.m:
+        logging.info("Multiple %s failures in the diskgroup %s", len(fail_per_diskgroup), fail_per_diskgroup)
         # If there is no Diskgroup failure, we split the diskIO between the siblings
         return RepairResult(True, mlec.sys.diskIO)
             
