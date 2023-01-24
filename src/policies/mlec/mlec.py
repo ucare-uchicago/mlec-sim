@@ -146,7 +146,6 @@ class MLEC(Policy):
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
         
-        logging.info(str(disk))
         # Calculate the real repair rate by the dividing the total bandwidht used by k - that's the effectively write speed
         repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / num_fail_per_diskgroup)
         logging.info("Disk %s is being repaired with the speed of %s", disk.diskId, self.sys.diskIO)
@@ -299,7 +298,7 @@ class MLEC(Policy):
         assert diskgroup.network_usage != None
         # Repair speed should be the minimum bandwidth from the intra-rack bandwidth used by the diskgroup
         logging.info("Diskgroup network usage :%s", diskgroup.network_usage)
-        logging.info("Min usage: %s", min(diskgroup.network_usage.intra_rack.values()))
+        logging.info("Min usage: %s, diskgroup data %s", min(diskgroup.network_usage.intra_rack.values()), diskgroup.curr_repair_data_remaining)
         repair_speed = min(diskgroup.network_usage.intra_rack.values())
         repair_time = float(diskgroup.curr_repair_data_remaining)/(repair_speed / len(failed_diskgroups_per_stripeset))
             

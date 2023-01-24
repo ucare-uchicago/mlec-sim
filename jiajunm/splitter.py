@@ -1,8 +1,8 @@
 import sys
 
 fileName = sys.argv[1]
-inf = "999999999.0"
-bws = [0.1, 0.5, 1, 2, 4, 40]
+inf = "99999999999.0"
+bws = [0.1, 0.5, 1, 2, 4, inf]
 
 for bw_ in bws:
     bw = str(bw_).replace('.', '_')
@@ -11,9 +11,9 @@ for bw_ in bws:
     rows = []
     for row in file:
         if bw_ == "inf":
-            bwName = "cbw:" + str(inf)
+            bwName = "ibw:" + str(inf)
         else:
-            bwName = "cbw:" + str(bw_)
+            bwName = "ibw:" + str(bw_)
         if bwName in row:
             rows.append(row)
     
@@ -22,7 +22,7 @@ for bw_ in bws:
     dirPath = '/'.join(dirList)
     
     
-    if bw_ == "inf":
+    if bw_ == inf:
         dirPath += "/s-result-MLEC_inf.log"
     else:
         dirPath += "/s-result-MLEC_" + bw + ".log"
