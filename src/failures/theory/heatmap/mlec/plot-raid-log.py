@@ -76,7 +76,7 @@ plt.legend()
 plt.xlabel('Number of racks affected', fontsize=14)
 plt.ylabel('Number of drives affected', fontsize=14)
 # plt.title('Frequency of failure bursts sorted by racks and drives affected')
-plt.title(occuranceDataLoss.iloc[1]['config'] + ' Clustered MLEC\n'+ r"$\bf{Theoretical}$", fontsize=16)
+plt.title(occuranceDataLoss.iloc[1]['config'] + ' Clustered-Clustered MLEC\n'+ r"$\bf{Theoretical}$", fontsize=16)
 
 plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
