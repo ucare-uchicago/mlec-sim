@@ -16,8 +16,8 @@ import math
 figure, axes = plt.subplots()
 
 axes.set_aspect( 1 )
-x_range = [0,30]
-y_range = [0,30]
+x_range = [0,50]
+y_range = [0,50]
 axes.set_xlim(x_range)
 axes.set_ylim(y_range)
 
@@ -47,7 +47,9 @@ def coloring(x):
         return 'blue'
     elif x <= 0.1:
         return 'orange'
-    elif x <= 0.9999:
+    elif x <= 0.9:
+        return 'orchid'
+    elif x <= 0.99:
         return 'purple'
     else:
         return 'red'
@@ -76,28 +78,30 @@ plt.legend()
 plt.xlabel('Number of racks affected', fontsize=14)
 plt.ylabel('Number of drives affected', fontsize=14)
 # plt.title('Frequency of failure bursts sorted by racks and drives affected')
-plt.title(occuranceDataLoss.iloc[1]['config'] + ' Declustered-Clustered MLEC\n'+ r"$\bf{Theoretical}$", fontsize=16)
+plt.title('(32,4,4)' + ' Declustered LRC\n'+ r"$\bf{Theoretical, 10TB disk, 100GB chunk}$", fontsize=16)
 
 plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
 axes.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 axes.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
-plt.text(1, 28, 'PDL: 0.0')
-plt.text(5.5, 28, r'$10^{-6}$')
-plt.text(9, 28, r'$10^{-5}$')
-plt.text(12.5, 28, r'$10^{-4}$')
-plt.text(16, 28, r'$10^{-3}$')
-plt.text(19, 28, r'$10^{-2}$')
-plt.text(22.5, 28, r'$10^{-1}$')
-plt.text(26, 28, r'$1$')
+plt.text(1.5, 47, 'PDL: 0.0')
+plt.text(8.6, 47, r'$10^{-6}$')
+plt.text(12.6, 47, r'$10^{-5}$')
+plt.text(16.1, 47, r'$10^{-4}$')
+plt.text(21, 47, r'$10^{-3}$')
+plt.text(26, 47, r'$10^{-2}$')
+plt.text(30, 47, r'$10^{-1}$')
+plt.text(34.5, 47, r'$0.9$')
+plt.text(38.5, 47, r'$0.99$')
+plt.text(43, 47, r'$1$')
 
 import matplotlib as mpl
 import matplotlib.colors as colors
 
-dd = 10**(-16)  # a number that is very close to 0
-hc = ['white', 'white', 'yellow', 'yellow','lightgreen', 'lightgreen', 'lightblue', 'lightblue', 'green', 'green', 'blue', 'blue', 'orange',  'orange', 'purple', 'purple',  'red', 'red']
-th = [0,       0.01,  0.01+dd, 0.15,  0.15+dd,  0.29, 0.29+dd,  0.43,      0.43+dd,   0.57,      0.57+dd,   0.71, 0.71+dd, 0.85, 0.85+dd, 0.99, 0.99+dd, 1]
+dd = 10**(-100)  # a number that is very close to 0
+hc = ['white', 'white', 'yellow', 'yellow','lightgreen', 'lightgreen', 'lightblue', 'lightblue', 'green', 'green', 'blue', 'blue', 'orange',  'orange', 'orchid', 'orchid', 'purple', 'purple', 'red', 'red', 'red']
+th = [0,       0.01,  0.01+dd, 0.11,  0.11+dd,  0.22, 0.22+dd,  0.33,      0.33+dd,   0.44,      0.44+dd,   0.55, 0.55+dd, 0.66, 0.66+dd, 0.77, 0.77+dd, 0.88, 0.88+dd, 1-dd, 1]
 
 
 mycolors=list(zip(th, hc))

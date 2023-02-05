@@ -1,0 +1,3 @@
+config total_drives failed_disks affected_racks dl_prob
+(9+1)(9+1) 32000 1 1 0.0
+(9+1)(9+1) 32000 1 1 0.0

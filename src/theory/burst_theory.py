@@ -32,6 +32,10 @@ def burst_theory(k_net, p_net, k_local, p_local,
         return burst_theory_net_dp(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk)
     
+    if placement == 'LRC_DP':
+        return burst_theory_lrc_dp(k_net, p_net, k_local, p_local, 
+                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk)
+    
     if placement == 'MLEC':
         return burst_theory_mlec(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
@@ -93,7 +97,7 @@ def burst_theory_net_raid(k_net, p_net, k_local, p_local,
     return dl_prob
 
 ##############################
-# network-only slec clustered (network RAID)
+# network-only slec declustered (network dp)
 ##############################
 def burst_theory_net_dp(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk):
@@ -117,7 +121,7 @@ def burst_theory_net_dp(k_net, p_net, k_local, p_local,
     print("\ntotal: \t\t{} \nstripe_failure_cases: \t{}".format(total_stripe_cases, stripe_failure_cases))
 
     # the probability for a random stripe to survive the burst
-    stripe_fail_prob = Decimal(stripe_failure_cases)/Decimal(total_stripe_cases)
+    stripe_fail_prob = Decimal(int(stripe_failure_cases))/Decimal(int(total_stripe_cases))
     stripe_survive_prob = 1 - stripe_fail_prob
 
     # count the number of stripes in the cluster
@@ -156,6 +160,59 @@ def burst_theory_mlec(k_net, p_net, k_local, p_local,
             k_net, p_net, k_local, p_local, total_drives,
             num_failed_disks, num_affected_racks, dl_prob))
     return dl_prob
+
+
+##############################
+# Azure lrc declustered
+##############################
+def burst_theory_lrc_dp(k_net, p_net, k_local, p_local, 
+                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk):
+    num_racks = total_drives // drives_per_rack
+    n_net = k_net + p_net + k_net // k_local
+    num_danger_chunks = p_net + 1 + 1
+    total_cases = total.total_cases_fixed_racks(num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
+    
+    # all the possible cases for distrbuting a random stripe
+    total_stripe_cases = total_cases * math.comb(num_racks, n_net) * (drives_per_rack ** n_net)
+    print("k_net {} p_net {} drives_per_rack {} num_failed_disks {} num_affected_racks {}".format(
+                k_net, p_net, drives_per_rack, num_failed_disks, num_affected_racks))
+
+    # all the possible cases for one random stripe to fail under the burst
+    print("n_net: {} num_danger_chunks: {} num_racks {} drives_per_rack {} num_failed_disks{} num_affected_racks {}".format(
+            n_net, num_danger_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks
+    ))
+    stripe_danger_cases = lrcdp.stripe_fixed_fail_chunk_cases_correlated(n_net, num_danger_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
+    stripe_other_failure_cases = lrcdp.stripe_fail_cases_correlated(n_net, num_danger_chunks+1, num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
+
+    print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
+    
+    # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
+    print("\n total: \t\t\t\t{} \n stripe_critical_cases: \t{}\n stripe_other_failure_cases: \t{}".format(
+                total_stripe_cases, stripe_danger_cases, stripe_other_failure_cases))
+
+    danger_fail_prob = lrcdp.calculate_recoverability(k_net, k_net//k_local, p_net, num_danger_chunks)
+    print("danger_fail_prob: {}".format(danger_fail_prob))
+
+    # the probability for a random stripe to survive the burst
+    stripe_fail_prob = (Decimal(int(stripe_danger_cases)) / Decimal(int(total_stripe_cases)) * Decimal(danger_fail_prob) 
+                            + Decimal(int(stripe_other_failure_cases)) / Decimal(int(total_stripe_cases)))
+    stripe_survive_prob = 1 - stripe_fail_prob
+
+    print("stripe_survive_prob: {}".format(stripe_survive_prob))
+
+    # count the number of stripes in the cluster
+    num_stripes = total_drives * num_chunks_per_disk // n_net
+
+    # compute the probability of any stripe failure
+    dl_prob = 1 - stripe_survive_prob ** num_stripes
+    print("dl prob: \t{}\n".format(dl_prob))
+    with open("s-burst-theory-{}.log".format(placement), "a") as output:
+        output.write("({}+{})({}+{}) {} {} {} {} {}\n".format(
+            k_net, p_net, k_local, p_local, total_drives, num_chunks_per_disk,
+            num_failed_disks, num_affected_racks, dl_prob))
+    return dl_prob
+
+
 
 
 ##############################
@@ -257,13 +314,15 @@ if __name__ == "__main__":
 
     num_chunks_per_disk = args.num_chunks_per_disk
 
-    # for num_failed_disks in range(1, 5):
-        # for num_affected_racks in range(1, num_failed_disks+1):
-        # for num_affected_racks in range(2,3):
-    for num_failed_disks in range(1, 26):
+    # for num_failed_disks in range(7, 8):
+    #     # for num_affected_racks in range(1, num_failed_disks+1):
+    #     for num_affected_racks in range(7,8):
+
+    for num_failed_disks in range(1, 41):
         for num_affected_racks in range(1,num_failed_disks+1):
             burst_theory(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk)
+
     # temp = time.time()
     # for num_failed_disks in range(3, 4):
     #     for num_affected_racks in range(3,4):
@@ -287,14 +346,25 @@ if __name__ == "__main__":
     #     failure_list.append((num_affected_racks, num_failed_disks))
     #     counts[(num_affected_racks, num_failed_disks)] = count
     #     total_count += count
-    # aggr_prob = 0
+    # # aggr_prob = 0
+    # # for i in range(len(failure_list)):
+    # #     num_affected_racks, num_failed_disks = failure_list[i]
+
+    # #     prob_dl = burst_theory(k_net, p_net, k_local, p_local, 
+    # #                     total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk)
+    # #     if failure_list[i] in counts:
+    # #         aggr_prob += prob_dl * counts[failure_list[i]] / total_count
+
+    # # nines = round(-math.log10(aggr_prob),4)
+    # # print("aggr prob data loss: {} nines: {}".format(aggr_prob, nines))
+    # aggr_prob = 1
     # for i in range(len(failure_list)):
     #     num_affected_racks, num_failed_disks = failure_list[i]
 
     #     prob_dl = burst_theory(k_net, p_net, k_local, p_local, 
     #                     total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk)
     #     if failure_list[i] in counts:
-    #         aggr_prob += prob_dl * counts[failure_list[i]] / total_count
+    #         aggr_prob *= ((1-prob_dl) ** counts[failure_list[i]])
 
-    # nines = round(-math.log10(aggr_prob),4)
-    # print("aggr prob data loss: {} nines: {}".format(aggr_prob, nines))
+    # nines = round(-math.log10(1-aggr_prob),4)
+    # print("aggr prob survival: {} nines: {}".format(aggr_prob, nines))
