@@ -71,5 +71,18 @@ def survival_count_system(k_net, p_net, k_local, p_local, total_racks, drives_pe
 
 
 if __name__ == "__main__":
-    dp_survival_count_per_rack = dp_survival_count_single_rack(2,2,2,10)
-    print(dp_survival_count_per_rack)
+    # survival_cases = survival_count_mlec_group_k_p(3, 2, 3, 2, 12, 3)
+    # total_cases = total.total_cases_fixed_racks(5, 5, 12, 3)
+    # print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
+    # dl_prob = 1 - survival_cases / total_cases
+    # print("dl prob: \t{}\n".format(dl_prob))    # brute force is 0.9340659341. Result should match
+    # print(survival_count_mlec_group_dic)
+    for num_failed_disks in range(10,11):
+        for num_affected_racks in range(10,11):
+            # survival_cases = survival_count_rack_group(3, 2, 3, 2, 2, failed_disks, affected_racks)
+            survival_cases = survival_count_system(9, 1, 9, 1, 40, 800, 10, num_failed_disks, num_affected_racks)
+            # survival_cases = survival_count_system(1, 0, 1, 1, 1, 4, 1, 1)
+            total_cases = total.total_cases_fixed_racks(40, 800, num_failed_disks, num_affected_racks)
+            print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
+            dl_prob = 1 - survival_cases / total_cases
+            print("dl prob: \t{}\n".format(dl_prob))    # brute force is 0.9340659341. Result should match
