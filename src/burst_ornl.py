@@ -188,20 +188,7 @@ def simulate(afr, failure_list, placement, num_chunks_per_disk, drives_per_rack,
 
 
 def get_placement_index(placement):
-    place_type = -1
-    if placement == 'RAID':
-        place_type = 0
-    elif placement == 'DP':
-        place_type = 1
-    elif placement == 'MLEC':
-        place_type = 2
-    elif placement == 'RAID_NET':
-        place_type = 3
-    elif placement == 'MLEC_DP':
-        place_type = 4
-    elif placement == "NET_DP":
-        place_type = PlacementType.DP_NET
-    return place_type
+    return PlacementType[placement]
 
 
 # -----------------------------
@@ -258,11 +245,11 @@ def burst_sim(afr, io_speed, cap, adapt, k_net, p_net, k_local, p_local,
     # for num_failed_racks in range(1,21):
     #     for num_failed_disks in range(20, 21):
     #         failure_list.append((num_failed_racks, num_failed_disks))
-    for num_failed_disks in range(3, 4):
+    for num_failed_disks in range(70, 90):
         # for num_failed_racks in range(1, num_failed_disks+1):
-        for num_failed_racks in range(3, 4):
+        for num_failed_racks in range(4, 5):
             failure_list.append((num_failed_racks, num_failed_disks))
-            iters_list.append(1000)
+            iters_list.append(100)
     # for num_failed_disks in range(1,21):
     #     for num_failed_racks in range(1, num_failed_disks+1):
     # #     # for num_failed_racks in range(3, 4):
@@ -284,24 +271,25 @@ def burst_sim(afr, io_speed, cap, adapt, k_net, p_net, k_local, p_local,
     print("simulation time: {}".format(simulationTime))
 
     print(results)
-    total_iters = iters * epochs
+    
     aggr_prob = 0
     for i in range(len(failure_list)):
         failed_iters = results[i]
         num_failed_racks, num_failed_disks = failure_list[i]
         # print("num_failed_racks: {}  num_failed_disks: {}  failed_iters: {}  total_iters: {}".format(
         #                 num_failed_racks, num_failed_disks, failed_iters, total_iters))
-
-        prob_dl = (failed_iters/(iters_list[i]*epochs))
+        total_iters = iters_list[i]*epochs
+        prob_dl = (failed_iters/total_iters)
+        std = ((total_iters*prob_dl*(1-prob_dl))**0.5)/total_iters
         if failure_list[i] in counts:
             aggr_prob += prob_dl * counts[failure_list[i]] / total_count
         # print("probability of data loss: {}".format(prob_dl))
         # print()
 
         output = open("s-burst-{}.log".format(placement), "a")
-        output.write("({}+{})({}+{}) {} {} {} {}\n".format(
+        output.write("({}+{})({}+{}) {} {} {} {} {}\n".format(
             k_net, p_net, k_local, p_local, total_drives,
-            num_failed_disks, num_failed_racks, prob_dl))
+            num_failed_disks, num_failed_racks, prob_dl, std))
             # failed_iters, total_iters))
         output.close()
     nines = round(-math.log10(aggr_prob),3)
