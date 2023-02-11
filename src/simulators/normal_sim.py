@@ -71,7 +71,7 @@ class NormalSim(Simulator):
 
         total_down_time = metrics.getAverageAggregateDownTime()
         total_time = YEAR * total_drives
-        avail_nines = str(round(-math.log10(total_down_time/total_time),3))
+        avail_nines = "NA" if total_down_time == 0 else str(round(-math.log10(total_down_time/total_time),3))
         print("average aggregate down time: {}\navail_nines:{}".format(
                     total_down_time, avail_nines))
         
