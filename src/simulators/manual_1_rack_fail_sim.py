@@ -4,7 +4,8 @@ import time
 
 from failure_generator import FailureGenerator
 from simulators.Simulator import Simulator
-from constants.PlacementType import parse_placement, PlacementType
+from constants.PlacementType import PlacementType
+from constants.SimulationResult import SimulationResult
 from system import System
 from metrics import Metrics
 
@@ -27,9 +28,8 @@ class ManualFailOneRackSim(Simulator):
         
         for afr in range(5, 6):
             # 1. get P(rack 1 fails)
-            place_type = parse_placement(placement)
             local_place_type = PlacementType.RAID        # local RAID
-            if place_type == PlacementType.MLEC_DP:         # if MLEC_DP
+            if placement == PlacementType.MLEC_DP:         # if MLEC_DP
                 local_place_type = PlacementType.DP    # local DP
             failureGenerator = FailureGenerator(afr)
             sys = System(
@@ -84,7 +84,7 @@ class ManualFailOneRackSim(Simulator):
                 num_disks_per_rack=drives_per_rack, 
                 k=k_local, 
                 m=p_local, 
-                place_type=place_type, 
+                place_type=placement, 
                 diskCap=cap * 1024 * 1024,
                 rebuildRate=io_speed, 
                 intrarack_speed=intrarack_speed, 
@@ -102,6 +102,7 @@ class ManualFailOneRackSim(Simulator):
                 temp = self.run(failureGenerator2, sys2, iters=50000, epochs=200, concur=200)
                 res[0] += temp[0]
                 res[1] += temp[1]
+                res[2] += temp[2]
                 simulationTime = time.time() - start
                 print("simulation time: {}".format(simulationTime))
                 print(res)
@@ -122,13 +123,5 @@ class ManualFailOneRackSim(Simulator):
             print('Probability that the system fails: {}'.format(aggr_prob))
 
             # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
-            nn = str(round(-math.log10(res[0]/res[1]),3))
-            sigma = str(round(1/(math.log(10) * (res[0]**0.5)),3))
-            print("Num of Nine: " + nn)
-            print("error sigma: " + sigma)
 
-            output = open("s-result-{}.log".format(placement), "a")
-            output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {}\n".format(
-                    k_local, p_local, k_net, p_net, total_drives,
-                    afr, cap, io_speed, nn, sigma, res[0], res[1], "adapt" if adapt else "notadapt"))
-            output.close()
+            return SimulationResult(res[0], res[1], res[2])

@@ -22,12 +22,13 @@ class Disk:
     #----------------------------------
     # Initialize the disk
     #----------------------------------
-    def __init__(self, diskId, repair_data):
+    def __init__(self, diskId, repair_data, rackId):
         #-------------------------------
         # initialize the state be normal
         #-------------------------------
         self.diskId: int = diskId
-        self.rackId: int = 0
+        self.rackId: int = rackId
+        self.diskgroupId: int = 0
         self.stripesetId: int = 0
         #-------------------------------
         # initialize the state be normal
@@ -55,6 +56,7 @@ class Disk:
         #   none value means its not using any
         #-------------------------------
         self.network_usage: Optional[NetworkUsage] = None
+        self.paused: bool = False
         #-------------------------------
         # metrics
         # ----
@@ -67,5 +69,5 @@ class Disk:
         
     # Override toString()
     def __str__(self):
-        return "[dId: {}, rId: {}, sId: {}, state: {}, prio: {}, repair_time: {}, repair start time: {}]".format(self.diskId, self.rackId, self.stripesetId, self.state, self.priority, self.repair_time, self.repair_start_time)
+        return "[dId: {}, rId: {}, sId: {}, state: {}, prio: {}, rep time: {}, rep start: {}, net: {}, paused: {}]".format(self.diskId, self.rackId, self.stripesetId, self.state, self.priority, self.repair_time, self.repair_start_time, self.network_usage, self.paused)
             

@@ -1,5 +1,8 @@
 import logging
+import math
 import argparse
+
+from constants.PlacementType import parse_placement
 
 from simulators.burst_sim import BurstSim
 from simulators.metric_sim import MetricSim
@@ -17,8 +20,8 @@ if __name__ == "__main__":
     parser.add_argument('-sim_mode', type=int, help="simulation mode. Default is 0", default=0)
     parser.add_argument('-afr', type=int, help="disk annual failure rate.", default=5)
     parser.add_argument('-io_speed', type=int, help="disk repair rate (MB/s).", default=30)
-    parser.add_argument('-intrarack_speed', type=int, help="Intra-rack speed (Gb/s).", default=100)
-    parser.add_argument('-interrack_speed', type=int, help="Inter-rack speed (Gb/s).", default=10)
+    parser.add_argument('-intrarack_speed', type=float, help="Intra-rack speed (Gb/s).", default=100)
+    parser.add_argument('-interrack_speed', type=float, help="Inter-rack speed (Gb/s).", default=10)
     parser.add_argument('-cap', type=int, help="disk capacity (TB)", default=20)
     parser.add_argument('-adapt', type=bool, help="assume seagate adapt or not", default=False)
     parser.add_argument('-k_local', type=int, help="number of data chunks in local EC", default=7)
@@ -32,6 +35,7 @@ if __name__ == "__main__":
     parser.add_argument('-concur', type=int, help="how many threads to use concurrently", default=200)
     parser.add_argument('-epoch', type=int, help="how many epochs to run", default=200)
     parser.add_argument('-iter', type=int, help="how many iterations in a epoch in a thread to run", default=50000)
+    parser.add_argument('-metric', type=bool, help="Output metric line below result line in result file", default=False)
     args = parser.parse_args()
 
     sim_mode = args.sim_mode
@@ -62,7 +66,7 @@ if __name__ == "__main__":
     if drives_per_rack == -1:
         drives_per_rack=k_local+p_local
     
-    placement = args.placement
+    placement = parse_placement(args.placement)
     if placement in ['RAID', 'DP']:
         k_net = 1
         p_net = 0
@@ -73,37 +77,58 @@ if __name__ == "__main__":
         p_local = 0
 
     dist = args.dist
+    metric = args.metric
 
     if sim_mode == 0:
-        NormalSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+        result = NormalSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
                    cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
                    total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, distribution=dist, concur=concur, epoch=epoch, iters=iters)
     elif sim_mode == 1:
-        ManualFailOneRackSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+        result = ManualFailOneRackSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
                    cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
                    total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
     elif sim_mode == 2:
-        ManualFailTwoRackSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+        result = ManualFailTwoRackSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
                    cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
                    total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
     elif sim_mode == 3:
-        IoOverYearSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+        result = IoOverYearSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
                    cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
                    total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
     elif sim_mode == 4:
-        WeibullSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+        result = WeibullSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
                    cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
                    total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
     elif sim_mode == 5:
-        MetricSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+        result = MetricSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
                    cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
                    total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
     elif sim_mode == 6:
-        BurstSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+        result = BurstSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
                    cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
                    total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
-
-
+    else:
+        raise NotImplementedError("Simulation mode not recognized")
+    
+    if result is not None:
+        # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+        nines = "NA" if result.failed_iter == 0 else str(round(-math.log10(result.failed_iter/result.total_iter),3))
+        sigma = "NA" if result.failed_iter == 0 else str(round(1/(math.log(10) * (result.failed_iter**0.5)),3))
+        print("Num of Nine: " + nines)
+        print("error sigma: " + sigma)
+        
+        output = open("s-result-{}.log".format(placement), "a")
+        output.write("(kn:{}+pn:{})(kl:{}+pl:{}) td:{} afr:{} cap:{} io:{} ibw:{} cbw:{} nn:{} sd:{} f:{} t:{} ad:{}\n".format(
+            k_net, p_net, k_local, p_local, total_drives,
+            afr, cap, io_speed, intrarack_speed, interrack_speed, nines, sigma, result.failed_iter, result.total_iter, "adapt" if adapt else "notadapt"))
+        output.close()
+        
+        if metric:
+            metric_output = open("s-metric-{}.log".format(placement), "a")
+            metric_output.write(result.metrics.single_line())
+            metric_output.close()
+        
+        
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_afr=50&d_cap=20&dr_rw_speed=50&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&spares=0&rec_wr_spd_alloc=100
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&ec_mode=3&d_afr=2&d_cap=20&dr_rw_speed=30&ndatashards=7&nredundancy=1&adapt_mode=2&nhost_per_chass=1&ndrv_per_dg=50&tnhost_per_chass=8&tndrv_per_dg=8&ph_nspares=0&tnchassis=1&tnrack=1&rec_wr_spd_alloc=100
     # tetraquark.shinyapps.io:/erasure_coded_storage_calculator_pub/?tab=results&d_cap=20&dr_rw_speed=30&ndatashards=7&nredundancy=1&nhost_per_chass=1&ndrv_per_dg=50&spares=0&woa_nhost_per_chass=1&rec_wr_spd_alloc=100

@@ -14,6 +14,14 @@ class Policy:
     def __init__(self, state: State) -> None:
         self.state: State = state
         self.sys: System = state.sys
+        self.n = state.n
+        self.top_n = self.sys.top_k + self.sys.top_m
+        self.racks = state.racks
+        self.disks = state.disks
+        self.curr_time = state.curr_time
+        self.failed_disks = state.failed_disks
+        self.failed_racks = state.failed_racks
+        self.mytimer = state.mytimer
         
         self.curr_time: float = state.curr_time
     
@@ -31,13 +39,8 @@ class Policy:
             self.sys.metrics.disks_aggregate_down_time += self.curr_time - self.disks[diskId].metric_down_start_time
             
             # If this disk has network usage, we return those to the network state
-            if disk.network_usage is not None:
-                logging.info("Replenishing bandwidth")
-                self.state.network.inter_rack_avail += disk.network_usage.inter_rack
-                logging.info("Replenish %s inter rack", disk.network_usage.inter_rack)
-                for rackId in disk.network_usage.intra_rack:
-                    self.state.network.intra_rack_avail[rackId] += disk.network_usage.intra_rack[rackId]
-                    logging.info("Replenish %s intrarack for rack %s", disk.network_usage.intra_rack[rackId], rackId)
+            self.state.network.replenish(disk.network_usage)
+            disk.network_usage = None
             
             logging.info("Network bandwidth after replenish: %s", self.state.network.__dict__)
             

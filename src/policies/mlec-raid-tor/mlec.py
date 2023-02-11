@@ -117,7 +117,6 @@ class MLEC(Policy):
                 # this assumes we treat diskgroup as a blackbox and repair everything together
                 # this is not true when we only repair failed stripes
                 return
-            
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
             for failedDiskId in fail_per_diskgroup:
                 if not self.state.simulation.delay_repair_queue[Components.DISK].get(failedDiskId, False):
@@ -130,25 +129,27 @@ class MLEC(Policy):
         disk = self.disks[diskId]
         repaired_time = self.curr_time - disk.repair_start_time
         logging.info("Disk %s has repaired time of %s", diskId, repaired_time)
-        
-        
-        update_result = None
         if repaired_time == 0:
             # This means that we just begun repair for this disk, we need to check network
             logging.info("First time repair")
-            update_result = update_network_state(disk, fail_per_diskgroup, self)
-            if not update_result.can_repair:
+            updated = update_network_state(disk, fail_per_diskgroup, self)
+            if not updated:
                 return
             
             repaired_percent = 0
             disk.curr_repair_data_remaining = disk.repair_data
         else:
+            logging.info("More time repair")
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
         
+        logging.info(str(disk))
+        logging.info("DiskIO %s, network usage: %s", self.sys.diskIO, self.disks[diskId].network_usage)
+        # Note: this should no longer be sys.diskIO, because there might be lower intra-rack bandwidth available than the diskIO
+        assert disk.network_usage is not None
         # Calculate the real repair rate by the dividing the total bandwidht used by k - that's the effectively write speed
-        repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / num_fail_per_diskgroup)
-        logging.info("Disk %s is being repaired with the speed of %s", disk.diskId, self.sys.diskIO)
+        repair_speed = disk.network_usage.intra_rack[disk.rackId] / self.sys.k
+        repair_time = float(disk.curr_repair_data_remaining) / (repair_speed / num_fail_per_diskgroup)
         # repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / num_fail_per_diskgroup)
         logging.info("Repaired percent %s, Repair time %s", repaired_percent, repair_time)
 
@@ -186,7 +187,6 @@ class MLEC(Policy):
             # if diskgroup already fails, we don't need to fail it again.
             if self.diskgroups[diskgroupId].state == Diskgroup.STATE_FAILED:
                 return None
-            
             # otherwise, we need to check if a new diskgroup fails
             fail_per_diskgroup = self.get_failed_disks_per_diskgroup(diskgroupId)
             if len(fail_per_diskgroup) > self.sys.m:
@@ -274,6 +274,7 @@ class MLEC(Policy):
     def update_diskgroup_repair_time(self, diskgroupId, diskId, failed_diskgroups_per_stripeset):
         diskgroup = self.diskgroups[diskgroupId]
         repaired_time = self.curr_time - diskgroup.repair_start_time
+        pause_repair = []
         if repaired_time == 0:
             # This means that we want to begun repair for this disk, we need to check network
             # Since the diskgroup has already failed, we are going to give all its member disk's network usage back to the system
@@ -288,6 +289,11 @@ class MLEC(Policy):
                 if not update_result:
                     # This means the repair cannot be started. We are delayed repair (logic handled by update_network_state_diskgroup())
                     return
+                
+            elif type(update_result) is list:
+                # This means that these are the disks that we need to pause repair for
+                pause_repair += update_result
+                #logging.warn("We are pausing repairs for disks %s", pause_repair)
             
             repaired_percent = 0
             diskgroup.curr_repair_data_remaining = diskgroup.repair_data
@@ -295,12 +301,22 @@ class MLEC(Policy):
             repaired_percent = repaired_time / diskgroup.repair_time[0]
             diskgroup.curr_repair_data_remaining = diskgroup.curr_repair_data_remaining * (1 - repaired_percent)
     
-        assert diskgroup.network_usage != None
-        # Repair speed should be the minimum bandwidth from the intra-rack bandwidth used by the diskgroup
-        logging.info("Diskgroup network usage :%s", diskgroup.network_usage)
-        logging.info("Min usage: %s, diskgroup data %s", min(diskgroup.network_usage.intra_rack.values()), diskgroup.curr_repair_data_remaining)
-        repair_speed = min(diskgroup.network_usage.intra_rack.values())
+        # Calculate the repair time from the cross-rack bandwidth usage
+        # repair_time = float(diskgroup.curr_repair_data_remaining)/(self.sys.diskIO * self.n / len(failed_diskgroups_per_stripeset))
+        # Calculate the real repair rate by the dividing the total bandwidht used by k - that's the effectively write speed
+        assert (diskgroup.network_usage != None or diskgroup.yielded_network_usage != None)
+        iter_rack_speed = diskgroup.network_usage.inter_rack if diskgroup.network_usage != None else 0
+        iter_rack_speed += diskgroup.yielded_network_usage.inter_rack if diskgroup.yielded_network_usage != None else 0
+        repair_speed = iter_rack_speed / self.sys.top_k
+        
         repair_time = float(diskgroup.curr_repair_data_remaining)/(repair_speed / len(failed_diskgroups_per_stripeset))
+
+
+        for pauseRepairDiskId in pause_repair:
+            if pauseRepairDiskId != diskId:
+                logging.info("Updating disk %s repair time from %s to %s, finish at %s", pauseRepairDiskId, self.disks[pauseRepairDiskId].repair_time[0], self.disks[pauseRepairDiskId].repair_time[0] + (repair_time / 3600 / 24), self.disks[pauseRepairDiskId].repair_start_time + self.disks[pauseRepairDiskId].repair_time[0] + (repair_time / 3600 / 24))
+                self.disks[pauseRepairDiskId].repair_time[0] += (repair_time / 3600 / 24)
+                self.disks[pauseRepairDiskId].estimate_repair_time += (repair_time / 3600 / 24)
             
         diskgroup.repair_time[0] = repair_time / 3600 / 24
         diskgroup.repair_start_time = self.curr_time
@@ -325,7 +341,8 @@ class MLEC(Policy):
     def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:
         logging.info("Trying to intercept event")
         if (len(self.state.simulation.delay_repair_queue[Components.DISK]) == 0 \
-            and len(self.state.simulation.delay_repair_queue[Components.DISKGROUP]) == 0):
+            and len(self.state.simulation.delay_repair_queue[Components.DISKGROUP]) == 0) \
+                or self.state.network.inter_rack_avail == 0:
             return None
         
         # # We check whether there are repaired things, if so we always process repair events before delay repair
@@ -340,7 +357,8 @@ class MLEC(Policy):
             diskgroup = self.diskgroups[diskgroupId]
             diskgroups_to_read = diskgroup_to_read_for_repair(diskgroup.diskgroupStripesetId, self)
             logging.info("Trying to repair diskgroup %s with readable sibling %s (top_k=%s)", diskgroupId, diskgroups_to_read, self.sys.top_k)
-            if len(diskgroups_to_read) >= self.sys.top_k:
+            if self.state.network.inter_rack_avail != 0 \
+                and len(diskgroups_to_read) >= self.sys.top_k:
                     del self.state.simulation.delay_repair_queue[Components.DISKGROUP][diskgroupId]
                     return (prev_event[0], Diskgroup.EVENT_DELAYED_FAIL, diskgroupId)
         
@@ -349,10 +367,11 @@ class MLEC(Policy):
             disk = self.state.disks[diskId]
             # This means that we have enough bandwidth to carry out the repair
             disk_to_read_from = disks_to_read_for_repair(disk, self)
-            # Note: due to intra-rack repair no longer requiring bandwidth, lower-level repairs can always take place
-            # used_for_top_level = used_for_repair_top_level(self, disk)
+            used_for_top_level = used_for_repair_top_level(self, disk)
             logging.info("Trying to initiate delayed repair for disk %s with inter-rack of %s and avail peer of %s (k=%s)", diskId, self.state.network.inter_rack_avail, len(disk_to_read_from), self.sys.top_k)
-            if len(disk_to_read_from) >= self.sys.top_k:
+            if not used_for_top_level \
+                and self.state.network.inter_rack_avail != 0 \
+                and len(disk_to_read_from) >= self.sys.top_k:
                     logging.info("Delayed disk %s now has enough bandwidth, repairing", diskId)
                     del self.state.simulation.delay_repair_queue[Components.DISK][diskId]
                     return (prev_event[0], Disk.EVENT_DELAYED_FAIL, diskId)

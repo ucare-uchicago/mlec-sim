@@ -3,6 +3,7 @@ import time
 import numpy as np
 from typing import Optional, List, Dict, Tuple
 
+from constants.Components import Components
 from components.disk import Disk
 from components.rack import Rack
 from components.network import NetworkUsage
@@ -16,13 +17,7 @@ class NetRAID(Policy):
     #--------------------------------------
     def __init__(self, state):
         super().__init__(state)
-        self.sys = state.sys
-        self.n = state.n
-        self.racks = state.racks
-        self.disks = state.disks
-        self.curr_time = state.curr_time
-        self.failed_disks = state.failed_disks
-        self.failed_racks = state.failed_racks
+        self.max_prio = 0
 
     #----------------------------------------------
     # raid net
@@ -36,6 +31,7 @@ class NetRAID(Policy):
             
             stripesetId = disk.stripesetId
             failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(stripesetId)
+            self.max_prio = max(self.max_prio, len(failed_disks_per_stripeset))
             logging.info("Repair event of disk %s on stripe %s", diskId, stripesetId)
             # logging.info("Failed stripesets: %s", self.state.get_failed_disks_each_stripeset())
             
@@ -43,7 +39,7 @@ class NetRAID(Policy):
             #  If there is only one failure in the stripeset, this would not be run
             for diskId in failed_disks_per_stripeset:
                 # If the disk is being delayed for repair, we do not update its time
-                if diskId not in self.state.simulation.delay_repair_queue:
+                if not self.state.simulation.delay_repair_queue[Components.DISK].get(diskId, False):
                     self.update_disk_repair_time(diskId, failed_disks_per_stripeset)
 
         if event_type in [Disk.EVENT_FAIL, Disk.EVENT_DELAYED_FAIL]:
@@ -53,6 +49,7 @@ class NetRAID(Policy):
             disk.repair_start_time = self.curr_time
 
             failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(disk.stripesetId)
+            self.max_prio = max(self.max_prio, len(failed_disks_per_stripeset))
             # logging.info("Failed stripesets: %s", self.state.get_failed_disks_each_stripeset())
             logging.info("  update_disk_priority_raid_net event: {} stripesetId: {} failed_disks_per_stripeset: {}".format(
                             event_type, disk.stripesetId, failed_disks_per_stripeset))
@@ -63,7 +60,7 @@ class NetRAID(Policy):
             # we need to update the repair rate for all failed disks, because every failed disk gets less share now
             #--------------------------------------------
             for diskId_per_stripeset in failed_disks_per_stripeset:
-                if diskId_per_stripeset not in self.state.simulation.delay_repair_queue:
+                if not self.state.simulation.delay_repair_queue[Components.DISK].get(diskId_per_stripeset, False):
                     self.update_disk_repair_time(diskId_per_stripeset, failed_disks_per_stripeset)
     
     
@@ -99,7 +96,7 @@ class NetRAID(Policy):
                 #     logging.warning("Caused by interrack bandwidth being 0")
                 # else:
                 #     logging.warning("Not enough surviving peers. Only available peer %s, total of %s", disk_to_read_from, len())
-                self.state.simulation.delay_repair_queue.append(diskId)
+                self.state.simulation.delay_repair_queue[Components.DISK][diskId] = True
                 return
             
             repaired_percent = 0
@@ -117,7 +114,6 @@ class NetRAID(Policy):
         assert network_usage is not None
         # logging.info("Repairing with network bandwidth of %s", network_usage.inter_rack)
         repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / fail_per_stripeset)
-        # repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_stripeset)
         logging.info("Repaired percent %s, Repair time %s", repaired_percent, repair_time)
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
@@ -166,26 +162,27 @@ class NetRAID(Policy):
         return NetworkUsage(inter_rack, intra_rack) 
         
     def check_pdl(self):
-        return net_raid_pdl(self.state)
+        return net_raid_pdl(self, self.state)
     
     def update_repair_events(self, repair_queue):
         netraid_repair(self.state, repair_queue)
         
     def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:
-        logging.info("Trying to intercept event with delay repair queue length of %s", len(self.state.simulation.delay_repair_queue))
+        logging.info("Trying to intercept event with delay repair queue length of %s", len(self.state.simulation.delay_repair_queue[Components.DISK]))
         # Check whether there are delayed repaired disks that satisfy the requirement
-        if len(self.state.simulation.delay_repair_queue) == 0 or self.state.network.inter_rack_avail == 0:
+        if len(self.state.simulation.delay_repair_queue[Components.DISK]) == 0 \
+                or self.state.network.inter_rack_avail == 0:
             return None
         
         # We check all the disks that have been delayed for repairs
-        for diskId in self.state.simulation.delay_repair_queue:
+        for diskId in self.state.simulation.delay_repair_queue[Components.DISK].keys():
             disk = self.state.disks[diskId]
             # This means that we have enough bandwidth to carry out the repair
             disk_to_read_from = self.disks_to_read_for_repair(disk)
             logging.info("Trying to initiate delayed repair for disk %s with inter-rack of %s and avail peer of %s (k=%s)", diskId, self.state.network.inter_rack_avail, len(disk_to_read_from), self.sys.top_k)
             if self.state.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
                 logging.info("Delayed disk %s now has enough bandwidth, repairing", diskId)
-                self.state.simulation.delay_repair_queue.remove(diskId)
+                del self.state.simulation.delay_repair_queue[Components.DISK][diskId]
                 return (prev_event[0], Disk.EVENT_DELAYED_FAIL, diskId)
         
         return None

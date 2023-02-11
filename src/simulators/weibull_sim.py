@@ -4,7 +4,7 @@ import time
 
 from failure_generator import FailureGenerator, Weibull
 from simulators.Simulator import Simulator
-from constants.PlacementType import parse_placement
+from constants.SimulationResult import SimulationResult
 from constants.time import YEAR
 from system import System
 from metrics import Metrics
@@ -18,7 +18,6 @@ class WeibullSim(Simulator):
     def weibull_sim(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
         # logging.basicConfig(level=logging.INFO)
-        place_type = parse_placement(placement)
         
         for beta in np.arange(1, 2.2, 0.2):
             mission = YEAR
@@ -43,7 +42,7 @@ class WeibullSim(Simulator):
                 num_disks_per_rack=drives_per_rack, 
                 k=k_local, 
                 m=p_local, 
-                place_type=place_type, 
+                place_type=placement, 
                 diskCap=cap * 1024 * 1024,
                 rebuildRate=io_speed, 
                 intrarack_speed=intrarack_speed, 
@@ -78,16 +77,6 @@ class WeibullSim(Simulator):
 
             if res[0] == 0:
                 print("NO FAILURE!")
-            else:
-                # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
-                nn = str(round(-math.log10(res[0]/res[1]),3))
-                sigma = str(round(1/(math.log(10) * (res[0]**0.5)),3))
-                print("Num of Nine: " + nn)
-                print("error sigma: " + sigma)
-
-                output = open("s-weibull-{}.log".format(placement), "a")
-                output.write("({}+{})({}+{}) {} {} {} {} {} {} {} {} {} {} {} {}\n".format(
-                    k_local, p_local, k_net, p_net, total_drives,
-                    afr, cap, io_speed, nn, sigma, res[0], res[1], "adapt" if adapt else "notadapt",
-                    alpha, beta, nines_from_calculator))
-                output.close()
+                return SimulationResult(0, res[1], res[2])
+            else:            
+                return SimulationResult(res[0], res[1], res[2])
