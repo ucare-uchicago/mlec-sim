@@ -1,4 +1,5 @@
 import re
+import numpy as np
 
 def parse_sim_result(path: str):
     result = {}
@@ -54,3 +55,16 @@ def parse_metric_result(path: str):
         result['total_delayed_disks'] = (result.get('total_delayed_disks', []) + [float(total_delayed_disks)])
     
     return result
+
+def setup_plot(plt, xlim, ylim):
+    fig, ax = plt.subplots()
+    
+    y_major_ticks = list(range(ylim[0], ylim[1]))
+    y_minor_ticks = np.array(list(range(ylim[0], ylim[1] * 2))) / 2
+
+    ax.set_yticks(y_major_ticks)
+    ax.set_yticks(y_minor_ticks, minor=True)
+    ax.grid(which="minor")
+    
+    plt.ylim(ylim)
+    plt.xlim(xlim)

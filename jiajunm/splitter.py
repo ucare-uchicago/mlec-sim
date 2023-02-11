@@ -2,7 +2,7 @@ import sys
 
 fileName = sys.argv[1]
 inf = "99999999999.0"
-bws = [0.1, 0.5, 1, 2, 4, inf]
+bws = [8,7,6,5]
 
 for bw_ in bws:
     bw = str(bw_).replace('.', '_')
@@ -11,9 +11,9 @@ for bw_ in bws:
     rows = []
     for row in file:
         if bw_ == "inf":
-            bwName = "ibw:" + str(inf)
+            bwName = "kl:" + str(inf)
         else:
-            bwName = "ibw:" + str(bw_)
+            bwName = "kl:" + str(bw_)
         if bwName in row:
             rows.append(row)
     
@@ -23,9 +23,9 @@ for bw_ in bws:
     
     
     if bw_ == inf:
-        dirPath += "/s-result-MLEC_inf.log"
+        dirPath += "/s-result-DP_NET_inf.log"
     else:
-        dirPath += "/s-result-MLEC_" + bw + ".log"
+        dirPath += "/s-result-DP_NET_" + bw + ".log"
     
     writeFile = open(dirPath, "w")
     for row in rows:
