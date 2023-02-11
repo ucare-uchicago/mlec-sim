@@ -343,9 +343,9 @@ if __name__ == "__main__":
 
     num_chunks_per_disk = args.num_chunks_per_disk
 
-    for num_failed_disks in range(2, 5):
+    for num_failed_disks in range(4, 50):
     #     # for num_affected_racks in range(1, num_failed_disks+1):
-        for num_affected_racks in range(2,3):
+        for num_affected_racks in range(4,5):
 
     # for num_failed_disks in range(1, 41):
         # for num_affected_racks in range(1,num_failed_disks+1):
