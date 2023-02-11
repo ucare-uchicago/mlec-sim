@@ -61,4 +61,5 @@ optional arguments:
 - `python main.py -k_local=8 -p_local=2 -total_drives=50 -drives_per_rack=50 -io_speed=100 -placement=RAID`
 - `python main.py -sim_mode 0 -afr 2 -io_speed 100 -cap 20 -k_local 8 -p_local 2 -total_drives 50 -drives_per_rack 50 -placement=DP`
 - The simulation result would be in the file `s-result-<mode>.log` file with the following format
-   - (k_net+p_net)(k_local+p_local) total_drives afr cap io_speed n_nines sigma failed_iters total_iters adapt
+   - `(kn:<k_net>+pn:<p_net>)(kl:<k_local>+pl:<p_local>) td:<total_drives> afr:<afr> cap:<drive_cap> io:<drive_io> ibw:<intrarack_bw> cbw:<crossrack_bw> nn:<num_of_nines> sd:<stddev> f:<failed_iters> t:<total_iters> ad:<adapt>`
+   - A parser script that takes a result file as input and return a parsed dictionary is provided in `src/parse.py`
