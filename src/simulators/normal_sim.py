@@ -62,5 +62,17 @@ class NormalSim(Simulator):
             print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
 
         total_iters *= mission/YEAR
+
+        # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+        nines = str(round(-math.log10(failed_iters/total_iters),3))
+        sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
+        print("Num of Nine: " + nines)
+        print("error sigma: " + sigma)
+
+        total_down_time = metrics.getAverageAggregateDownTime()
+        total_time = YEAR * total_drives
+        avail_nines = str(round(-math.log10(total_down_time/total_time),3))
+        print("average aggregate down time: {}\navail_nines:{}".format(
+                    total_down_time, avail_nines))
         
         return SimulationResult(failed_iters, int(total_iters), metrics)

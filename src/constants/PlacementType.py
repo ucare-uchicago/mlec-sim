@@ -9,6 +9,8 @@ class PlacementType(str, Enum):
     
     MLEC = "MLEC"
     MLEC_DP = 'MLEC_DP'
+    MLEC_D_C = "MLEC_D_C"
+    MLEC_D_D = "MLEC_D_D"
     
     
 def parse_placement(str: str) -> PlacementType:
