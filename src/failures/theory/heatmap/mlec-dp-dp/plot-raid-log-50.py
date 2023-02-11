@@ -16,8 +16,8 @@ import math
 figure, axes = plt.subplots()
 
 axes.set_aspect( 1 )
-x_range = [0,30]
-y_range = [0,30]
+x_range = [0,50]
+y_range = [0,50]
 axes.set_xlim(x_range)
 axes.set_ylim(y_range)
 
@@ -78,23 +78,23 @@ plt.legend()
 plt.xlabel('Number of racks affected', fontsize=14)
 plt.ylabel('Number of drives affected', fontsize=14)
 # plt.title('Frequency of failure bursts sorted by racks and drives affected')
-plt.title(occuranceDataLoss.iloc[1]['config'] + ' Clustered Network-only SLEC\n'+ r"$\bf{Theoretical, 10TB disk, 100GB chunk}$", fontsize=16)
+plt.title('(18+2)/(18+2)' + ' MLEC local declustered\n'+ r"$\bf{Theoretical}$", fontsize=16)
 
 plt.xticks(fontsize=12)
 plt.yticks(fontsize=12)
 axes.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 axes.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
-plt.text(1, 28, 'PDL: 0.0')
-plt.text(4.6, 28, r'$10^{-6}$')
-plt.text(7.6, 28, r'$10^{-5}$')
-plt.text(10.1, 28, r'$10^{-4}$')
-plt.text(12.6, 28, r'$10^{-3}$')
-plt.text(15, 28, r'$10^{-2}$')
-plt.text(17.8, 28, r'$10^{-1}$')
-plt.text(20.5, 28, r'$0.9$')
-plt.text(22.5, 28, r'$0.99$')
-plt.text(26, 28, r'$1$')
+plt.text(1.5, 47, 'PDL: 0.0')
+plt.text(8.6, 47, r'$10^{-6}$')
+plt.text(12.6, 47, r'$10^{-5}$')
+plt.text(16.1, 47, r'$10^{-4}$')
+plt.text(21, 47, r'$10^{-3}$')
+plt.text(26, 47, r'$10^{-2}$')
+plt.text(30, 47, r'$10^{-1}$')
+plt.text(34.5, 47, r'$0.9$')
+plt.text(38.5, 47, r'$0.99$')
+plt.text(43, 47, r'$1$')
 
 import matplotlib as mpl
 import matplotlib.colors as colors

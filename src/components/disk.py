@@ -58,6 +58,10 @@ class Disk:
         self.network_usage: Optional[NetworkUsage] = None
         self.paused: bool = False
         #-------------------------------
+        # metrics
+        # ----
+        self.metric_down_start_time = 0 
+
 
 
     def update_disk_state(self, state):

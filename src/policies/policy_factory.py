@@ -4,6 +4,8 @@ from .netdp.layout import net_dp_layout
 from .netraid.layout import net_raid_layout
 from .mlec.layout import mlec_cluster_layout
 from .mlecdp.layout import mlec_dp_layout
+from .mlec_d_c.layout import mlec_d_c_layout
+from .mlec_d_d.layout import mlec_d_d_layout
 
 from policies.raid.raid import RAID
 from policies.netraid.netraid import NetRAID
@@ -11,6 +13,7 @@ from policies.decluster.decluster import Decluster
 from policies.netdp.netdp import NetDP
 from policies.mlec.mlec import MLEC
 from policies.mlecdp.mlecdp import MLECDP
+
 
 from constants.PlacementType import PlacementType
 
@@ -26,9 +29,14 @@ def config_system_layout(placement: PlacementType, system):
         net_dp_layout(system)
     elif placement == PlacementType.MLEC:
         mlec_cluster_layout(system)
-    elif PlacementType == PlacementType.MLEC_DP:
+    elif placement == PlacementType.MLEC_DP:
         mlec_dp_layout(system)
+    elif placement == PlacementType.MLEC_D_C:
+        mlec_d_c_layout(system)
+    elif placement == PlacementType.MLEC_D_D:
+        mlec_d_d_layout(system)
     else:
+        print("???")
         raise NotImplementedError("Cannot recognize the placement type")
     
 def get_policy(placement: PlacementType, state):
