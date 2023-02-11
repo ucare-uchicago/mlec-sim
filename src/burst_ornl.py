@@ -121,7 +121,7 @@ class CorrelatedBurst:
 
 
 
-def iter(afr, failure_list, placement, num_chunks_per_disk, drives_per_rack, iters_list, *arg):
+def iter(afr, failure_list, placement, num_chunks_per_disk, drives_per_rack, num_disks_per_enclosure, iters_list,  *arg):
     try:
         results = []
         for i in range(len(failure_list)):
@@ -139,7 +139,7 @@ def iter(afr, failure_list, placement, num_chunks_per_disk, drives_per_rack, ite
                 # start = time.time()
                 failureGenerator = FailureGenerator(afr, CorrelatedBurst(num_failed_disks,num_failed_racks, drives_per_rack), is_burst=True)
                 # print(time.time()-start)
-                sys = System(*arg, num_disks_per_enclosure=100)
+                sys = System(*arg, num_disks_per_enclosure=num_disks_per_enclosure)
             
                 # start = time.time()
                 # init_time = 0
@@ -167,7 +167,7 @@ def iter(afr, failure_list, placement, num_chunks_per_disk, drives_per_rack, ite
 # This is a parallel/multi-iter wrapper around iter() function
 # We run X threads in parallel to run the simulation. X = concur.
 # ----------------------------
-def simulate(afr, failure_list, placement, num_chunks_per_disk, drives_per_rack, iters_list, epochs, concur=10, *arg):
+def simulate(afr, failure_list, placement, num_chunks_per_disk, drives_per_rack, num_disks_per_enclosure, iters_list, epochs, concur=10, *arg):
     # So tick(state) is for a single system, and we want to simulate multiple systems
     executor = ProcessPoolExecutor(concur)
     
@@ -176,7 +176,7 @@ def simulate(afr, failure_list, placement, num_chunks_per_disk, drives_per_rack,
     metrics = Metrics()
 
     for epoch in range(0, epochs):
-        futures.append(executor.submit(iter, afr, failure_list, placement, num_chunks_per_disk, drives_per_rack, iters_list, *arg))
+        futures.append(executor.submit(iter, afr, failure_list, placement, num_chunks_per_disk, drives_per_rack, num_disks_per_enclosure, iters_list, *arg))
     ress = wait_futures(futures)
     
     executor.shutdown(wait=False)
@@ -195,7 +195,7 @@ def get_placement_index(placement):
 # simulate against bursts
 # -----------------------------
 def burst_sim(afr, io_speed, cap, adapt, k_net, p_net, k_local, p_local,
-                total_drives, drives_per_rack, placement, num_chunks_per_disk, distribution):
+                total_drives, drives_per_rack, num_disks_per_enclosure, placement, num_chunks_per_disk, distribution):
     # logging.basicConfig(level=logging.INFO)
     df = pd.read_csv ('failures/exp/ornl/by_rack/burst_node_rack.csv')
     upper_bounds = {}
@@ -245,7 +245,7 @@ def burst_sim(afr, io_speed, cap, adapt, k_net, p_net, k_local, p_local,
     # for num_failed_racks in range(1,21):
     #     for num_failed_disks in range(20, 21):
     #         failure_list.append((num_failed_racks, num_failed_disks))
-    for num_failed_disks in range(70, 90):
+    for num_failed_disks in range(4, 50):
         # for num_failed_racks in range(1, num_failed_disks+1):
         for num_failed_racks in range(4, 5):
             failure_list.append((num_failed_racks, num_failed_disks))
@@ -263,7 +263,7 @@ def burst_sim(afr, io_speed, cap, adapt, k_net, p_net, k_local, p_local,
     place_type = get_placement_index(placement)
     start  = time.time()
 
-    results = simulate(afr, failure_list, placement, num_chunks_per_disk, drives_per_rack, iters_list, epochs, epochs, 
+    results = simulate(afr, failure_list, placement, num_chunks_per_disk, drives_per_rack, num_disks_per_enclosure, iters_list, epochs, epochs, 
                         total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
                         io_speed, io_speed, io_speed, 
                         1, k_net, p_net, adapt)
@@ -310,6 +310,7 @@ if __name__ == "__main__":
     parser.add_argument('-p_net', type=int, help="number of parity chunks in network EC", default=1)
     parser.add_argument('-total_drives', type=int, help="number of total drives in the system", default=-1)
     parser.add_argument('-drives_per_rack', type=int, help="number of drives per rack", default=-1)
+    parser.add_argument('-drives_per_diskgroup', type=int, help="number of drives per disk group", default=-1)
     parser.add_argument('-placement', type=str, help="placement policy. Can be RAID/DP/MLEC/LRC", default='MLEC')
     parser.add_argument('-num_chunks_per_disk', type=int, help="num chunks per disk. Ideally we assume infinite, but in reality it's a finite number ", default=1000)
     parser.add_argument('-dist', type=str, help="disk failure distribution. Can be exp/weibull", default='exp')
@@ -333,6 +334,10 @@ if __name__ == "__main__":
     if drives_per_rack == -1:
         drives_per_rack=k_local+p_local
     
+    num_disks_per_enclosure = args.drives_per_diskgroup
+    if num_disks_per_enclosure == -1:
+        num_disks_per_enclosure = k_local + p_local
+    
     placement = args.placement
     if placement in ['RAID', 'DP']:
         k_net = 1
@@ -347,4 +352,4 @@ if __name__ == "__main__":
     num_chunks_per_disk = args.num_chunks_per_disk
 
     burst_sim(afr, io_speed, cap, adapt, k_net, p_net, k_local, p_local, 
-                total_drives, drives_per_rack, placement, num_chunks_per_disk, dist)
+                total_drives, drives_per_rack, num_disks_per_enclosure, placement, num_chunks_per_disk, dist)

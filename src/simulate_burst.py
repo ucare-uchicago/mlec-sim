@@ -43,6 +43,12 @@ class Simulate:
             # return self.network_decluster_check_burst_theory(failures, num_chunks_per_disk)
         if self.place_type == PlacementType.MLEC_DP:
             return self.mlec_decluster_check_burst(failures)
+        if self.place_type == PlacementType.MLEC_D_C:
+            return self.mlec_d_c_check_burst(failures)
+        if self.place_type == PlacementType.MLEC_D_D:
+            return self.mlec_d_d_check_burst(failures)
+
+            
         
         raise NotImplementedError("placement type not recognized")
 
@@ -105,6 +111,53 @@ class Simulate:
                 # print('diskgroupStripesetId:{}  {}'.format(diskgroupStripesetId, failed_diskgroups_per_stripeset[diskgroupStripesetId]))
                 if failed_diskgroups_per_stripeset[diskgroupStripesetId] > self.sys.top_m:
                     return 1
+        return 0
+
+    # top declustered, bottom clustered
+    def mlec_d_c_check_burst(self, failures):
+        num_diskgroups = self.sys.num_disks // self.sys.n
+        failed_disks_per_diskgroup = [0] * num_diskgroups
+
+        failed_diskgroups_per_rack = [0] * self.sys.num_racks
+        num_failed_racks = 0
+
+        for _, diskId in failures:
+            diskgroupId = diskId // self.sys.n
+            # print('diskgroupId:{}'.format(diskgroupId))
+            failed_disks_per_diskgroup[diskgroupId] += 1
+            # print('{} {}'.format(diskgroupId, failed_disks_per_diskgroup[diskgroupId]))
+            # we only increment failed_diskgroups_per_stripeset once when failed_disks_per_diskgroup first reaches m+1
+            # when it reaches m+2 or more, we don't increment failed_diskgroups_per_stripeset because we already know this diskgroup failed.
+            if failed_disks_per_diskgroup[diskgroupId] == self.sys.m + 1:
+                rackId = diskId // self.sys.num_disks_per_rack
+                failed_diskgroups_per_rack[rackId] += 1
+                if failed_diskgroups_per_rack[rackId] == 1:
+                    num_failed_racks += 1
+                    if num_failed_racks > self.sys.top_m:
+                        return 1
+        return 0
+    
+    def mlec_d_d_check_burst(self, failures):
+        num_diskgroups = self.sys.num_disks // self.sys.num_disks_per_enclosure
+        failed_disks_per_diskgroup = [0] * num_diskgroups
+
+        failed_diskgroups_per_rack = [0] * self.sys.num_racks
+        num_failed_racks = 0
+
+        for _, diskId in failures:
+            diskgroupId = diskId // self.sys.num_disks_per_enclosure
+            # print('diskgroupId:{}'.format(diskgroupId))
+            failed_disks_per_diskgroup[diskgroupId] += 1
+            # print('{} {}'.format(diskgroupId, failed_disks_per_diskgroup[diskgroupId]))
+            # we only increment failed_diskgroups_per_stripeset once when failed_disks_per_diskgroup first reaches m+1
+            # when it reaches m+2 or more, we don't increment failed_diskgroups_per_stripeset because we already know this diskgroup failed.
+            if failed_disks_per_diskgroup[diskgroupId] == self.sys.m + 1:
+                rackId = diskId // self.sys.num_disks_per_rack
+                failed_diskgroups_per_rack[rackId] += 1
+                if failed_diskgroups_per_rack[rackId] == 1:
+                    num_failed_racks += 1
+                    if num_failed_racks > self.sys.top_m:
+                        return 1
         return 0
 
 
