@@ -29,7 +29,7 @@ def config_system_layout(placement: PlacementType, system):
         net_dp_layout(system)
     elif placement == PlacementType.MLEC:
         mlec_cluster_layout(system)
-    elif placement == PlacementType.MLEC_DP:
+    elif placement == PlacementType.MLEC_C_D:
         mlec_c_d_layout(system)
     elif placement == PlacementType.MLEC_D_C:
         mlec_d_c_layout(system)
@@ -48,7 +48,7 @@ def get_policy(placement: PlacementType, state):
         return MLEC(state)
     elif placement == PlacementType.RAID_NET:
         return NetRAID(state)
-    elif placement == PlacementType.MLEC_DP:
+    elif placement == PlacementType.MLEC_C_D:
         return MLEC_C_D(state)
     elif placement == PlacementType.DP_NET:
         return NetDP(state)

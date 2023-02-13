@@ -27,7 +27,7 @@ class ManualFailTwoRackSim(Simulator):
         for cap in range(100, 110, 10):
             # 1. get P(rack 1 fails)
             local_place_type = PlacementType.RAID        # local RAID
-            if placement == PlacementType.MLEC_DP:         # if MLEC_DP
+            if placement == PlacementType.MLEC_C_D:         # if MLEC_C_D
                 local_place_type = PlacementType.DP    # local DP
             failureGenerator = FailureGenerator(afr)
             sys = System(

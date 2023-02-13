@@ -40,7 +40,7 @@ def burst_theory(k_net, p_net, k_local, p_local,
         return burst_theory_mlec(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
     
-    if placement == 'MLEC_DP':
+    if placement == 'MLEC_C_D':
         return burst_theory_mlec_c_d(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks)
     
