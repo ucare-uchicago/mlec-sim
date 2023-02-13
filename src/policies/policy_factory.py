@@ -3,7 +3,7 @@ from .raid.layout import flat_cluster_layout
 from .netdp.layout import net_dp_layout
 from .netraid.layout import net_raid_layout
 from .mlec.layout import mlec_cluster_layout
-from .mlecdp.layout import mlec_dp_layout
+from .mlec_c_d.layout import mlec_c_d_layout
 from .mlec_d_c.layout import mlec_d_c_layout
 from .mlec_d_d.layout import mlec_d_d_layout
 
@@ -12,7 +12,7 @@ from policies.netraid.netraid import NetRAID
 from policies.decluster.decluster import Decluster
 from policies.netdp.netdp import NetDP
 from policies.mlec.mlec import MLEC
-from policies.mlecdp.mlecdp import MLECDP
+from policies.mlec_c_d.mlec_c_d import MLECDP
 
 
 from constants.PlacementType import PlacementType
@@ -30,7 +30,7 @@ def config_system_layout(placement: PlacementType, system):
     elif placement == PlacementType.MLEC:
         mlec_cluster_layout(system)
     elif placement == PlacementType.MLEC_DP:
-        mlec_dp_layout(system)
+        mlec_c_d_layout(system)
     elif placement == PlacementType.MLEC_D_C:
         mlec_d_c_layout(system)
     elif placement == PlacementType.MLEC_D_D:

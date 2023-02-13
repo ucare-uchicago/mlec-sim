@@ -41,7 +41,7 @@ def burst_theory(k_net, p_net, k_local, p_local,
                 total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
     
     if placement == 'MLEC_DP':
-        return burst_theory_mlec_dp(k_net, p_net, k_local, p_local, 
+        return burst_theory_mlec_c_d(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks)
     
     if placement == 'MLEC_TOP_DP':
@@ -222,12 +222,12 @@ def burst_theory_lrc_dp(k_net, p_net, k_local, p_local,
 ##############################
 # mlec declustered
 ##############################
-def burst_theory_mlec_dp(k_net, p_net, k_local, p_local, 
+def burst_theory_mlec_c_d(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks):
     num_racks = total_drives // drives_per_rack
     total_cases = total.total_cases_fixed_racks(num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
     
-    survival_cases = mlec_dp.survival_count(k_net, p_net, k_local, p_local, total_drives, drives_per_rack, drives_per_diskgroup, num_failed_disks, num_affected_racks)
+    survival_cases = mlec_c_d.survival_count(k_net, p_net, k_local, p_local, total_drives, drives_per_rack, drives_per_diskgroup, num_failed_disks, num_affected_racks)
 
     # print(mlec.survival_count_dic)
     print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))

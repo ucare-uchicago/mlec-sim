@@ -4,7 +4,7 @@ import typing
 if typing.TYPE_CHECKING:
     from system import System
 
-def mlec_dp_layout(sys: System):
+def mlec_c_d_layout(sys: System):
     sys.flat_decluster_rack_layout = {}
     for rackId in sys.racks:
         disks_per_rack = sys.disks_per_rack[rackId]

@@ -3,7 +3,9 @@ import policies.total
 # import total
 
 
-
+# chunks_per_group: data_chunks + 1 local parity
+# global_p: global parity #
+# put one local group in a rack, or all global chunks in a rack
 stripe_fail_cases_correlated_dict = {}
 def stripe_fail_cases_correlated(num_groups, chunks_per_group, global_p, num_failed_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks):
     key = (num_groups, chunks_per_group, global_p, num_failed_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
@@ -42,9 +44,11 @@ def stripe_fail_cases_correlated(num_groups, chunks_per_group, global_p, num_fai
     for curr_rack_failure in range(0, max_failures_curr_rack+1):
         curr_rack_affected = 0 if curr_rack_failure == 0 else 1
         safe_drives_curr_rack = drives_per_rack - curr_rack_failure
-        count += math.comb(drives_per_rack, curr_rack_failure) * stripe_fail_cases_correlated(num_groups, chunks_per_group, global_p, num_failed_chunks, num_racks-1, 
+        # no chunk in this rack
+        count += math.comb(drives_per_rack, curr_rack_failure) * stripe_fail_cases_correlated(num_groups, chunks_per_group, global_p, 
+                            num_failed_chunks, num_racks-1, 
                             drives_per_rack, num_failed_disks-curr_rack_failure, num_affected_racks-curr_rack_affected)
-        # local group in this rack:
+        # there is a local group in this rack:
         max_failed_chunks_curr_rack = min(curr_rack_failure, chunks_per_group)
         max_safe_chunks_curr_rack = min(chunks_per_group, safe_drives_curr_rack)
         min_failed_chunks_curr_rack = chunks_per_group - max_safe_chunks_curr_rack

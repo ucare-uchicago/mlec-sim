@@ -2,7 +2,7 @@ from heapq import heappush
 from components.disk import Disk
 from components.rack import Rack
 
-def mlecdp_repair(state, repair_queue):
+def mlec_c_d_repair(state, repair_queue):
     
     for rackId in state.get_failed_racks():
         repair_event = state.policy.get_rack_repair_event(rackId)

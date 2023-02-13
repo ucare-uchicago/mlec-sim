@@ -11,8 +11,8 @@ from components.disk import Disk
 from components.rack import Rack
 from policies.policy import Policy
 from helpers.common_math import ncr
-from .pdl import mlec_dp_pdl
-from .repair import mlecdp_repair
+from .pdl import mlec_c_d_pdl
+from .repair import mlec_c_d_repair
 
 class MLECDP(Policy):
     #--------------------------------------
@@ -218,7 +218,7 @@ class MLECDP(Policy):
         raise NotImplementedError("update_disk_repair_time_adapt() for mlecdp is not implemented")
     
     def check_pdl(self):
-        return mlec_dp_pdl(self.state)
+        return mlec_c_d_pdl(self.state)
     
     def update_repair_events(self, repair_queue):
-        mlecdp_repair(self.state, repair_queue)
+        mlec_c_d_repair(self.state, repair_queue)
