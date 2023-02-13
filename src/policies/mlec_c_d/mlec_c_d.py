@@ -14,7 +14,7 @@ from helpers.common_math import ncr
 from .pdl import mlec_c_d_pdl
 from .repair import mlec_c_d_repair
 
-class MLECDP(Policy):
+class MLEC_C_D(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------

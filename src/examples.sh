@@ -14,9 +14,9 @@ python main.py -sim_mode 6 -k_net 8 -p_net 2 -total_drives 2500 -drives_per_rack
 python burst_ornl.py -k_net 8 -p_net 2 -total_drives 32000 -drives_per_rack 100 -placement=RAID_NET
 
 # burst mlec dp
-python main.py -sim_mode 6 -k_net 16 -p_net 2 -k_local 8 -p_local 2 -total_drives 2700 -drives_per_rack 50 -placement=MLEC_DP
-python main.py -sim_mode 6 -k_net 8 -p_net 2 -k_local 8 -p_local 2 -total_drives 2500 -drives_per_rack 50 -placement=MLEC_DP
-python burst.py -k_net 8 -p_net 2 -k_local 8 -p_local 2 -total_drives 2500 -drives_per_rack 50 -placement=MLEC_DP
+python main.py -sim_mode 6 -k_net 16 -p_net 2 -k_local 8 -p_local 2 -total_drives 2700 -drives_per_rack 50 -placement=MLEC_C_D
+python main.py -sim_mode 6 -k_net 8 -p_net 2 -k_local 8 -p_local 2 -total_drives 2500 -drives_per_rack 50 -placement=MLEC_C_D
+python burst.py -k_net 8 -p_net 2 -k_local 8 -p_local 2 -total_drives 2500 -drives_per_rack 50 -placement=MLEC_C_D
 
 # burst mlec
 python main.py -sim_mode 6 -io_speed 100 -cap 20 -k_net 8 -p_net 2 -k_local 8 -p_local 2 -total_drives 2500 -drives_per_rack 50 -placement=MLEC

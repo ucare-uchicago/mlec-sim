@@ -12,7 +12,7 @@ from policies.netraid.netraid import NetRAID
 from policies.decluster.decluster import Decluster
 from policies.netdp.netdp import NetDP
 from policies.mlec.mlec import MLEC
-from policies.mlec_c_d.mlec_c_d import MLECDP
+from policies.mlec_c_d.mlec_c_d import MLEC_C_D
 
 
 from constants.PlacementType import PlacementType
@@ -49,6 +49,6 @@ def get_policy(placement: PlacementType, state):
     elif placement == PlacementType.RAID_NET:
         return NetRAID(state)
     elif placement == PlacementType.MLEC_DP:
-        return MLECDP(state)
+        return MLEC_C_D(state)
     elif placement == PlacementType.DP_NET:
         return NetDP(state)

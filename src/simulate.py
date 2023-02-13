@@ -186,7 +186,7 @@ class Simulate:
             # In MLEC-DP, a rack can have more disks
             # If the rack has m+1 or more disk failures, then we need to repair the rack
             #--------------------------------------
-            if self.sys.place_type == PlacementType.MLEC_DP:
+            if self.sys.place_type == PlacementType.MLEC_C_D:
                 new_rack_failure = self.state.policy.update_rack_state(event_type, diskId)
                 if new_rack_failure != None:
                     self.state.policy.update_rack_priority(event_type, new_rack_failure, diskId)
