@@ -56,27 +56,13 @@ def cal_radius(count):
     intercept = 10
     return slope * math.log10(count) + intercept
 
+colorlist = ['green', 'lightgreen', 'yellow', 'lightblue', 'blue', 'orange', 'orchid', 'sienna', 'purple', 'red']
+colorranges = [0,      0.0000001, 0.000001,    0.00001,    0.0001,  0.001,    0.01,     0.1,      0.99,    1]
+
 def coloring(x):
-    if x == 0:
-        return 'green'
-    elif x <=0.0000001:
-        return 'lightgreen'
-    elif x <= 0.000001:
-        return 'yellow'
-    elif x <= 0.00001:
-        return 'lightblue'
-    elif x <= 0.0001:
-        return 'blue'
-    elif x <= 0.001:
-        return 'orange'
-    elif x <= 0.01:
-        return 'orchid'
-    elif x <= 0.1:
-        return 'brown'
-    elif x <= 0.99:
-        return 'purple'
-    else:
-        return 'red'
+    for i in range(len(colorranges)):
+        if x <= colorranges[i]:
+            return colorlist[i]
 
 survival_prob = 1
 total_count = 0
@@ -125,9 +111,28 @@ import matplotlib as mpl
 import matplotlib.colors as colors
 
 dd = 10**(-100)  # a number that is very close to 0
-hc = ['green', 'green', 'lightgreen', 'lightgreen','yellow', 'yellow', 'lightblue', 'lightblue', 'blue', 'blue', 'orange', 'orange', 'orchid',  'orchid', 'brown', 'brown', 'purple', 'purple', 'red', 'red']
-th = [0,       0.01,    0.01+dd,   0.125,   0.125+dd,    0.25,         0.25+dd,      0.375,      0.375+dd,   0.5,  0.5+dd, 0.625,  0.625+dd,  0.75,     0.75+dd, 0.875,    0.875+dd, 0.99,      0.99+dd, 1]
 
+# hc = ['green', 'green', 'lightgreen', 'lightgreen','yellow', 'yellow', 'lightblue', 'lightblue', 'blue', 'blue', 'orange', 'orange', 'orchid',  'orchid', 'brown', 'brown', 'purple', 'purple', 'red', 'red']
+# th = [0,       0.01,    0.01+dd,   0.125,   0.125+dd,    0.25,         0.25+dd,      0.375,      0.375+dd,   0.5,  0.5+dd, 0.625,  0.625+dd,  0.75,     0.75+dd, 0.875,    0.875+dd, 0.99,      0.99+dd, 1]
+hc = []
+th = []
+for i in range(len(colorranges)):
+    hc.append(colorlist[i])
+    hc.append(colorlist[i])
+
+num_blocks = len(colorranges) - 2
+th.append(0)
+th.append(0.01)
+for i in range(num_blocks):
+    block_left = (i)/num_blocks*0.98+0.01
+    block_right = (i+1)/num_blocks*0.98+0.01
+    th.append(block_left+dd)
+    th.append(block_right)
+th.append(0.99+dd)
+th.append(1)
+# print(th)
+
+    
 
 mycolors=list(zip(th, hc))
 cm = colors.LinearSegmentedColormap.from_list('test', mycolors)
