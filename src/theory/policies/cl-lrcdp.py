@@ -18,25 +18,20 @@ def stripe_fail_cases_correlated(num_groups, chunks_per_group, global_p, num_fai
     if num_failed_disks > num_affected_racks * drives_per_rack:
         stripe_fail_cases_correlated_dict[key] = 0
         return 0
-    if num_racks < n_net or num_racks < num_affected_racks:
+    num_global_groups = 1 if global_p > 0 else 0
+    if num_racks < num_global_groups + num_groups or num_racks < num_affected_racks:
         stripe_fail_cases_correlated_dict[key] = 0
         return 0
-    if num_failed_chunks > n_net:
+    if num_failed_chunks > num_groups * chunks_per_group + global_p:
         stripe_fail_cases_correlated_dict[key] = 0
         return 0
 
     count = 0
-    if num_racks == 1:
-        if n_net == 0:
-            count =  math.comb(drives_per_rack, num_failed_disks)
-        else:  # n_net = 1
-            if num_failed_chunks == 1:
-                count = num_failed_disks * math.comb(drives_per_rack, num_failed_disks)
-            else:
-                count = drives_per_rack * math.comb(drives_per_rack, num_failed_disks)
-        stripe_fail_cases_correlated_dict[key] = count
-        # print(count)
-        return count
+    if num_racks == 0:
+        if num_failed_chunks > 0:
+            return 0
+        else:
+            return 1
     
     max_failures_curr_rack = min(num_failed_disks-num_affected_racks+1, drives_per_rack, num_failed_disks)
     count = 0
@@ -49,77 +44,34 @@ def stripe_fail_cases_correlated(num_groups, chunks_per_group, global_p, num_fai
                             num_failed_chunks, num_racks-1, 
                             drives_per_rack, num_failed_disks-curr_rack_failure, num_affected_racks-curr_rack_affected)
         # there is a local group in this rack:
-        max_failed_chunks_curr_rack = min(curr_rack_failure, chunks_per_group)
-        max_safe_chunks_curr_rack = min(chunks_per_group, safe_drives_curr_rack)
-        min_failed_chunks_curr_rack = chunks_per_group - max_safe_chunks_curr_rack
-        for i in range(min_failed_chunks_curr_rack, max_failed_chunks_curr_rack+1):
-            count += (math.comb(drives_per_rack, curr_rack_failure) * math.comb(curr_rack_failure, i) 
+        if num_groups > 0:
+            max_failed_chunks_curr_rack = min(curr_rack_failure, chunks_per_group)
+            max_safe_chunks_curr_rack = min(chunks_per_group, safe_drives_curr_rack)
+            min_failed_chunks_curr_rack = chunks_per_group - max_safe_chunks_curr_rack
+            for i in range(min_failed_chunks_curr_rack, max_failed_chunks_curr_rack+1):
+                count += num_groups * (math.comb(drives_per_rack, curr_rack_failure) * math.comb(curr_rack_failure, i) 
                             * math.comb(safe_drives_curr_rack, chunks_per_group - i)
                             * stripe_fail_cases_correlated(num_groups-1, chunks_per_group, global_p, num_failed_chunks-i, num_racks-1, 
                             drives_per_rack, num_failed_disks-curr_rack_failure, num_affected_racks-curr_rack_affected))
+        print("curr_rack_failure: {}  count: {}".format(curr_rack_failure, count))
+        # we put global parities in this rack:
+        if global_p > 0:
+            max_failed_chunks_curr_rack = min(curr_rack_failure, global_p)
+            max_safe_chunks_curr_rack = min(global_p, safe_drives_curr_rack)
+            min_failed_chunks_curr_rack = global_p - max_safe_chunks_curr_rack
+            for i in range(min_failed_chunks_curr_rack, max_failed_chunks_curr_rack+1):
+                count += (math.comb(drives_per_rack, curr_rack_failure) * math.comb(curr_rack_failure, i) 
+                            * math.comb(safe_drives_curr_rack, global_p - i)
+                            * stripe_fail_cases_correlated(num_groups, chunks_per_group, 0, num_failed_chunks-i, num_racks-1, 
+                            drives_per_rack, num_failed_disks-curr_rack_failure, num_affected_racks-curr_rack_affected))
 
-
-        
+        print("curr_rack_failure: {}  count: {}".format(curr_rack_failure, count))
     stripe_fail_cases_correlated_dict[key] = count
     # print(count)
+    print("{}: {}".format(key, count))
     return count
 
 
-
-stripe_fixed_fail_chunk_cases_correlated_dict = {}
-def stripe_fixed_fail_chunk_cases_correlated(n_net, num_failed_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks):
-    key = (n_net, num_failed_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
-    
-    if key in stripe_fixed_fail_chunk_cases_correlated_dict:
-        return stripe_fixed_fail_chunk_cases_correlated_dict[key]
-    if num_failed_disks < num_affected_racks:
-        stripe_fixed_fail_chunk_cases_correlated_dict[key] = 0
-        return 0
-    if num_failed_disks > num_affected_racks * drives_per_rack:
-        stripe_fixed_fail_chunk_cases_correlated_dict[key] = 0
-        return 0
-    if num_racks < n_net or num_racks < num_affected_racks:
-        stripe_fixed_fail_chunk_cases_correlated_dict[key] = 0
-        return 0
-    if num_failed_chunks > n_net or num_failed_chunks < 0:
-        stripe_fixed_fail_chunk_cases_correlated_dict[key] = 0
-        return 0
-    
-
-    count = 0
-    if num_racks == 1:
-        if n_net == 0:
-            count =  math.comb(drives_per_rack, num_failed_disks)
-        else:  # n_net = 1
-            if num_failed_chunks == 1:
-                count = num_failed_disks * math.comb(drives_per_rack, num_failed_disks)
-            else:
-                # print(key)
-                # print("drives_per_rack {} . num_failed_disks {}".format(drives_per_rack, num_failed_disks))
-                count = (drives_per_rack - num_failed_disks) * math.comb(drives_per_rack, num_failed_disks)
-        stripe_fixed_fail_chunk_cases_correlated_dict[key] = count
-        # print(key)
-        # print(count)
-        return count
-    
-    max_failures_curr_rack = min(num_failed_disks-num_affected_racks+1, drives_per_rack, num_failed_disks)
-    count = 0
-    
-    for curr_rack_failure in range(0, max_failures_curr_rack+1):
-        curr_rack_affected = 0 if curr_rack_failure == 0 else 1
-        count += math.comb(drives_per_rack, curr_rack_failure) * stripe_fixed_fail_chunk_cases_correlated(n_net, num_failed_chunks, num_racks-1, 
-                            drives_per_rack, num_failed_disks-curr_rack_failure, num_affected_racks-curr_rack_affected)
-        if n_net > 0:
-            count += math.comb(drives_per_rack, curr_rack_failure) * (
-                        curr_rack_failure * stripe_fixed_fail_chunk_cases_correlated(n_net-1, num_failed_chunks-1, num_racks-1, 
-                            drives_per_rack, num_failed_disks-curr_rack_failure, num_affected_racks-curr_rack_affected) +
-                        (drives_per_rack - curr_rack_failure) * stripe_fixed_fail_chunk_cases_correlated(n_net-1, num_failed_chunks, num_racks-1, 
-                            drives_per_rack, num_failed_disks-curr_rack_failure, num_affected_racks-curr_rack_affected)                        
-                        )
-    stripe_fixed_fail_chunk_cases_correlated_dict[key] = count
-    # print(key)
-    # print("\t{}".format(count))
-    return count
 
 
 def stripe_total_cases(k_net, p_net, total_drives, drives_per_rack):
@@ -132,26 +84,17 @@ def stripe_total_cases(k_net, p_net, total_drives, drives_per_rack):
 
 
 if __name__ == "__main__":
-    n_net = 10
-    total_drives = 1000
-    total_cases = stripe_total_cases(8, 2, 1000, 100)
-    # failure_cases = stripe_fail_cases(10, 3, 100, [2,1,1,0,0,0,0,0,0,0], 0)
+    total_drives = 9
     num_failed_chunks = 2
-    num_racks = 11
-    drives_per_rack = 100
+    num_racks = 3
+    drives_per_rack = 3
     num_failed_disks = 3
     num_affected_racks = 3
-    failure_cases_fixed_chunks = stripe_fixed_fail_chunk_cases_correlated(n_net, num_failed_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
-    failure_cases_1 = stripe_fail_cases_correlated(n_net, num_failed_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
-    failure_cases_2 = stripe_fail_cases_correlated(n_net, num_failed_chunks+1, num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
-    print("total cases: \t{}\nfailure_cases_fixed_chunks: \t{}".format(total_cases, failure_cases_fixed_chunks))
-    print("failure_cases_1: \t\t{}\nfailure_cases_2: \t\t{}\ndiff: \t\t\t\t{}".format(failure_cases_1, failure_cases_2, failure_cases_1 - failure_cases_2))
-    stripe_failure_prob = failure_cases / total_cases
-    print("stripe fail prob: \t{}".format(stripe_failure_prob))
-
-    chunks_per_drive = 100
-    num_stripes = chunks_per_drive * total_drives // n_net    
-    no_failure_prob = (1-stripe_failure_prob) ** num_stripes
-    print("system fail prob: {}".format(1-no_failure_prob))
+    num_groups = 2
+    chunks_per_group = 2
+    global_p = 1
+    stripe_fail_cases = stripe_fail_cases_correlated(num_groups, chunks_per_group, global_p, num_failed_chunks, 
+            num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
+    print(stripe_fail_cases)
     
 
