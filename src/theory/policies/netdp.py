@@ -1,5 +1,5 @@
 import math
-# import policies.total
+import policies.total
 
 
 
@@ -92,17 +92,31 @@ def stripe_total_cases(k_net, p_net, total_drives, drives_per_rack):
 
 
 if __name__ == "__main__":
-    n_net = 10
-    total_drives = 1000
-    total_cases = stripe_total_cases(8, 2, 1000, 100)
-    failure_cases = stripe_fail_cases(10, 3, 100, [2,1,1,0,0,0,0,0,0,0], 0)
-    print("total cases: \t{}\nfailure_cases: \t{}".format(total_cases, failure_cases))
-    stripe_failure_prob = failure_cases / total_cases
-    print("stripe fail prob: \t{}".format(stripe_failure_prob))
+    # n_net = 10
+    # total_drives = 1000
+    # total_cases = stripe_total_cases(8, 2, 1000, 100)
+    # failure_cases = stripe_fail_cases(10, 3, 100, [2,1,1,0,0,0,0,0,0,0], 0)
+    # print("total cases: \t{}\nfailure_cases: \t{}".format(total_cases, failure_cases))
+    # stripe_failure_prob = failure_cases / total_cases
+    # print("stripe fail prob: \t{}".format(stripe_failure_prob))
 
-    chunks_per_drive = 100
-    num_stripes = chunks_per_drive * total_drives // n_net    
-    no_failure_prob = (1-stripe_failure_prob) ** num_stripes
-    print("system fail prob: {}".format(1-no_failure_prob))
-    
+    # chunks_per_drive = 100
+    # num_stripes = chunks_per_drive * total_drives // n_net    
+    # no_failure_prob = (1-stripe_failure_prob) ** num_stripes
+    # print("system fail prob: {}".format(1-no_failure_prob))
+    n_net = 2
+    num_failed_chunks = 2
+    num_racks = 2
+    drives_per_rack = 4
+    num_failed_disks = 4
+    num_affected_racks = 2
+
+    n_net = 10
+    num_failed_chunks = 3
+    num_racks = 40
+    drives_per_rack = 20
+    num_failed_disks = 4
+    num_affected_racks = 3
+    count = stripe_fail_cases_correlated(n_net, num_failed_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
+    print(count)
 
