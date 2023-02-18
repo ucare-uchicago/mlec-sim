@@ -122,14 +122,15 @@ class Simulate:
 
         self.sys.metrics.iter_count += 1
         self.mytimer: Mytimer = mytimer
-        self.mytimer.simInitTime = time.time()
+        simulation_start_time = time.time()
 
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
         # Debug purpose, static seed
         # np.random.seed(1)
         
         self.reset(failureGenerator, mytimer)
-        self.mytimer.resettime = (time.time() - self.mytimer.simInitTime) * 1000
+        reset_done_time = time.time()
+        self.mytimer.resettime += (reset_done_time - simulation_start_time)
 
         curr_time = 0
         prob = 0
@@ -139,7 +140,6 @@ class Simulate:
         events = 0
         while True:
             event_start = time.time()
-            self.mytimer.eventInitTime = event_start
             #---------------------------
             # extract the next event
             #---------------------------
@@ -153,8 +153,8 @@ class Simulate:
             logging.info("Repair queue: %s", self.repair_queue)
             logging.info("Failure queue length: %s", len(self.failure_queue))
             
-            # logging.info("Failed disks per stripe: %s", self.state.get_failed_disks_each_stripeset())
-            self.mytimer.getEventTime = (time.time() - self.mytimer.eventInitTime) * 1000
+            get_event_done_time = time.time()
+            self.mytimer.getEventTime += (get_event_done_time - event_start)
 
             # logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
             
@@ -163,13 +163,16 @@ class Simulate:
             #--------------------------------------
             curr_time = event_time
             self.state.update_curr_time(curr_time)
-            self.mytimer.updateClockTime = (time.time() - self.mytimer.eventInitTime) * 1000
+            update_clock_done_time = time.time()
+            self.mytimer.updateClockTime += (update_clock_done_time - get_event_done_time)
 
             self.state.policy.update_disk_state(event_type, diskId)
-            self.mytimer.updateStateTime = (time.time() - self.mytimer.eventInitTime) * 1000
+            update_state_done_time = time.time()
+            self.mytimer.updateStateTime += (update_state_done_time - update_clock_done_time)
 
             self.state.policy.update_disk_priority(event_type, diskId)
-            self.mytimer.updatePriorityTime = (time.time() - self.mytimer.eventInitTime) * 1000
+            update_priority_done_time = time.time()
+            self.mytimer.updatePriorityTime += (update_priority_done_time - update_state_done_time)
 
             #--------------------------------------
             # In MLEC-RAID, each disk group contains n=k+m disks. A rack can have multiple diskgroups
@@ -181,7 +184,8 @@ class Simulate:
                 new_diskgroup_failure = self.state.policy.update_diskgroup_state(event_type, diskId)
                 if new_diskgroup_failure != None:
                     self.state.policy.update_diskgroup_priority(event_type, new_diskgroup_failure, diskId)
-            self.mytimer.updateDiskgrpPriorityTime = (time.time() - self.mytimer.eventInitTime) * 1000
+            update_diskgroup_priority_done_time = time.time()
+            self.mytimer.updateDiskgrpPriorityTime += (update_diskgroup_priority_done_time - update_priority_done_time)
             #--------------------------------------
             # In MLEC-DP, a rack can have more disks
             # If the rack has m+1 or more disk failures, then we need to repair the rack
@@ -190,7 +194,9 @@ class Simulate:
                 new_rack_failure = self.state.policy.update_rack_state(event_type, diskId)
                 if new_rack_failure != None:
                     self.state.policy.update_rack_priority(event_type, new_rack_failure, diskId)
-            self.mytimer.updateRackPriorityTime = (time.time() - self.mytimer.eventInitTime) * 1000
+            
+            update_rack_done_time = time.time()
+            self.mytimer.updateRackPriorityTime += (update_rack_done_time - update_diskgroup_priority_done_time)
             #---------------------------
             # exceed mission-time, exit
             #---------------------------
@@ -208,7 +214,8 @@ class Simulate:
                     heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
                     # logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
 
-            self.mytimer.newFailTime = (time.time() - self.mytimer.eventInitTime) * 1000
+            gen_new_fail_done_time = time.time()
+            self.mytimer.newFailTime += (gen_new_fail_done_time - update_rack_done_time)
             
             #---------------------------
             # failure event, check PDL
@@ -226,11 +233,13 @@ class Simulate:
                     #print "  >>>>>>> no data loss >>>>>>>  ", curr_failures
                 
                     #------------------------------------------
-            self.mytimer.checkLossTime = (time.time() - self.mytimer.eventInitTime) * 1000
+            check_loss_done_time = time.time()
+            self.mytimer.checkLossTime += (check_loss_done_time - gen_new_fail_done_time)
             
             
             self.update_repair_event(curr_time)
-            self.mytimer.updateRepairTime = (time.time() - self.mytimer.eventInitTime) * 1000
+            update_repair_event_done_time = time.time()
+            self.mytimer.updateRepairTime += (update_repair_event_done_time - check_loss_done_time)
             event_end = time.time()
             # print("Event time " + str((event_end - event_start) * 1000) + "ms")
             # print(self.mytimer)
