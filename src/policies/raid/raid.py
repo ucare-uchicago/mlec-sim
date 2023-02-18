@@ -11,6 +11,52 @@ class RAID(Policy):
     #--------------------------------------
     def __init__(self, state):
         super().__init__(state)
+        state.failures_per_raidgroup = {}
+    
+
+    def update_disk_state(self, event_type: str, diskId: int):
+        rackId = diskId // self.sys.num_disks_per_rack
+        disk = self.state.disks[diskId]
+        if event_type == Disk.EVENT_REPAIR:
+            logging.info("Repair event, updating disk %s to be STATE_NORMAL", diskId)
+            disk.state = Disk.STATE_NORMAL
+            # This is removing the disk from the failed disk array
+            self.state.racks[rackId].failed_disks.pop(diskId, None)
+            self.state.failed_disks.pop(diskId, None)
+
+            raidgroupId = diskId // self.state.n
+            self.state.failures_per_raidgroup[raidgroupId] -= 1
+            if self.state.failures_per_raidgroup[raidgroupId] == 0:
+                self.state.failures_per_raidgroup.pop(raidgroupId, None)
+
+            self.sys.metrics.disks_aggregate_down_time += self.curr_time - self.disks[diskId].metric_down_start_time
+
+            
+            # If this disk has network usage, we return those to the network state
+            self.state.network.replenish(disk.network_usage)
+            disk.network_usage = None
+            
+            logging.info("Network bandwidth after replenish: %s", self.state.network.__dict__)
+            
+        if event_type == Disk.EVENT_FAIL:
+            disk.state = Disk.STATE_FAILED
+            self.state.racks[rackId].failed_disks[diskId] = 1
+            self.state.failed_disks[diskId] = 1
+
+            raidgroupId = diskId // self.state.n
+            if raidgroupId in self.state.failures_per_raidgroup:
+                self.state.failures_per_raidgroup[raidgroupId] += 1
+            else:
+                self.state.failures_per_raidgroup[raidgroupId] = 1
+            # print("disk {} f {}. Now self.state.failed_disks: {}, self.state.failures_per_raidgroup: {}".format(
+            #             diskId, self.curr_time, self.state.failed_disks, self.state.failures_per_raidgroup))
+
+            self.disks[diskId].metric_down_start_time = self.curr_time
+            
+        if event_type == Disk.EVENT_DELAYED_FAIL:
+            # Currently this should not do anything because the disk should already be in a failed state
+            pass
+    
 
     def update_disk_priority(self, event_type, diskId):
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
