@@ -80,3 +80,11 @@ class Policy:
     #   default is to return none
     def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:
         return None
+
+    def clean_failures(self):
+        failed_disks = self.state.get_failed_disks()
+        for diskId in failed_disks:
+            disk = self.state.disks[diskId]
+            disk.state = Disk.STATE_NORMAL
+            disk.priority = 0
+            disk.repair_time = {}

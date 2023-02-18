@@ -13,6 +13,8 @@ from constants.PlacementType import PlacementType
 from policies.policy_factory import get_policy
 from policies.policy import Policy
 
+from components.network import Network
+
 class State:
     #--------------------------------------
     # The 2 possible state
@@ -31,11 +33,11 @@ class State:
         self.racks: Dict[int, Rack] = {}
         self.disks = self.sys.disks
         
-        for diskId in self.disks:
-            disk = self.disks[diskId]
-            disk.state = Disk.STATE_NORMAL
-            disk.priority = 0
-            disk.repair_time = {}
+        # for diskId in self.disks:
+        #     disk = self.disks[diskId]
+        #     disk.state = Disk.STATE_NORMAL
+        #     disk.priority = 0
+        #     disk.repair_time = {}
         if self.sys.place_type == PlacementType.MLEC:
             # rack_repair_data = sys.diskSize * self.n
             rack_repair_data = sys.diskSize * (self.sys.m + 1)
@@ -54,7 +56,8 @@ class State:
 
         self.mytimer: Mytimer = mytimer
         self.policy: Policy = get_policy(self.sys.place_type, self)
-        self.network = copy.deepcopy(self.sys.network)
+        # self.network = copy.deepcopy(self.sys.network)
+        self.network = Network(sys, sys.intrarack_speed / 8 * 1024, sys.interrack_speed / 8 * 1024)
         #----------------------------------
 
 

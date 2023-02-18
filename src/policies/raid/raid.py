@@ -18,7 +18,7 @@ class RAID(Policy):
         rackId = diskId // self.sys.num_disks_per_rack
         disk = self.state.disks[diskId]
         if event_type == Disk.EVENT_REPAIR:
-            logging.info("Repair event, updating disk %s to be STATE_NORMAL", diskId)
+            # logging.info("Repair event, updating disk %s to be STATE_NORMAL", diskId)
             disk.state = Disk.STATE_NORMAL
             # This is removing the disk from the failed disk array
             self.state.racks[rackId].failed_disks.pop(diskId, None)
@@ -36,7 +36,7 @@ class RAID(Policy):
             self.state.network.replenish(disk.network_usage)
             disk.network_usage = None
             
-            logging.info("Network bandwidth after replenish: %s", self.state.network.__dict__)
+            # logging.info("Network bandwidth after replenish: %s", self.state.network.__dict__)
             
         if event_type == Disk.EVENT_FAIL:
             disk.state = Disk.STATE_FAILED
@@ -105,7 +105,7 @@ class RAID(Policy):
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
-        logging.info("  curr time: {}  repair time: {}  finish time: {}".format(self.curr_time, disk.repair_time[0], disk.estimate_repair_time))
+        # logging.info("  curr time: {}  repair time: {}  finish time: {}".format(self.curr_time, disk.repair_time[0], disk.estimate_repair_time))
 
     
     def update_disk_repair_time_adapt(self, diskId, fail_per_rack):
@@ -125,3 +125,11 @@ class RAID(Policy):
     
     def update_repair_events(self, repair_queue):
         return raid_repair(self.state, repair_queue)
+
+    def clean_failures(self):
+        failed_disks = self.state.get_failed_disks()
+        for diskId in failed_disks:
+            disk = self.state.disks[diskId]
+            disk.state = Disk.STATE_NORMAL
+            disk.priority = 0
+            disk.repair_time = {}

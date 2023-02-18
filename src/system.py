@@ -81,6 +81,8 @@ class System:
         # initialize network
         #----------------------
         # We need to convert Gbps to GBps and then to MBps
+        self.intrarack_speed = intrarack_speed
+        self.interrack_speed = interrack_speed
         self.network: Network = Network(self, intrarack_speed / 8 * 1024, interrack_speed / 8 * 1024)
 
 
