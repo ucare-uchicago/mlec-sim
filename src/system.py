@@ -64,7 +64,6 @@ class System:
         self.num_diskgroup_stripesets = 0
         self.diskgroup_stripesets: Dict[int, List[int]] = {}
         
-        config_system_layout(self.place_type, self)
         #--------------------------------------------
         self.diskSize: int = diskCap
         self.diskIO: int = rebuildRate
@@ -83,7 +82,9 @@ class System:
         # We need to convert Gbps to GBps and then to MBps
         self.intrarack_speed = intrarack_speed
         self.interrack_speed = interrack_speed
-        self.network: Network = Network(self, intrarack_speed / 8 * 1024, interrack_speed / 8 * 1024)
+        self.network: Network = Network(self, intrarack_speed / 8 * kilo, interrack_speed / 8 * kilo)
+        # ----------
+        config_system_layout(self.place_type, self)
 
 
 if __name__ == "__main__":

@@ -31,7 +31,7 @@ class NormalSim(Simulator):
             k=k_local, 
             m=p_local, 
             place_type=placement, 
-            diskCap=cap * 1024 * 1024,
+            diskCap=cap * kilo * kilo,
             rebuildRate=io_speed, 
             intrarack_speed=intrarack_speed, 
             interrack_speed=interrack_speed, 
@@ -49,7 +49,7 @@ class NormalSim(Simulator):
         # return
 
         # We need to get enough failures in order to compute accurate nines #
-        while failed_iters < 20:
+        while failed_iters < 10:
             logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
             start  = time.time()
             res = self.run(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
@@ -60,6 +60,7 @@ class NormalSim(Simulator):
             simulationTime = time.time() - start
             print("simulation time: {}".format(simulationTime))
             print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
+            # return None
 
         total_iters *= mission/YEAR
 

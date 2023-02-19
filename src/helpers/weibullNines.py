@@ -8,7 +8,7 @@ def calculate_weibull_nines(afr, beta, disk_cap, io, n, k, c):
 
 
     mission_time = 1
-    repair_rate = 1 / (disk_cap * 1024 * 1024 / io / 3600 / 24 / 365.25)
+    repair_rate = 1 / (disk_cap * kilo * kilo / io / 3600 / 24 / 365.25)
     # repair_rate = 1/1.5*365.25
 
     # print("repair rate: {}".format(repair_rate))

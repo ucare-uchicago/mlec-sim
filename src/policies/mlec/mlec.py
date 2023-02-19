@@ -141,11 +141,13 @@ class MLEC(Policy):
         
         # Calculate the real repair rate by the dividing the total bandwidht used by k - that's the effectively write speed
         repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / num_fail_per_diskgroup)
+        
         logging.info("Disk %s is being repaired with the speed of %s", disk.diskId, self.sys.diskIO)
         # repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / num_fail_per_diskgroup)
         logging.info("Repaired percent %s, Repair time %s", repaired_percent, repair_time)
 
         disk.repair_time[0] = repair_time / 3600 / 24
+        print(disk.repair_time[0])
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
         # logging.info("calculate repair time for disk {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(

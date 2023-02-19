@@ -174,7 +174,7 @@ def burst_sim(afr, io_speed, cap, adapt, k_net, p_net, k_local, p_local,
     start  = time.time()
 
     results = simulate(afr, failure_list, placement, drives_per_rack, iters, epochs, epochs, 
-                        total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
+                        total_drives, drives_per_rack, k_local, p_local, place_type, cap * kilo * kilo,
                         io_speed, 1, k_net, p_net, adapt)
     simulationTime = time.time() - start
     print("simulation time: {}".format(simulationTime))

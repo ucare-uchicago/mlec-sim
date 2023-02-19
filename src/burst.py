@@ -171,7 +171,7 @@ def burst_sim(afr, io_speed, cap, adapt, k_net, p_net, k_local, p_local,
 
             place_type = parse_placement(placement)
             
-            sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * 1024 * 1024,
+            sys = System(total_drives, drives_per_rack, k_local, p_local, place_type, cap * kilo * kilo,
                     io_speed, 1, k_net, p_net, adapt, rack_fail = 0)
 
             failed_iters = 0

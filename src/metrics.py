@@ -36,8 +36,8 @@ class Metrics:
                 "total_delayed_disks:\t\t{}\n"
                 "total_net_bandwidth_replenish_time:\t\t{}\n"
                 ).format(
-            self.total_rebuild_io_per_year / (1024*1024) / self.iter_count,
-            self.total_net_traffic / (1024*1024) / self.iter_count,
+            self.total_rebuild_io_per_year / (kilo*kilo) / self.iter_count,
+            self.total_net_traffic / (kilo*kilo) / self.iter_count,
             self.failure_count / self.iter_count,
             self.total_rebuild_time / self.iter_count,
             0 if self.total_net_repair_count == 0 else self.total_net_repair_time / self.total_net_repair_count,
@@ -57,8 +57,8 @@ class Metrics:
                 "total_net_repair_count:{} "
                 "total_delayed_disks:{}\n"
                 ).format(
-            self.total_rebuild_io_per_year / (1024*1024) / self.iter_count,
-            self.total_net_traffic / (1024*1024) / self.iter_count,
+            self.total_rebuild_io_per_year / (kilo*kilo) / self.iter_count,
+            self.total_net_traffic / (kilo*kilo) / self.iter_count,
             self.failure_count / self.iter_count,
             self.total_rebuild_time / self.iter_count,
             0 if self.total_net_repair_count == 0 else self.total_net_repair_time / self.total_net_repair_count,
@@ -68,10 +68,10 @@ class Metrics:
         )
     
     def getAverageRebuildIO(self):
-        return self.total_rebuild_io_per_year / (1024*1024) / self.iter_count
+        return self.total_rebuild_io_per_year / (kilo*kilo) / self.iter_count
     
     def getAverageNetTraffic(self):
-        return self.total_net_traffic / (1024*1024) / self.iter_count
+        return self.total_net_traffic / (kilo*kilo) / self.iter_count
     
     def getAvgNetRepairTime(self):
         return self.total_net_repair_time / self.total_net_repair_count

@@ -33,7 +33,7 @@ class MetricSim(Simulator):
                 k=k_local, 
                 m=p_local, 
                 place_type=placement, 
-                diskCap=cap * 1024 * 1024,
+                diskCap=cap * kilo * kilo,
                 rebuildRate=io_speed, 
                 intrarack_speed=intrarack_speed, 
                 interrack_speed=interrack_speed, 
