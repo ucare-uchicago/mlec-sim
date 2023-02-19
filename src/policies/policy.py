@@ -81,7 +81,7 @@ class Policy:
     def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:
         return None
 
-    def clean_failures(self):
+    def clean_failures(self) -> None:
         failed_disks = self.state.get_failed_disks()
         for diskId in failed_disks:
             disk = self.state.disks[diskId]

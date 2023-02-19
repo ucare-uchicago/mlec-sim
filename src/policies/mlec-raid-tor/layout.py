@@ -2,6 +2,9 @@ from __future__ import annotations
 import typing
 from typing import List
 import numpy as np
+from typing import List, Dict, Optional, Tuple
+
+from components.diskgroup import Diskgroup
 
 if typing.TYPE_CHECKING:
     from system import System

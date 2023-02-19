@@ -29,35 +29,28 @@ class MLEC(Policy):
         self.num_diskgroups_per_rack = self.sys.num_disks_per_rack // self.sys.n
         self.num_diskgroups = self.sys.num_disks // self.n
         diskgroup_repair_data = self.sys.diskSize * self.n  # when disk group fails, we repair the whole disk group
-        self.diskgroups: Dict[int, Diskgroup] = {}
-        for diskgroupId in range(self.num_diskgroups):
-            num_diskgroup_per_rack = self.sys.num_disks_per_rack // self.n
-            diskgroupStripesetId = (diskgroupId % num_diskgroup_per_rack) + (diskgroupId // (num_diskgroup_per_rack * self.sys.top_n)) * num_diskgroup_per_rack
-            rackId = diskgroupId // self.num_diskgroups_per_rack
-            self.diskgroups[diskgroupId] = Diskgroup(diskgroupId, diskgroup_repair_data, self.n, rackId, diskgroupStripesetId)
-            for diskId in self.diskgroups[diskgroupId].disks:
-                self.disks[diskId].diskgroupId = diskgroupId
+        self.diskgroups = self.sys.diskgroups
 
     def update_disk_state(self, event_type, diskId):
         # Print the disks using network, debug purpose only
-        disks_using_network = []
-        for diskId_ in self.disks.keys():
-            if self.disks[diskId_].network_usage is not None:
-                disks_using_network += [diskId_]
+        # disks_using_network = []
+        # for diskId_ in self.disks.keys():
+        #     if self.disks[diskId_].network_usage is not None:
+        #         disks_using_network += [diskId_]
                 
-        diskgroups_using_network = []
-        for diskgroupId_ in self.diskgroups.keys():
-            if self.diskgroups[diskgroupId_].network_usage is not None:
-                diskgroups_using_network += [diskgroupId_]
+        # diskgroups_using_network = []
+        # for diskgroupId_ in self.diskgroups.keys():
+        #     if self.diskgroups[diskgroupId_].network_usage is not None:
+        #         diskgroups_using_network += [diskgroupId_]
                 
-        logging.info("Disks using network %s", disks_using_network)
-        logging.info("Diskgroups using network %s", diskgroups_using_network)
+        # logging.info("Disks using network %s", disks_using_network)
+        # logging.info("Diskgroups using network %s", diskgroups_using_network)
         
         diskgroupId = diskId // self.n
         rackId = self.state.disks[diskId].rackId
-        logging.info("diskId %s, diskgroupId %s, rackId %s", diskId, diskgroupId, self.disks[diskId].rackId)
-        logging.info(self.failed_diskgroups_per_stripeset)
-        logging.info("Network state - inter: %s, intra: %s", self.state.network.inter_rack_avail, self.state.network.intra_rack_avail)
+        # logging.info("diskId %s, diskgroupId %s, rackId %s", diskId, diskgroupId, self.disks[diskId].rackId)
+        # logging.info(self.failed_diskgroups_per_stripeset)
+        # logging.info("Network state - inter: %s, intra: %s", self.state.network.inter_rack_avail, self.state.network.intra_rack_avail)
         
         if event_type == Disk.EVENT_REPAIR:
             self.disks[diskId].state = Disk.STATE_NORMAL
@@ -66,7 +59,7 @@ class MLEC(Policy):
             self.failed_disks.pop(diskId, None)
             
             self.sys.metrics.total_net_bandwidth_replenish_time += 1
-            logging.info("Replenishing network bandwidth from disk %s", self.disks[diskId].network_usage)
+            # logging.info("Replenishing network bandwidth from disk %s", self.disks[diskId].network_usage)
             self.state.network.replenish(self.disks[diskId].network_usage)
             self.disks[diskId].network_usage = None
             
@@ -360,3 +353,21 @@ class MLEC(Policy):
         logging.info("No delayed repairs can be processed")
             
         return None
+
+    def clean_failures(self):
+        failed_disks = self.state.get_failed_disks()
+        affected_diskgroups = {}
+        for diskId in failed_disks:
+            disk = self.state.disks[diskId]
+            disk.state = Disk.STATE_NORMAL
+            disk.priority = 0
+            disk.repair_time = {}
+            diskgroupId = diskId // self.n
+            affected_diskgroups[diskgroupId] = 1
+        for diskgroupId in affected_diskgroups:
+            self.diskgroups[diskgroupId].failed_disks.clear()
+            self.diskgroups[diskgroupId].state = Diskgroup.STATE_NORMAL
+            self.state.network.replenish(self.diskgroups[diskgroupId].network_usage)
+            self.diskgroups[diskgroupId].network_usage = None
+            self.diskgroups[diskgroupId].yielded_network_usage = None
+            self.diskgroups[diskgroupId].paused_disks.clear()

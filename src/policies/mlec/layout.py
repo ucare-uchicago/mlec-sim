@@ -2,6 +2,9 @@ from __future__ import annotations
 import typing
 from typing import List
 import numpy as np
+from typing import List, Dict, Optional, Tuple
+
+from components.diskgroup import Diskgroup
 
 if typing.TYPE_CHECKING:
     from system import System
@@ -47,3 +50,14 @@ def mlec_cluster_layout(sys: System):
         diskgroup_stripesets[stripesetId] = stripeset
     
     sys.diskgroup_stripesets = diskgroup_stripesets
+
+    diskgroup_repair_data = sys.diskSize * sys.n  # when disk group fails, we repair the whole disk group
+    num_diskgroups_per_rack = sys.num_disks_per_rack // sys.n
+    sys.diskgroups: Dict[int, Diskgroup] = {}
+    for diskgroupId in range(sys.num_diskgroups):
+        num_diskgroup_per_rack = sys.num_disks_per_rack // sys.n
+        diskgroupStripesetId = (diskgroupId % num_diskgroup_per_rack) + (diskgroupId // (num_diskgroup_per_rack * sys.top_n)) * num_diskgroup_per_rack
+        rackId = diskgroupId // num_diskgroups_per_rack
+        sys.diskgroups[diskgroupId] = Diskgroup(diskgroupId, diskgroup_repair_data, sys.n, rackId, diskgroupStripesetId)
+        for diskId in sys.diskgroups[diskgroupId].disks:
+            sys.disks[diskId].diskgroupId = diskgroupId
