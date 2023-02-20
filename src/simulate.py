@@ -53,7 +53,10 @@ class Simulate:
 
         # self.sys.priority_per_set = {}
 
+        start_state_reset_time = time.time()
         self.state = State(self.sys, mytimer, self)
+        state_reset_done_time = time.time()
+        mytimer.resetStateInitTime += (state_reset_done_time - start_state_reset_time)
 
         if failureGenerator.is_burst:
             failures = failureGenerator.gen_failure_burst(self.sys.num_disks_per_rack, self.sys.num_racks)
@@ -114,11 +117,15 @@ class Simulate:
         
         return None
 
+
+    def clean_failures(self):
+        self.state.policy.clean_failures()
+
     #----------------------------------------------------------------
     # run simulation based on statistical model or production traces
     #----------------------------------------------------------------
     def run_simulation(self, failureGenerator, mytimer):
-        logging.info("---------")
+        # logging.info("---------")
 
         self.sys.metrics.iter_count += 1
         self.mytimer: Mytimer = mytimer
@@ -136,7 +143,7 @@ class Simulate:
         prob = 0
         loss_events = 0
         
-        logging.info("Initial network - inter: %s, intra: %s", self.state.network.inter_rack_avail, self.state.network.intra_rack_avail)
+        # logging.info("Initial network - inter: %s, intra: %s", self.state.network.inter_rack_avail, self.state.network.intra_rack_avail)
         events = 0
         while True:
             event_start = time.time()
@@ -148,10 +155,10 @@ class Simulate:
                 break
             
             (event_time, event_type, diskId) = next_event
-            logging.info("Event %s on disk %s occured at %s", event_type, diskId, event_time)
-            logging.info("Delayed repair queue: %s", self.delay_repair_queue)
-            logging.info("Repair queue: %s", self.repair_queue)
-            logging.info("Failure queue length: %s", len(self.failure_queue))
+            # logging.info("Event %s on disk %s occured at %s", event_type, diskId, event_time)
+            # logging.info("Delayed repair queue: %s", self.delay_repair_queue)
+            # logging.info("Repair queue: %s", self.repair_queue)
+            # logging.info("Failure queue length: %s", len(self.failure_queue))
             
             get_event_done_time = time.time()
             self.mytimer.getEventTime += (get_event_done_time - event_start)
@@ -225,14 +232,8 @@ class Simulate:
                 if self.state.policy.check_pdl():
                     prob = 1
                     logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
-                    # loss_events = self.placement.check_data_loss_events(self.state)
-                    return prob
-                    #------------------------------------------
-                else:
-                    prob = 0
-                    #print "  >>>>>>> no data loss >>>>>>>  ", curr_failures
-                
-                    #------------------------------------------
+                    break
+
             check_loss_done_time = time.time()
             self.mytimer.checkLossTime += (check_loss_done_time - gen_new_fail_done_time)
             
@@ -240,14 +241,10 @@ class Simulate:
             self.update_repair_event(curr_time)
             update_repair_event_done_time = time.time()
             self.mytimer.updateRepairTime += (update_repair_event_done_time - check_loss_done_time)
-            event_end = time.time()
-            # print("Event time " + str((event_end - event_start) * 1000) + "ms")
-            # print(self.mytimer)
             events += 1
-            logging.info("------------END EVENT---------------")
-            # print(self.mytimer)
-            # print("Event " + str(events) + " took " + str((event_end - event_start) * 1000) + " ms")
-        # print("Iteration has " + str(events) + " events")
+            # logging.info("------------END EVENT---------------")
+
+        self.clean_failures()
         return prob
 
 

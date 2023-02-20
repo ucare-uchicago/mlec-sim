@@ -11,6 +11,7 @@ from failure_generator import FailureGenerator, GoogleBurst
 from util import wait_futures
 from constants.PlacementType import PlacementType, parse_placement
 from constants.time import YEAR
+from constants.constants import kilo
 
 from system import System
 

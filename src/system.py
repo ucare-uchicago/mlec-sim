@@ -4,6 +4,8 @@ from metrics import Metrics
 from components.disk import Disk
 from components.network import Network
 from constants.PlacementType import PlacementType
+from constants.constants import kilo
+
 from policies.policy_factory import config_system_layout
 
 from typing import Dict, List

@@ -1,3 +1,5 @@
+from constants.constants import kilo
+
 class Metrics:
     def __init__(self):
         self.total_rebuild_io_per_year = 0.0

@@ -1,4 +1,5 @@
 import math
+from constants.constants import kilo
 
 def calculate_weibull_nines(afr, beta, disk_cap, io, n, k, c):    
     t_l = 5

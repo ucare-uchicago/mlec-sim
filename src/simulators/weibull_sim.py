@@ -6,6 +6,8 @@ from failure_generator import FailureGenerator, Weibull
 from simulators.Simulator import Simulator
 from constants.SimulationResult import SimulationResult
 from constants.time import YEAR
+from constants.constants import kilo
+
 from system import System
 from metrics import Metrics
 from helpers.weibullNines import calculate_weibull_nines

@@ -33,8 +33,8 @@ if __name__ == "__main__":
     parser.add_argument('-placement', type=str, help="placement policy. Can be RAID/DP/MLEC/LRC", default='MLEC')
     parser.add_argument('-dist', type=str, help="disk failure distribution. Can be exp/weibull", default='exp')
     parser.add_argument('-concur', type=int, help="how many threads to use concurrently", default=200)
-    parser.add_argument('-epoch', type=int, help="how many epochs to run", default=200)
-    parser.add_argument('-iter', type=int, help="how many iterations in a epoch in a thread to run", default=50000)
+    # parser.add_argument('-epoch', type=int, help="how many epochs to run", default=200)
+    parser.add_argument('-iter', type=int, help="how many iterations in a epoch in a thread to run", default=500)
     parser.add_argument('-metric', type=bool, help="Output metric line below result line in result file", default=False)
     args = parser.parse_args()
 
@@ -54,7 +54,8 @@ if __name__ == "__main__":
     
     # Multi-threading stuff
     concur = args.concur
-    epoch = args.epoch
+    # epoch = args.epoch
+    epoch = concur
     iters = args.iter
 
     total_drives = args.total_drives

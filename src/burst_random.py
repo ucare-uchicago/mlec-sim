@@ -8,7 +8,10 @@ import random
 
 # Custom stuff
 from failure_generator import FailureGenerator, GoogleBurst
+
 from constants.PlacementType import PlacementType, parse_placement
+from constants.constants import kilo
+
 from util import wait_futures
 from system import System
 

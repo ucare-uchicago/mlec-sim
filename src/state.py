@@ -10,6 +10,8 @@ from system import System
 from typing import Dict
 from mytimer import Mytimer
 from constants.PlacementType import PlacementType
+from constants.constants import kilo
+
 from policies.policy_factory import get_policy
 from policies.policy import Policy
 

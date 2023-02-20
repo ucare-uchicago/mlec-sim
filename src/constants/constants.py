@@ -1,5 +1,5 @@
 debug = False
-
+kilo = 1000
 
 RAID = 0
 DP = 1

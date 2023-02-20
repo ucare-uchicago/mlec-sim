@@ -6,6 +6,8 @@ from failure_generator import FailureGenerator
 from simulators.Simulator import Simulator
 from constants.PlacementType import PlacementType
 from constants.SimulationResult import SimulationResult
+from constants.constants import kilo
+
 from system import System
 from metrics import Metrics
 
