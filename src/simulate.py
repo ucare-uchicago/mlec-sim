@@ -187,7 +187,7 @@ class Simulate:
             # disk group using network erasure.
             # Note that other disk groups in this rack can be healthy and don't need repair
             #--------------------------------------
-            if self.sys.place_type == PlacementType.MLEC:
+            if self.sys.place_type == PlacementType.MLEC_C_C:
                 new_diskgroup_failure = self.state.policy.update_diskgroup_state(event_type, diskId)
                 if new_diskgroup_failure != None:
                     self.state.policy.update_diskgroup_priority(event_type, new_diskgroup_failure, diskId)

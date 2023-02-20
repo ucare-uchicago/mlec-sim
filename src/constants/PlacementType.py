@@ -7,7 +7,7 @@ class PlacementType(str, Enum):
     DP = "DP"
     DP_NET = 'DP_NET'
     
-    MLEC = "MLEC"
+    MLEC_C_C = "MLEC_C_C"
     MLEC_C_D = 'MLEC_C_D'
     MLEC_D_C = "MLEC_D_C"
     MLEC_D_D = "MLEC_D_D"

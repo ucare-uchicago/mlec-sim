@@ -2,7 +2,7 @@ from .decluster.layout import flat_decluster_layout
 from .raid.layout import flat_cluster_layout
 from .netdp.layout import net_dp_layout
 from .netraid.layout import net_raid_layout
-from .mlec.layout import mlec_cluster_layout
+from .mlec_c_c.layout import mlec_c_c_layout
 from .mlec_c_d.layout import mlec_c_d_layout
 from .mlec_d_c.layout import mlec_d_c_layout
 from .mlec_d_d.layout import mlec_d_d_layout
@@ -11,7 +11,7 @@ from policies.raid.raid import RAID
 from policies.netraid.netraid import NetRAID
 from policies.decluster.decluster import Decluster
 from policies.netdp.netdp import NetDP
-from policies.mlec.mlec import MLEC
+from policies.mlec_c_c.mlec_c_c import MLEC_C_C
 from policies.mlec_c_d.mlec_c_d import MLEC_C_D
 
 
@@ -27,8 +27,8 @@ def config_system_layout(placement: PlacementType, system):
         net_raid_layout(system)
     elif placement == PlacementType.DP_NET:
         net_dp_layout(system)
-    elif placement == PlacementType.MLEC:
-        mlec_cluster_layout(system)
+    elif placement == PlacementType.MLEC_C_C:
+        mlec_c_c_layout(system)
     elif placement == PlacementType.MLEC_C_D:
         mlec_c_d_layout(system)
     elif placement == PlacementType.MLEC_D_C:
@@ -44,8 +44,8 @@ def get_policy(placement: PlacementType, state):
         return RAID(state)
     elif placement == PlacementType.DP:
         return Decluster(state)
-    elif placement == PlacementType.MLEC:
-        return MLEC(state)
+    elif placement == PlacementType.MLEC_C_C:
+        return MLEC_C_C(state)
     elif placement == PlacementType.RAID_NET:
         return NetRAID(state)
     elif placement == PlacementType.MLEC_C_D:

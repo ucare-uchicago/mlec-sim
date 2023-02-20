@@ -11,7 +11,7 @@ from .pdl import mlec_cluster_pdl
 from .repair import mlec_repair
 from .network import update_network_state, update_network_state_diskgroup, diskgroup_to_read_for_repair, disks_to_read_for_repair, used_for_repair_top_level
 
-class MLEC(Policy):
+class MLEC_C_C(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------

@@ -23,7 +23,7 @@ if typing.TYPE_CHECKING:
 # diskgroupStripesetId = (3 % 2) + (3 // (2*3)) * 2 = 1 + (0*2) = 1+0 = 1
 
 # layout for mlec cluster raid
-def mlec_cluster_layout(sys: System):
+def mlec_c_c_layout(sys: System):
     # In network level, we form top_n diskgroups into a diskgroup_stripeset
     sys.n = sys.k + sys.m
     sys.top_n = sys.top_k + sys.top_m
