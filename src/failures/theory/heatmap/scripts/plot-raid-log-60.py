@@ -6,10 +6,17 @@ import pandas as pd
 import sys
 import numpy as np 
 
-plt.rcParams["font.family"] = "Times New Roman"
-label_font = {'fontname':'Times New Roman', 'fontsize':'20'}
+# plt.rcParams["font.family"] = "Times New Roman"
+# label_font = {'fontname':'Times New Roman', 'fontsize':'20'}
+
 title_font_size = 28
 tick_font_size = 22
+
+plt.rcParams["font.family"] = "Helvetica"
+label_font = {'fontname':'Helvetica', 'fontsize':'20'}
+annotation_font = {'fontname':'Helvetica', 'fontsize':title_font_size}
+
+
 
 if len(sys.argv) - 1 < 6:
     print("python plot_xxx.py filepath [cc/cd/dc/dd] [k_n] [p_n] [k_l] [p_l]")
@@ -56,7 +63,7 @@ def cal_radius(count):
     intercept = 10
     return slope * math.log10(count) + intercept
 
-colorlist = ['green', 'lightgreen', 'yellow', 'lightblue', 'blue', 'orange', 'orchid', 'sienna', 'purple', 'red']
+colorlist = ['darkgreen', '#00AF00', 'lime', 'yellow', 'lightgray', '#FFAF00', '#ff7200', 'red', 'maroon', 'black']
 colorranges = [0,      0.0000001, 0.000001,    0.00001,    0.0001,  0.001,    0.01,     0.1,      0.99,    1]
 
 def coloring(x):
@@ -132,7 +139,40 @@ th.append(0.99+dd)
 th.append(1)
 # print(th)
 
+
+# annotations
+anotation_color = 'blue'
+
+
+if placement == 'CP-CP':
+    plt.text(7, 2, 'Finding #3', **annotation_font, color=anotation_color)
+    plt.arrow(12,5.5,-10,9,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+    plt.arrow(12,5.5,2,10,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+
+    plt.text(26.5, 22.5, 'Finding #4', **annotation_font, color=anotation_color)
+    plt.arrow(33,26,-29,32,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+
+if placement == 'CP-DP':
+    axes.add_patch(patches.Rectangle((2.5, 2.5), 2, 58, linewidth=3, edgecolor=anotation_color, facecolor='none'))
+    plt.text(10, 6, 'Finding #1', **annotation_font, color=anotation_color)
+    plt.arrow(15,10,-10,10,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+
+    plt.text(26.5, 22.5, 'Finding #5', **annotation_font, color=anotation_color)
+    plt.arrow(33,26,-12,17,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
     
+
+if placement == 'DP-CP':
+    axes.add_patch(patches.Rectangle((0.5, 41.5), 40, 2, linewidth=3, edgecolor=anotation_color, facecolor='none'))
+    plt.text(26.5, 22.5, 'Finding #2', **annotation_font, color=anotation_color)
+    plt.arrow(33,26,-10,15,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+    plt.text(10, 6, 'Finding #6', **annotation_font, color=anotation_color)
+    plt.arrow(15,10,-8,22,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+
+
+if placement == 'DP-DP':
+    plt.text(20, 12, 'Finding #7', **annotation_font, color=anotation_color)
+    plt.arrow(26,15.5,-15,24,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+
 
 mycolors=list(zip(th, hc))
 cm = colors.LinearSegmentedColormap.from_list('test', mycolors)
