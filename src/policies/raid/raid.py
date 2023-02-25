@@ -116,9 +116,9 @@ class RAID(Policy):
         repair_time = float(disk.repair_data)/(self.sys.diskIO)
 
         disk.repair_time[0] = repair_time / 3600 / 24
-        disk.repair_start_time = max(self.curr_time, rack.stripesets_repair_finish[stripesetId])
-        disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
-        rack.stripesets_repair_finish[stripesetId] = disk.estimate_repair_time
+        # disk.repair_start_time = max(self.curr_time, rack.stripesets_repair_finish[stripesetId])
+        disk.estimate_repair_time = self.curr_time + disk.repair_time[0]*fail_per_rack
+        # rack.stripesets_repair_finish[stripesetId] = disk.estimate_repair_time
     
     def check_pdl(self):
         return flat_cluster_pdl(self.state)

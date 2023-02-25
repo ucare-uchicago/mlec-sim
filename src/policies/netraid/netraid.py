@@ -18,6 +18,14 @@ class NetRAID(Policy):
     def __init__(self, state):
         super().__init__(state)
         self.max_prio = 0
+        self.num_rack_groups = self.sys.num_racks // self.sys.top_n
+        # we divide the system into multiple rack groups
+        # each rack group contains multiple netraid pools
+        # In a rack group, each racks' network bandwidth would be the same,
+        # because a disk's repair will need to read data from all other racks and then write to the target rack.
+        # Here singerack_interrack_bandwidth_per_rackgroup records the remaining interrack-bandwidth of a single rack in a rack group. 
+        self.singerack_avail_interrack_bandwidth_per_rackgroup = [self.sys.interrack_speed] * self.num_rack_groups
+        self.singerack_avail_intrarack_bandwidth_per_rackgroup = [self.sys.intrarack_speed] * self.num_rack_groups
 
     #----------------------------------------------
     # raid net
@@ -51,8 +59,8 @@ class NetRAID(Policy):
             failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(disk.stripesetId)
             self.max_prio = max(self.max_prio, len(failed_disks_per_stripeset))
             # logging.info("Failed stripesets: %s", self.state.get_failed_disks_each_stripeset())
-            logging.info("  update_disk_priority_raid_net event: {} stripesetId: {} failed_disks_per_stripeset: {}".format(
-                            event_type, disk.stripesetId, failed_disks_per_stripeset))
+            # logging.info("  update_disk_priority_raid_net event: {} stripesetId: {} failed_disks_per_stripeset: {}".format(
+            #                 event_type, disk.stripesetId, failed_disks_per_stripeset))
             #--------------------------------------------
             # calculate repair time for disk failures
             # all the failed disks need to read data from other surviving disks in the group to rebuild data
@@ -60,59 +68,21 @@ class NetRAID(Policy):
             # we need to update the repair rate for all failed disks, because every failed disk gets less share now
             #--------------------------------------------
             for diskId_per_stripeset in failed_disks_per_stripeset:
-                if not self.state.simulation.delay_repair_queue[Components.DISK].get(diskId_per_stripeset, False):
-                    self.update_disk_repair_time(diskId_per_stripeset, failed_disks_per_stripeset)
+                self.update_disk_repair_time(diskId_per_stripeset, failed_disks_per_stripeset)
     
     
-    def update_disk_repair_time(self, diskId, failed_disks_in_stripeset):
-        logging.info("Updating repair time for disk %s", diskId)
+    def update_disk_repair_time(self, diskId, num_fail_in_stripeset, num_fail_in_rackgroup):
         disk = self.disks[diskId]
-        fail_per_stripeset = len(failed_disks_in_stripeset)
-        logging.info("Bandwidth before usage - inter: %s, intra: %s", self.state.network.inter_rack_avail, self.state.network.intra_rack_avail)
-        logging.info("Disk detail %s", disk)
         repaired_time = self.curr_time - disk.repair_start_time
         if repaired_time == 0:
-            # This means that the repair just got started
-            
-            #------------
-            # Network: since we currently assume that we do the construction in a dedicated rack
-            #   we remove the bandwidth from intrarack, as well as interrack because
-            #   the traffic has to travel from node to TOR
-            #------------
-            disk_to_read_from = self.disks_to_read_for_repair(disk)
-            logging.info("Reading from %s disks to complete repair", disk_to_read_from)
-            if self.state.network.inter_rack_avail != 0 and len(disk_to_read_from) >= self.sys.top_k:
-                # This means that we begin repair
-                # 1. Subtract the bandwidth away from network
-                network_usage = self.update_bandwidth(disk, disk_to_read_from)
-                logging.info("Network usage: %s", network_usage.__dict__)
-                logging.info("Bandwidth after usage - inter: %s, intra: %s", self.state.network.inter_rack_avail, self.state.network.intra_rack_avail)
-                # 2. Assign the network usage to the repairing disk
-                disk.network_usage = network_usage
-            else:
-                # If we do not have enough bandwidth to carry out repair, we delay the repair
-                # logging.warning("Not enough bandwidth, delaying repair")
-                # if self.state.network.inter_rack_avail == 0:
-                #     logging.warning("Caused by interrack bandwidth being 0")
-                # else:
-                #     logging.warning("Not enough surviving peers. Only available peer %s, total of %s", disk_to_read_from, len())
-                self.state.simulation.delay_repair_queue[Components.DISK][diskId] = True
-                return
-            
             repaired_percent = 0
             disk.curr_repair_data_remaining = disk.repair_data
         else:
             # This means that the repair is on going, we need to update the remaining data
-            
-            # Also note that we do not check available bandwidth here as we currently assume the network repair is non-interruptable
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
-            
-            # We pull the network usage from the disk
-            network_usage = disk.network_usage
-
-        assert network_usage is not None
-        # logging.info("Repairing with network bandwidth of %s", network_usage.inter_rack)
+        
+        rebuild_rate = min(self.sys.diskIO / num_fail_in_stripeset, self.sys.interrack_speed / num_fail_in_rackgroup)
         repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / fail_per_stripeset)
         logging.info("Repaired percent %s, Repair time %s", repaired_percent, repair_time)
         disk.repair_time[0] = repair_time / 3600 / 24
@@ -120,18 +90,6 @@ class NetRAID(Policy):
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
         logging.info("  curr time: {}  repair time: {}  finish time: {}".format(self.curr_time, disk.repair_time[0], disk.estimate_repair_time))
 
-    # TODO: combine this with update_bandwidth to save time
-    def disks_to_read_for_repair(self, disk: Disk) -> List[int]:
-        stripeset = self.sys.net_raid_stripesets_layout[disk.stripesetId]
-        disk_to_read_from = []
-        for diskId in stripeset:
-            if len(disk_to_read_from) < self.sys.top_k \
-                and self.state.disks[diskId].state == Disk.STATE_NORMAL \
-                and self.state.racks[disk.rackId].state == Rack.STATE_NORMAL \
-                and self.state.network.intra_rack_avail[disk.rackId] != 0:
-                disk_to_read_from.append(diskId)
-        
-        return disk_to_read_from
     
     def update_bandwidth(self, disk, disk_to_read_from: List[int]) -> Optional[NetworkUsage]:
         # Calculate intrarack, from k randomly selected drives from the stripeset
