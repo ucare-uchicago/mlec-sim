@@ -170,7 +170,7 @@ class NetDP(Policy):
         repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO)
         
         participating_disks = disk.good_num
-        speed_up = participating_disks // (self.sys.k + 1)
+        speed_up = participating_disks / (self.sys.k + 1)
         
         return repair_time / speed_up
     
