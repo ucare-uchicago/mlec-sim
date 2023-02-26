@@ -57,6 +57,9 @@ class Disk:
         #-------------------------------
         self.network_usage: Optional[NetworkUsage] = None
         self.paused: bool = False
+        # 
+        self.priority_percents = {}
+        self.curr_prio_repair_started: bool = False
         #-------------------------------
         # metrics
         # ----
@@ -69,5 +72,7 @@ class Disk:
         
     # Override toString()
     def __str__(self):
-        return "[dId: {}, rId: {}, sId: {}, state: {}, prio: {}, rep time: {}, rep start: {}, net: {}, paused: {}]".format(self.diskId, self.rackId, self.stripesetId, self.state, self.priority, self.repair_time, self.repair_start_time, self.network_usage, self.paused)
+        return "[dId: {}, rId: {}, sId: {}, state: {}, prio: {}, rep time: {}, rep start: {}, net: {}, paused: {}  prio_pct_com: {}]".format(
+                self.diskId, self.rackId, self.stripesetId, self.state, self.priority, self.repair_time, 
+                self.repair_start_time, self.network_usage, self.paused, self.curr_prio_repair_started)
             
