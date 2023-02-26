@@ -1,6 +1,7 @@
 from heapq import heappush
 from components.disk import Disk
 from components.rack import Rack
+import logging
 
 
 def netdp_repair(state, repair_queue):
@@ -11,6 +12,8 @@ def netdp_repair(state, repair_queue):
             disk = state.disks[diskId]
             estimate_time = disk.repair_start_time
             priority = disk.priority
+            
+            logging.info('  repair disk {}  priority {}'.format(diskId, priority))
             estimate_time  += disk.repair_time[priority]
             if priority > 1:
                 heappush(repair_queue, (estimate_time, Disk.EVENT_FASTREBUILD, diskId))
