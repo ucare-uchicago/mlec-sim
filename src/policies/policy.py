@@ -88,3 +88,4 @@ class Policy:
             disk.state = Disk.STATE_NORMAL
             disk.priority = 0
             disk.repair_time = {}
+            self.curr_prio_repair_started = False
