@@ -25,10 +25,12 @@ def net_raid_layout(sys: System):
             disk = sys.disks[diskId]
             disk.rackId = rackId
             disk.stripesetId = i
+            disk.rackgroupId = rackGroupId
             stripeset.append(diskId)
             # logging.info(" stripesetId: {} diskId: {}".format(i, diskId))
         sets[i] = stripeset
     # dictionary of stripeId to list of disks on disjoint racks
+    
     sys.net_raid_stripesets_layout = sets
     # logging.info("* there are {} stripesets:\n{}".format(
     #         num_stripesets, sets))
