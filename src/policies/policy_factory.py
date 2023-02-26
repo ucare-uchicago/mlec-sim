@@ -52,6 +52,3 @@ def get_policy(placement: PlacementType, state):
         return MLEC_C_D(state)
     elif placement == PlacementType.DP_NET:
         return NetDP(state)
-    else:
-        print("???")
-        raise NotImplementedError("Cannot recognize the placement type")

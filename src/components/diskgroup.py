@@ -1,6 +1,7 @@
 import typing
 if typing.TYPE_CHECKING:
     from components.network import NetworkUsage
+    from policies.mlec.mlec import MLEC
 
 from typing import Optional, List
 
