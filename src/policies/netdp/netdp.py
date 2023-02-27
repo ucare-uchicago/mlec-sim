@@ -16,6 +16,7 @@ class NetDP(Policy):
         for i in range(self.sys.m+1):
             self.priority_queue[i+1] = {}
         self.max_priority = 0
+        self.total_interrack_bandwidth = state.sys.interrack_speed * state.sys.num_racks
         
 
     def update_disk_state(self, event_type: str, diskId: int) -> None:
@@ -143,15 +144,15 @@ class NetDP(Policy):
 
         
     def calc_repair_time(self, disk, priority):
-        # We calculate the repair time for RAID, and divide that by speed up brought by net dp
-        repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO)
+        total_disk_IO = disk.good_num * self.sys.diskIO
+        total_repair_bandwidth = min(total_disk_IO, self.total_interrack_bandwidth)
+
+        total_repair_data_readwrite = float(disk.curr_repair_data_remaining) * (self.sys.k + 1) 
         # we repair multiple disks concurrently. So rebuild bandwidth is shared
-        repair_time = repair_time * len(self.priority_queue[priority])
+        per_disk_total_repair_bandwidth = total_repair_bandwidth / len(self.priority_queue[priority])
+        repair_time = total_repair_data_readwrite / per_disk_total_repair_bandwidth
         
-        participating_disks = disk.good_num
-        speed_up = participating_disks / (self.sys.k + 1)
-        
-        return repair_time / speed_up
+        return repair_time
     
     def check_pdl(self):
         return network_decluster_pdl(self.state)
