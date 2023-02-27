@@ -119,7 +119,8 @@ class NetDP(Policy):
         failed_disk_per_rack = self.state.racks[rackId].failed_disks.keys()
         for i in range(disk.priority):
             priority = i+1
-            disk.priority_percents[priority] = netdp_prio.priority_percent(self.state, disk, failed_disk_per_rack, self.max_priority, priority)
+            # disk.priority_percents[priority] = netdp_prio.priority_percent(self.state, disk, failed_disk_per_rack, self.max_priority, priority)
+            disk.priority_percents[priority] = netdp_prio.compute_priority_percent(self.state, self.affected_racks, rackId, priority)
         
 
     def pause_repair_time(self, diskId, priority):
