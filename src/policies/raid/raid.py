@@ -30,11 +30,6 @@ class RAID(Policy):
                 self.state.failures_per_raidgroup.pop(raidgroupId, None)
 
             self.sys.metrics.disks_aggregate_down_time += self.curr_time - self.disks[diskId].metric_down_start_time
-
-            
-            # If this disk has network usage, we return those to the network state
-            self.state.network.replenish(disk.network_usage)
-            disk.network_usage = None
             
             # logging.info("Network bandwidth after replenish: %s", self.state.network.__dict__)
             
@@ -52,10 +47,6 @@ class RAID(Policy):
             #             diskId, self.curr_time, self.state.failed_disks, self.state.failures_per_raidgroup))
 
             self.disks[diskId].metric_down_start_time = self.curr_time
-            
-        if event_type == Disk.EVENT_DELAYED_FAIL:
-            # Currently this should not do anything because the disk should already be in a failed state
-            pass
     
 
     def update_disk_priority(self, event_type, diskId):
