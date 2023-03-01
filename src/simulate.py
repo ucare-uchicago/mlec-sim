@@ -58,14 +58,30 @@ class Simulate:
         state_reset_done_time = time.time()
         mytimer.resetStateInitTime += (state_reset_done_time - start_state_reset_time)
 
+        
         if failureGenerator.is_burst:
             failures = failureGenerator.gen_failure_burst(self.sys.num_disks_per_rack, self.sys.num_racks)
             # failures = failureGenerator.gen_failure_burst(50, 50)
+            for disk_fail_time, diskId in failures:
+                heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
+                self.sys.metrics.failure_count += 1
         else:
-            initialFailures = failureGenerator.gen_failure_times(self.sys.num_disks)
-            failure_times = initialFailures[initialFailures < self.mission_time]
+            start_genfailure_time = time.time()
+            initialFailures = failureGenerator.gen_new_failures(self.sys.num_disks)
+            finish_genfailure_time = time.time()
+            mytimer.resetGenFailTime += finish_genfailure_time - start_state_reset_time
+
+            start_parse_failure_time = time.time()
+            
             failure_idxs = np.where(initialFailures < self.mission_time)[0]
-            failures = list(zip(failure_times, failure_idxs))
+            
+            finish_parse_failure_time = time.time()
+            mytimer.resetParseFailTime += finish_parse_failure_time - start_parse_failure_time
+
+            for diskId in failure_idxs:
+                heappush(self.failure_queue, (initialFailures[diskId], Disk.EVENT_FAIL, diskId))
+                self.sys.metrics.failure_count += 1
+        
         #-----------------------------------------------------
         # generate disks failures events from failure traces
         #-----------------------------------------------------
@@ -77,13 +93,11 @@ class Simulate:
         # logging.info("initialFailures: {}".format(len(initialFailures)))
 
 
-        for disk_fail_time, diskId in failures:
-            heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
-            self.sys.metrics.failure_count += 1
+        
             
-        # debug print after heapsort, clearer for debug
-        for disk_fail_time, _, diskId in self.failure_queue:
-            logging.debug("    >>>>> reset {} {} {}".format(disk_fail_time, Disk.EVENT_FAIL, diskId))
+        # # debug print after heapsort, clearer for debug
+        # for disk_fail_time, _, diskId in self.failure_queue:
+        #     logging.debug("    >>>>> reset {} {} {}".format(disk_fail_time, Disk.EVENT_FAIL, diskId))
             
         
         if self.sys.rack_fail > 0:

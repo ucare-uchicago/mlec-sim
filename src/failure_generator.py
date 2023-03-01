@@ -6,7 +6,7 @@ import random
 
 class FailureGenerator:
     
-    def __init__(self, afr, distribution = None, is_burst = False):
+    def __init__(self, afr, distribution = None, is_burst = False, failures_store_len=100000):
         self.afr = afr
         self.distribution = distribution
         if distribution == None:
@@ -14,7 +14,7 @@ class FailureGenerator:
         self.is_burst = is_burst
         
         self.failures_store = []
-        self.failures_store_len = 100
+        self.failures_store_len = failures_store_len
         self.failures_store_idx = self.failures_store_len
         
     # This generate a system of failure times

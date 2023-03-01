@@ -26,11 +26,17 @@ class Simulator:
     def iter(self, failureGenerator_: FailureGenerator, sys_, iters, mission):
         try:
             res = 0
-            failureGenerator = copy.deepcopy(failureGenerator_)
-            sys = copy.deepcopy(sys_)
+            start = time.time()
             mytimer: Mytimer = Mytimer()
 
-            start = time.time()
+            deepcopystart = time.time()
+            failureGenerator = copy.deepcopy(failureGenerator_)
+            sys = copy.deepcopy(sys_)
+
+            deepcopyend = time.time()
+            mytimer.copytime += deepcopyend - deepcopystart
+
+            
             for iter in range(0, iters):
                 # logging.info("")
                 iter_start = time.time()
@@ -41,7 +47,7 @@ class Simulator:
                 # print(mytimer)
                 # print("Finishing iter " + str(iter) + " taking " + str((iter_end - iter_start) * 1000) + "ms")
             end = time.time()
-            # print("totaltime: {}".format((end - start)))
+            mytimer.totalTime += end - start
             print(mytimer)
             return (res, mytimer, sys.metrics)
         except Exception as e:
