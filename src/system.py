@@ -18,7 +18,8 @@ from numpy.typing import NDArray
 
 class System:
     def __init__(self, num_disks, num_disks_per_rack, k, m, place_type: PlacementType, diskCap, rebuildRate, intrarack_speed, interrack_speed,
-                    utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = 0, num_disks_per_enclosure = -1):
+                    utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = 0, num_disks_per_enclosure = -1, 
+                    infinite_chunks = True, chunksize=128):
         #--------------------------------------------
         # Set up the system parameters
         #--------------------------------------------
@@ -67,7 +68,7 @@ class System:
         self.diskgroup_stripesets: Dict[int, List[int]] = {}
         
         #--------------------------------------------
-        self.diskSize: int = diskCap
+        self.diskSize: int = diskCap    # in MB
         self.diskIO: int = rebuildRate
         self.utilizeRatio: float = utilizeRatio
         self.adapt: bool = adapt
@@ -86,6 +87,10 @@ class System:
         self.interrack_speed = interrack_speed / 8 * kilo
         self.network: Network = Network(self, intrarack_speed / 8 * kilo, interrack_speed / 8 * kilo)
         # ----------
+        self.infinite_chunks = infinite_chunks
+        self.chunksize = chunksize
+        self.num_chunks_per_disk = self.diskSize * kilo // chunksize
+        # ---
         config_system_layout(self.place_type, self)
 
 

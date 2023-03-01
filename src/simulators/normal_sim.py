@@ -14,14 +14,18 @@ from metrics import Metrics
 
 class NormalSim(Simulator):
     
-    def simulate(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
-        return self.normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, total_drives, drives_per_rack, placement, distribution, concur, epoch, iters)    
+    def simulate(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
+                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters,
+                 infinite_chunks=True, chunksize=128):
+        return self.normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
+                               total_drives, drives_per_rack, placement, distribution, concur, epoch, iters,
+                               infinite_chunks, chunksize)    
 
     # -----------------------------
     # normal Monte Carlo simulation
     # -----------------------------
     def normal_sim(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
-                    total_drives, drives_per_rack, placement, distribution, concur, epoch, iters):
+                    total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, infinite_chunks=True, chunksize=128):
         # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
 
         mission = YEAR
@@ -41,7 +45,9 @@ class NormalSim(Simulator):
             top_k=k_net, 
             top_m=p_net, 
             adapt=adapt, 
-            rack_fail=0)
+            rack_fail=0,
+            infinite_chunks=infinite_chunks,
+            chunksize=chunksize)
 
         failed_iters = 0
         total_iters = 0

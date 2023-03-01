@@ -6,6 +6,7 @@ from policies.policy import Policy
 from helpers import netdp_prio
 from .pdl import network_decluster_pdl
 from .repair import netdp_repair
+import random
 
 class NetDP(Policy):
     
@@ -39,9 +40,7 @@ class NetDP(Policy):
             self.affected_racks[rackId] = 1
             self.state.failed_disks[diskId] = 1
             self.disks[diskId].metric_down_start_time = self.curr_time
-        
-        if event_type == Disk.EVENT_FASTREBUILD:
-            logging.info("Fast Repair event for disk {} with priority {}".format(diskId, disk.priority))
+
     
     def update_disk_priority(self, event_type, diskId: int):        
         disk = self.state.disks[diskId]
@@ -98,12 +97,26 @@ class NetDP(Policy):
             if (len(self.state.racks[rackId].failed_disks) == 1) or self.max_priority < len(self.affected_racks):
                 self.max_priority += 1
             
-            disk.priority = self.max_priority
-            
-            # there is data loss when the max priority is larger than parity
             if self.max_priority > self.sys.m:
-                return 1
+                # if a disk has infinite chunks, then there must be some stripe that have max_priority
+                if self.sys.infinite_chunks:
+                    return 1
+                # otherwise it's possible that the system is lucky and have no max_priority stripe
+                # we need to compute the probability for the system to be lucky
+                else:
+                    stripe_survival_prob = 1-netdp_prio.compute_priority_percent(self.state, self.affected_racks, rackId, self.max_priority)
+                    all_disk_stripe_survival_prob = stripe_survival_prob ** self.sys.num_chunks_per_disk
+                    sample = random.choices([0,1], [all_disk_stripe_survival_prob, 1-all_disk_stripe_survival_prob])
+                    # print("stripe_survival_prob: {} all_disk_stripe_survival_prob: {} self.sys.num_chunks_per_disk: {}  sample:{}".format(
+                    #     stripe_survival_prob, all_disk_stripe_survival_prob, self.sys.num_chunks_per_disk, sample
+                    # ))
+                    if sample[0] == 1:
+                        return 1
+                    else:
+                        self.max_priority -= 1
             
+            disk.priority = self.max_priority
+
             
             self.priority_queue[disk.priority][diskId] = 1
             disk.repair_start_time = self.state.curr_time
