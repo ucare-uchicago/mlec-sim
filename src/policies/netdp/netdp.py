@@ -172,3 +172,14 @@ class NetDP(Policy):
     
     def update_repair_events(self, repair_queue):
         return netdp_repair(self.state, repair_queue)
+
+    def clean_failures(self) -> None:
+        failed_disks = self.state.get_failed_disks()
+        for diskId in failed_disks:
+            disk = self.state.disks[diskId]
+            disk.state = Disk.STATE_NORMAL
+            disk.priority = 0
+            disk.repair_time = {}
+            self.curr_prio_repair_started = False
+        for rackId in self.affected_racks:
+            self.state.racks[rackId].failed_disks = {}

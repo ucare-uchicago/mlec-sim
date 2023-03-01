@@ -124,3 +124,8 @@ class RAID(Policy):
             disk.state = Disk.STATE_NORMAL
             disk.priority = 0
             disk.repair_time = {}
+
+            rackId = diskId // self.sys.num_disks_per_rack
+            rack = self.state.racks[rackId]
+            rack.failed_disks = {}
+            rack.state = rack.STATE_NORMAL

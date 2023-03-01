@@ -3,6 +3,8 @@ import logging
 from metrics import Metrics
 from components.disk import Disk
 from components.network import Network
+from components.rack import Rack
+
 from constants.PlacementType import PlacementType
 from constants.constants import kilo
 
@@ -20,6 +22,20 @@ class System:
     def __init__(self, num_disks, num_disks_per_rack, k, m, place_type: PlacementType, diskCap, rebuildRate, intrarack_speed, interrack_speed,
                     utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = 0, num_disks_per_enclosure = -1, 
                     infinite_chunks = True, chunksize=128):
+        #--------------------------------------------
+        # set up the erasure coding configuration
+        #--------------------------------------------
+        self.k: int = k
+        self.m: int = m
+        self.n: int = m + k
+        self.top_k: int = top_k
+        self.top_m: int = top_m
+        self.top_n: int = top_m + top_k
+        #--------------------------------------------
+        # Set up disk parameters
+        #--------------------------------------------
+        self.diskSize: int = diskCap    # in MB
+        self.diskIO: int = rebuildRate
         #--------------------------------------------
         # Set up the system parameters
         #--------------------------------------------
@@ -43,21 +59,28 @@ class System:
             self.num_racks = self.num_disks//self.num_disks_per_rack
         else:
             self.num_racks = self.num_disks//self.num_disks_per_rack+1
-        self.racks: range = range(self.num_racks)
-        for rackId in self.racks:
+
+        # todo: for dp pool size is different
+        self.localpool_size = self.n
+        num_localpool_per_rack = self.num_disks_per_rack // self.localpool_size
+
+        if place_type == PlacementType.MLEC_C_C:
+            rack_repair_data = self.diskSize * self.n
+            # rack_repair_data = sys.diskSize * (self.sys.m + 1)
+        else:
+            rack_repair_data = self.diskSize * self.num_disks_per_rack
+            # rack_repair_data = sys.diskSize * (self.sys.m + 1)
+
+
+        self.rackIds: range = range(self.num_racks)
+        self.racks: Dict[int, Rack] = {}
+        for rackId in self.rackIds:
+            self.racks[rackId] = Rack(rackId, rack_repair_data, num_localpool_per_rack)
+        for rackId in self.rackIds:
             if rackId == 0:
                 self.disks_per_rack[rackId] = np.array(range(num_disks_per_rack))
             else:
                 self.disks_per_rack[rackId] = self.disks_per_rack[rackId-1] + num_disks_per_rack
-        #--------------------------------------------
-        # set up the erasure coding configuration
-        #--------------------------------------------
-        self.k: int = k
-        self.m: int = m
-        self.n: int = m + k
-        self.top_k: int = top_k
-        self.top_m: int = top_m
-        self.top_n: int = top_m + top_k
         #--------------------------------------------
         self.place_type: PlacementType = place_type
         self.flat_decluster_rack_layout = {}
@@ -68,8 +91,6 @@ class System:
         self.diskgroup_stripesets: Dict[int, List[int]] = {}
         
         #--------------------------------------------
-        self.diskSize: int = diskCap    # in MB
-        self.diskIO: int = rebuildRate
         self.utilizeRatio: float = utilizeRatio
         self.adapt: bool = adapt
         self.rack_fail: int = rack_fail

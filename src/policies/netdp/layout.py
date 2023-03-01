@@ -8,7 +8,7 @@ if typing.TYPE_CHECKING:
 def net_dp_layout(sys: System):
     # Same as flat decluster
     sys.flat_decluster_rack_layout = {}
-    for rackId in sys.racks:
+    for rackId in sys.rackIds:
         disks_per_rack = sys.disks_per_rack[rackId]
         sys.flat_decluster_rack_layout[rackId] = disks_per_rack
 

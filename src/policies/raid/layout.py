@@ -6,7 +6,7 @@ if typing.TYPE_CHECKING:
 
 def flat_cluster_layout(sys: System):
     sys.flat_cluster_rack_layout = {}
-    for rackId in sys.racks:
+    for rackId in sys.rackIds:
         disks_per_rack = sys.disks_per_rack[rackId]
         num_stripesets = len(disks_per_rack) // (sys.k+sys.m)
         sets = []
