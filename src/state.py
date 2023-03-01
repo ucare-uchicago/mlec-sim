@@ -54,7 +54,7 @@ class State:
         self.mytimer: Mytimer = mytimer
         self.policy: Policy = get_policy(self.sys.place_type, self)
         # self.network = copy.deepcopy(self.sys.network)
-        self.network = Network(sys, sys.intrarack_speed / 8 * kilo, sys.interrack_speed / 8 * kilo)
+        self.network = sys.network
         #----------------------------------
 
 
