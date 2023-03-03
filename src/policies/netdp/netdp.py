@@ -31,15 +31,15 @@ class NetDP(Policy):
             if len(self.state.racks[rackId].failed_disks) == 0:
                 self.affected_racks.pop(rackId, None)
             self.state.failed_disks.pop(diskId, None)
-            self.sys.metrics.disks_aggregate_down_time += self.curr_time - self.disks[diskId].metric_down_start_time
+            # self.sys.metrics.disks_aggregate_down_time += self.curr_time - self.disks[diskId].metric_down_start_time
                             
         if event_type == Disk.EVENT_FAIL:
-            logging.info("Fail event for disk {} with priority".format(diskId))
+            # logging.info("Fail event for disk {} with priority".format(diskId))
             disk.state = Disk.STATE_FAILED
             self.state.racks[rackId].failed_disks[diskId] = 1
             self.affected_racks[rackId] = 1
             self.state.failed_disks[diskId] = 1
-            self.disks[diskId].metric_down_start_time = self.curr_time
+            # self.disks[diskId].metric_down_start_time = self.curr_time
 
     
     def update_disk_priority(self, event_type, diskId: int):        
