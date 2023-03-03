@@ -24,6 +24,9 @@ class Mytimer:
         self.newFailTime = 0.0
         self.checkLossTime = 0.0
         self.updateRepairTime = 0.0
+        
+        self.resetParseFailTime = 0.0
+        self.totalTime = 0.0
     
     def __str__(self):
         return (" simInitTime\t\t{}\n seedtime\t\t{}\n copytime\t\t{}\n genfailtime\t\t{}\n" 
