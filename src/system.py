@@ -85,7 +85,6 @@ class System:
         self.place_type: PlacementType = place_type
         self.flat_decluster_rack_layout = {}
         self.flat_cluster_rack_layout = {}
-        self.net_raid_spools_layout = {}
         self.num_diskgroups = 0
         self.num_diskgroup_spools = 0
         self.diskgroup_spools: Dict[int, List[int]] = {}

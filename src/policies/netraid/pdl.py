@@ -7,11 +7,10 @@ if typing.TYPE_CHECKING:
     from policies.netraid.netraid import NetRAID
 
 def net_raid_pdl(netraid: NetRAID, state: State):
-    return old(netraid, state)
-    # if netraid.max_prio > state.sys.top_m:
-    #     return 1
-    # else:
-    #     return 0
+    if netraid.sys_failed:
+        return 1
+    else:
+        return 0
     
 def old(netraid: NetRAID, state: State):
     prob = 0

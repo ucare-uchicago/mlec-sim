@@ -139,7 +139,7 @@ class Simulate:
     # run simulation based on statistical model or production traces
     #----------------------------------------------------------------
     def run_simulation(self, failureGenerator, mytimer):
-        # logging.info("---------")
+        logging.info("---------")
 
         self.sys.metrics.iter_count += 1
         self.mytimer: Mytimer = mytimer
@@ -177,7 +177,7 @@ class Simulate:
             get_event_done_time = time.time()
             self.mytimer.getEventTime += (get_event_done_time - event_start)
 
-            # logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
+            logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
             
             #--------------------------------------
             # update all disks state/priority

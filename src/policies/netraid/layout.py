@@ -4,31 +4,32 @@ import logging
 
 if typing.TYPE_CHECKING:
     from system import System
+from components.spool import Spool
 
 def net_raid_layout(sys: System):
-    stripe_width = sys.top_k + sys.top_m
     # Non-overlapping stripe sets (each member is a rack)
-    num_rack_group = sys.num_racks // stripe_width
+    num_rack_group = sys.num_racks // sys.top_n
     # How many spools in total can we have, non-overlapping disks
     num_spools = sys.num_disks_per_rack * num_rack_group
-    
-    # logging.info("Stripe width: %s, num_racks: %s, num_rack_group: %s, num_spools: %s", stripe_width, sys.num_racks, num_rack_group, num_spools)
-    
-    sets = {}
-    for i in range(num_spools):
+        
+    sys.spools = []
+    for spoolId in range(num_spools):
         
         num_spools_per_rack_group = sys.num_disks_per_rack
-        rackGroupId = i // num_spools_per_rack_group
-        spool = []
-        for rackId in range(rackGroupId * stripe_width, (rackGroupId + 1) * stripe_width):
-            diskId = rackId * num_spools_per_rack_group + i % num_spools_per_rack_group
+        rackGroupId = spoolId // num_spools_per_rack_group
+        diskIds_in_spool = []
+        for rackId in range(rackGroupId * sys.top_n, (rackGroupId + 1) * sys.top_n):
+            diskId = rackId * num_spools_per_rack_group + spoolId % num_spools_per_rack_group
             disk = sys.disks[diskId]
             disk.rackId = rackId
-            disk.spoolId = i
-            spool.append(diskId)
+            disk.spoolId = spoolId
+            disk.rackGroupId = rackGroupId
+            diskIds_in_spool.append(diskId)
             # logging.info(" spoolId: {} diskId: {}".format(i, diskId))
-        sets[i] = spool
-    # dictionary of stripeId to list of disks on disjoint racks
-    sys.net_raid_spools_layout = sets
-    # logging.info("* there are {} spools:\n{}".format(
-    #         num_spools, sets))
+        spool = Spool(spoolId=spoolId, repair_data=-1, num_disks=sys.top_n)
+        spool.rackGroupId = rackGroupId
+        sys.spools.append(spool)
+    
+    sys.affected_spools_per_rackGroup = []
+    for rackGroupId in range(num_rack_group):
+        sys.affected_spools_per_rackGroup.append({})
