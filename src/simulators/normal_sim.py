@@ -29,7 +29,7 @@ class NormalSim(Simulator):
         # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
 
         mission = YEAR
-        failureGenerator = FailureGenerator(afr)
+        failureGenerator = FailureGenerator(afr, failures_store_len=total_drives*100)
         
         sys = System(
             num_disks=total_drives, 
