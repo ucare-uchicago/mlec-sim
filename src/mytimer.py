@@ -1,5 +1,6 @@
 class Mytimer:
     def __init__(self):
+        self.totalTime = 0.0
         self.eventInitTime = 0.0
         self.simInitTime = 0.0
         self.seedtime = 0.0
@@ -9,6 +10,8 @@ class Mytimer:
         self.resetStateInitTime = 0.0
         self.resetDiskInitTime = 0.0
         self.resetGenFailTime = 0.0
+        self.resetZipTime = 0.0
+        self.resetParseFailTime = 0.0
         self.resetHeapTime = 0.0
         self.getEventTime = 0.0
         self.updateClockTime = 0.0
@@ -26,13 +29,16 @@ class Mytimer:
         self.updateRepairTime = 0.0
     
     def __str__(self):
-        return (" simInitTime\t\t{}\n seedtime\t\t{}\n copytime\t\t{}\n genfailtime\t\t{}\n" 
-                " resettime\t\t{}\n   resetStateInitTime\t{}\n   resetDiskInitTime\t{}\n   resetGenFailTime\t{}\n   resetHeapTime\t{}\n"
+        return (" TotalTimePerThread:\t{}\n"
+                " simInitTime\t\t{}\n seedtime\t\t{}\n copytime\t\t{}\n genfailtime\t\t{}\n" 
+                " resettime\t\t{}\n   resetStateInitTime\t{}\n   resetDiskInitTime\t{}\n   resetGenFailTime\t{}\n   "
+                "resetParseFailTime\t{}\n   resetZipTime\t\t{}\n  resetHeapTime\t{}\n"
                 " getEventTime\t\t{}\n updateClockTime\t{}\n updateStateTime\t{}\n"
                 " updateRackStateTime\t{}\n"
                 " updatePriorityTime\t{}\n   updateDiskRepairTime\t{}\n   updatePriorityFailTime\t{}\n"
                 " updateRackPriTime\t{}\n"
                 " newFailTime\t\t{}\n checkLossTime\t\t{}\n updateRepairTime\t{}\n").format(
+            self.totalTime,
             self.simInitTime,
             self.seedtime,
             self.copytime,
@@ -41,6 +47,8 @@ class Mytimer:
             self.resetStateInitTime,
             self.resetDiskInitTime,
             self.resetGenFailTime,
+            self.resetParseFailTime,
+            self.resetZipTime,
             self.resetHeapTime,
             self.getEventTime,
             self.updateClockTime,
