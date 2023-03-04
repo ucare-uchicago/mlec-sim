@@ -1,2 +1,2 @@
-stripeset -> localpool
+spool -> spool
 sys.racks -> sys.rackIds
