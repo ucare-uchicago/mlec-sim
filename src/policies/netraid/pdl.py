@@ -21,10 +21,10 @@ def old(netraid: NetRAID, state: State):
     for diskId in failed_disks:
         disk = state.disks[diskId]
         # start2 = time.time()
-        failed_disks_per_stripeset = state.get_failed_disks_per_stripeset(disk.stripesetId)
+        failed_disks_per_spool = state.get_failed_disks_per_spool(disk.spoolId)
         # print("Getting failed disks took " + str((time.time() - start2) * 1000) + " ms")
-        if len(failed_disks_per_stripeset) > state.sys.top_m:
-            # logging.warn("System failure caused by stripe %s with failures %s", disk.stripesetId, failed_disks_per_stripeset)
+        if len(failed_disks_per_spool) > state.sys.top_m:
+            # logging.warn("System failure caused by stripe %s with failures %s", disk.spoolId, failed_disks_per_spool)
             prob = 1
             # print("NETRAID check_pdl took " + str((time.time() - start) * 1000) + " ms")
             return prob

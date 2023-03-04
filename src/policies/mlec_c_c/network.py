@@ -18,23 +18,23 @@ def used_for_repair_top_level(mlec: MLEC, disk: Disk):
     # We delay all bottom layer repairs that compete resources with repairing top layer stripes
     #  -> if the rack of this failing disk is being used for repairing a top layer diskgroup or
     #     is needed for a diskgroup in delay queue, we do not start the repair
-    stripeset_to_check = []
-    stripeset_to_check += mlec.repairing_stripeset
+    spool_to_check = []
+    spool_to_check += mlec.repairing_spool
     for delayedDiskgroupId in mlec.state.simulation.delay_repair_queue[Components.DISKGROUP]:
-        stripeset_to_check += [mlec.diskgroups[delayedDiskgroupId].diskgroupStripesetId]
+        spool_to_check += [mlec.diskgroups[delayedDiskgroupId].diskgroupSpoolId]
     
-    logging.info("Stripeset to check %s", stripeset_to_check)
-    logging.info("Stripesets %s", mlec.sys.diskgroup_stripesets)
-    for stripesetId in stripeset_to_check:
+    logging.info("Spool to check %s", spool_to_check)
+    logging.info("Spools %s", mlec.sys.diskgroup_spools)
+    for spoolId in spool_to_check:
         repairing_rack = []
-        for diskgroupId_ in mlec.sys.diskgroup_stripesets[stripesetId]:
+        for diskgroupId_ in mlec.sys.diskgroup_spools[spoolId]:
             repairing_rack.append(mlec.diskgroups[diskgroupId_].rackId)
         
         if disk.rackId in repairing_rack:
             # This means that to repair the current bottom layer diskgroup, we need bandwidth from repairing top layer stripe
             #   we will delay the repair of this disk
             #logging.warn("This disk's rack is being used for top level repair, delaying repair")
-            #logging.warn("Repairing stripeset %s", mlec.repairing_stripeset)
+            #logging.warn("Repairing spool %s", mlec.repairing_spool)
             return True
     
     return False
@@ -57,11 +57,11 @@ def disks_to_read_for_repair(disk: Disk, mlec: MLEC) -> List[int]:
             
     return disks_to_read
 
-def diskgroup_to_read_for_repair(stripesetId: int, mlec: MLEC) -> List[int]:
-    logging.info("Trying to get readable sibling for stripeset %s", stripesetId)
-    logging.info("Stripeset %s", mlec.sys.diskgroup_stripesets[stripesetId])
+def diskgroup_to_read_for_repair(spoolId: int, mlec: MLEC) -> List[int]:
+    logging.info("Trying to get readable sibling for spool %s", spoolId)
+    logging.info("Spool %s", mlec.sys.diskgroup_spools[spoolId])
     diskgroup_to_read = []
-    for diskgroupId in mlec.state.sys.diskgroup_stripesets[stripesetId]:
+    for diskgroupId in mlec.state.sys.diskgroup_spools[spoolId]:
         if len(diskgroup_to_read) >= mlec.sys.top_k:
             break
         
@@ -153,12 +153,12 @@ def update_network_state(disk: Disk, fail_per_diskgroup: List[int], mlec: MLEC) 
     else:
         raise Exception("Should not get here")
 
-def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: List[int], mlec: MLEC) -> bool:
+def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_spool: List[int], mlec: MLEC) -> bool:
     rackId = diskgroup.rackId
-    num_fail_per_stripeset = len(fail_per_stripeset)
+    num_fail_per_spool = len(fail_per_spool)
     
     num_repairing = 0
-    for diskgroupId in fail_per_stripeset:
+    for diskgroupId in fail_per_spool:
         if mlec.diskgroups[diskgroupId].repair_start_time != 0:
             logging.info("Diskgroup %s with repair_start_time of %s", diskgroupId, mlec.diskgroups[diskgroupId].repair_start_time)
             num_repairing += 1
@@ -166,7 +166,7 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
     logging.info("Num repairing %s", num_repairing)
     if num_repairing == 1:
         # we start the repair if there is enough diskgroups to read from (aka enough cross-rack bandwidth)
-        diskgroups_to_read = diskgroup_to_read_for_repair(diskgroup.diskgroupStripesetId, mlec)
+        diskgroups_to_read = diskgroup_to_read_for_repair(diskgroup.diskgroupSpoolId, mlec)
         if len(diskgroups_to_read) >= mlec.state.sys.top_k:
                 # If there is, we start the repair.
                 diskgroup.network_usage = initial_repair_diskgroup(diskgroups_to_read, mlec)
@@ -180,19 +180,19 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
             mlec.state.simulation.delay_repair_queue[Components.DISKGROUP][diskgroup.diskgroupId] = True
             return False
             
-    elif len(fail_per_stripeset) <= mlec.sys.m:
-        # This means that we have diskgroup stripeset failures, we need cross-rack repair
+    elif len(fail_per_spool) <= mlec.sys.m:
+        # This means that we have diskgroup spool failures, we need cross-rack repair
         #    We append the network usage to the disk groups under going repair
         # We split the previously used bandwidth, similar to the disk repair
-        #logging.warn("Multiple failure in stripeset %s", len(fail_per_stripeset))
+        #logging.warn("Multiple failure in spool %s", len(fail_per_spool))
         usage_aggregator = NetworkUsage(0, {})
-        for diskgroupId in fail_per_stripeset:
+        for diskgroupId in fail_per_spool:
             usage_aggregator.join(mlec.diskgroups[diskgroupId].network_usage)
             
         logging.info("Total network usage %s", usage_aggregator)
         
-        for diskgroupId in fail_per_stripeset:
-            mlec.diskgroups[diskgroupId].network_usage = usage_aggregator.split(num_fail_per_stripeset)
+        for diskgroupId in fail_per_spool:
+            mlec.diskgroups[diskgroupId].network_usage = usage_aggregator.split(num_fail_per_spool)
             logging.info("Diskgroup %s is assigned with network %s", diskgroupId, mlec.diskgroups[diskgroupId].network_usage)
         
         return True
@@ -201,7 +201,7 @@ def update_network_state_diskgroup(diskgroup: Diskgroup, fail_per_stripeset: Lis
         #     mlec.state.simulation.delay_repair_queue[Components.DISKGROUP][diskgroup.diskgroupId] = True
         #     return False
             
-    elif len(fail_per_stripeset) > mlec.sys.m:
+    elif len(fail_per_spool) > mlec.sys.m:
         # Do nothing. Check PDL will determine system fail
         return False
     

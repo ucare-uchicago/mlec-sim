@@ -27,6 +27,26 @@ class NetRAID(Policy):
         self.singerack_avail_interrack_bandwidth_per_rackgroup = [self.sys.interrack_speed] * self.num_rack_groups
         self.singerack_avail_intrarack_bandwidth_per_rackgroup = [self.sys.intrarack_speed] * self.num_rack_groups
 
+
+    def update_disk_state(self, event_type: str, diskId: int) -> None:
+        rackId = diskId // self.sys.num_disks_per_rack
+        disk = self.state.disks[diskId]
+        if event_type == Disk.EVENT_REPAIR:
+            disk.state = Disk.STATE_NORMAL
+            # This is removing the disk from the failed disk array
+            self.state.racks[rackId].failed_disks.pop(diskId, None)
+            self.state.failed_disks.pop(diskId, None)
+            self.sys.metrics.disks_aggregate_down_time += self.curr_time - self.disks[diskId].metric_down_start_time
+            
+                        
+        if event_type == Disk.EVENT_FAIL:
+            disk.state = Disk.STATE_FAILED
+            self.state.racks[rackId].failed_disks[diskId] = 1
+            self.state.failed_disks[diskId] = 1
+            self.disks[diskId].metric_down_start_time = self.curr_time
+
+
+
     #----------------------------------------------
     # raid net
     #----------------------------------------------
@@ -37,18 +57,18 @@ class NetRAID(Policy):
             self.sys.metrics.total_net_traffic += disk.repair_data * (self.sys.top_k + 1)
             self.sys.metrics.total_rebuild_io_per_year += disk.repair_data * (self.sys.top_k + 1)
             
-            stripesetId = disk.stripesetId
-            failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(stripesetId)
-            self.max_prio = max(self.max_prio, len(failed_disks_per_stripeset))
-            logging.info("Repair event of disk %s on stripe %s", diskId, stripesetId)
-            # logging.info("Failed stripesets: %s", self.state.get_failed_disks_each_stripeset())
+            spoolId = disk.spoolId
+            failed_disks_per_spool = self.state.get_failed_disks_per_spool(spoolId)
+            self.max_prio = max(self.max_prio, len(failed_disks_per_spool))
+            logging.info("Repair event of disk %s on stripe %s", diskId, spoolId)
+            # logging.info("Failed spools: %s", self.state.get_failed_disks_each_spool())
             
             # This is updating the rest of the failed disks for their repair time.
-            #  If there is only one failure in the stripeset, this would not be run
-            for diskId in failed_disks_per_stripeset:
+            #  If there is only one failure in the spool, this would not be run
+            for diskId in failed_disks_per_spool:
                 # If the disk is being delayed for repair, we do not update its time
                 if not self.state.simulation.delay_repair_queue[Components.DISK].get(diskId, False):
-                    self.update_disk_repair_time(diskId, failed_disks_per_stripeset)
+                    self.update_disk_repair_time(diskId, failed_disks_per_spool)
 
         if event_type in [Disk.EVENT_FAIL, Disk.EVENT_DELAYED_FAIL]:
             disk = self.disks[diskId]
@@ -56,22 +76,22 @@ class NetRAID(Policy):
             #  this is because there is a chance that we might need to delay repair
             disk.repair_start_time = self.curr_time
 
-            failed_disks_per_stripeset = self.state.get_failed_disks_per_stripeset(disk.stripesetId)
-            self.max_prio = max(self.max_prio, len(failed_disks_per_stripeset))
-            # logging.info("Failed stripesets: %s", self.state.get_failed_disks_each_stripeset())
-            # logging.info("  update_disk_priority_raid_net event: {} stripesetId: {} failed_disks_per_stripeset: {}".format(
-            #                 event_type, disk.stripesetId, failed_disks_per_stripeset))
+            failed_disks_per_spool = self.state.get_failed_disks_per_spool(disk.spoolId)
+            self.max_prio = max(self.max_prio, len(failed_disks_per_spool))
+            # logging.info("Failed spools: %s", self.state.get_failed_disks_each_spool())
+            # logging.info("  update_disk_priority_raid_net event: {} spoolId: {} failed_disks_per_spool: {}".format(
+            #                 event_type, disk.spoolId, failed_disks_per_spool))
             #--------------------------------------------
             # calculate repair time for disk failures
             # all the failed disks need to read data from other surviving disks in the group to rebuild data
             # so the rebuild IO is shared by all failed disks
             # we need to update the repair rate for all failed disks, because every failed disk gets less share now
             #--------------------------------------------
-            for diskId_per_stripeset in failed_disks_per_stripeset:
-                self.update_disk_repair_time(diskId_per_stripeset, failed_disks_per_stripeset)
+            for diskId_per_spool in failed_disks_per_spool:
+                self.update_disk_repair_time(diskId_per_spool, failed_disks_per_spool)
     
     
-    def update_disk_repair_time(self, diskId, num_fail_in_stripeset, num_fail_in_rackgroup):
+    def update_disk_repair_time(self, diskId, num_fail_in_spool, num_fail_in_rackgroup):
         disk = self.disks[diskId]
         repaired_time = self.curr_time - disk.repair_start_time
         if repaired_time == 0:
@@ -82,8 +102,8 @@ class NetRAID(Policy):
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
         
-        rebuild_rate = min(self.sys.diskIO / num_fail_in_stripeset, self.sys.interrack_speed / num_fail_in_rackgroup)
-        repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / fail_per_stripeset)
+        rebuild_rate = min(self.sys.diskIO / num_fail_in_spool, self.sys.interrack_speed / num_fail_in_rackgroup)
+        repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / fail_per_spool)
         logging.info("Repaired percent %s, Repair time %s", repaired_percent, repair_time)
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
@@ -92,7 +112,7 @@ class NetRAID(Policy):
 
     
     def update_bandwidth(self, disk, disk_to_read_from: List[int]) -> Optional[NetworkUsage]:
-        # Calculate intrarack, from k randomly selected drives from the stripeset
+        # Calculate intrarack, from k randomly selected drives from the spool
         intra_rack = {}
         for diskId in disk_to_read_from:
             rackId = self.state.disks[diskId].rackId

@@ -130,7 +130,6 @@ class NetDP(Policy):
     
     
     def compute_priority_percents(self, disk, rackId):
-        failed_disk_per_rack = self.state.racks[rackId].failed_disks.keys()
         for i in range(disk.priority):
             priority = i+1
             # disk.priority_percents[priority] = netdp_prio.priority_percent(self.state, disk, failed_disk_per_rack, self.max_priority, priority)

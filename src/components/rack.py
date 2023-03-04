@@ -14,7 +14,7 @@ class Rack:
     #----------------------------------
     # Initialize the rack
     #----------------------------------
-    def __init__(self, rackId, repair_data, stripeset_num):
+    def __init__(self, rackId, repair_data, spool_num):
         self.rackId = rackId
         self.state = self.STATE_NORMAL
         #-------------------------------
@@ -35,10 +35,10 @@ class Rack:
         
         
         self.failed_disks = {}
-        self.stripesets_repair_finish = []
-        for i in range(stripeset_num):
-            self.stripesets_repair_finish.append(0)
+        self.spools_repair_finish = []
+        for i in range(spool_num):
+            self.spools_repair_finish.append(0)
         
-        self.stripeset_failed_disks = []
-        for i in range(stripeset_num):
-            self.stripeset_failed_disks.append({})
+        self.spool_failed_disks = []
+        for i in range(spool_num):
+            self.spool_failed_disks.append({})

@@ -22,10 +22,10 @@ class Diskgroup:
     #----------------------------------
     # Initialize the rack
     #----------------------------------
-    def __init__(self, diskgroupId, repair_data, n, rackId, diskgroupStripesetId):
+    def __init__(self, diskgroupId, repair_data, n, rackId, diskgroupSpoolId):
         self.diskgroupId = diskgroupId
         self.rackId = rackId
-        self.diskgroupStripesetId = diskgroupStripesetId
+        self.diskgroupSpoolId = diskgroupSpoolId
         self.state = self.STATE_NORMAL
         #-------------------------------
         # initialize the repair priority

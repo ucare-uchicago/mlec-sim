@@ -29,7 +29,7 @@ class Disk:
         self.diskId: int = diskId
         self.rackId: int = rackId
         self.diskgroupId: int = 0
-        self.stripesetId: int = 0
+        self.spoolId: int = 0
         #-------------------------------
         # initialize the state be normal
         #-------------------------------
@@ -73,6 +73,6 @@ class Disk:
     # Override toString()
     def __str__(self):
         return "[dId: {}, rId: {}, sId: {}, state: {}, prio: {}, rep time: {}, rep start: {}, net: {}, paused: {}  prio_pct_com: {}]".format(
-                self.diskId, self.rackId, self.stripesetId, self.state, self.priority, self.repair_time, 
+                self.diskId, self.rackId, self.spoolId, self.state, self.priority, self.repair_time, 
                 self.repair_start_time, self.network_usage, self.paused, self.curr_prio_repair_started)
             

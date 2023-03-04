@@ -80,8 +80,8 @@ class Simulate:
         failed_disks_per_diskgroup = [0] * num_diskgroups
         # print(self.sys.num_disks)
 
-        num_diskgroup_stripesets = self.sys.num_disks // self.sys.n // self.sys.top_n
-        failed_diskgroups_per_stripeset = [0] * num_diskgroup_stripesets
+        num_diskgroup_spools = self.sys.num_disks // self.sys.n // self.sys.top_n
+        failed_diskgroups_per_spool = [0] * num_diskgroup_spools
 
         # print(failures)
 
@@ -90,26 +90,26 @@ class Simulate:
             # print('diskgroupId:{}'.format(diskgroupId))
             failed_disks_per_diskgroup[diskgroupId] += 1
             # print('{} {}'.format(diskgroupId, failed_disks_per_diskgroup[diskgroupId]))
-            # we only increment failed_diskgroups_per_stripeset once when failed_disks_per_diskgroup first reaches m+1
-            # when it reaches m+2 or more, we don't increment failed_diskgroups_per_stripeset because we already know this diskgroup failed.
+            # we only increment failed_diskgroups_per_spool once when failed_disks_per_diskgroup first reaches m+1
+            # when it reaches m+2 or more, we don't increment failed_diskgroups_per_spool because we already know this diskgroup failed.
             if failed_disks_per_diskgroup[diskgroupId] == self.sys.m + 1:
                 # let's say we do (2+1)/(2+1). Let say we have 6 disks per rack. And we have 6 racks
                 # Then each rack will have 2 disk groups.
                 # (0,1), (2,3), (4,5), (6,7), (8,9), (10,11) so we have in total 12 disk groups.
                 # we do network erasure between disk groups.
-                # so the disk group stripesets will be:
+                # so the disk group spools will be:
                 # (0,2,4), (1,3,5), (6,8,10), (7,9,11)
-                # we want to know the disk group stripeset id for a centain disk group. 
+                # we want to know the disk group spool id for a centain disk group. 
                 # Let's valiadate if the formula below is correct
                 # let's check diskgroup 11:
-                # diskgroupStripesetId = (11 % 2) + (11 // (2*3)) * 2 = 1 + (1*2) = 1+2 = 3
+                # diskgroupSpoolId = (11 % 2) + (11 // (2*3)) * 2 = 1 + (1*2) = 1+2 = 3
                 # let's check disgroup 3:
-                # diskgroupStripesetId = (3 % 2) + (3 // (2*3)) * 2 = 1 + (0*2) = 1+0 = 1
+                # diskgroupSpoolId = (3 % 2) + (3 // (2*3)) * 2 = 1 + (0*2) = 1+0 = 1
                 num_diskgroup_per_rack = self.sys.num_disks_per_rack // self.sys.n
-                diskgroupStripesetId = (diskgroupId % num_diskgroup_per_rack) + (diskgroupId // (num_diskgroup_per_rack * self.sys.top_n)) * num_diskgroup_per_rack
-                failed_diskgroups_per_stripeset[diskgroupStripesetId] += 1
-                # print('diskgroupStripesetId:{}  {}'.format(diskgroupStripesetId, failed_diskgroups_per_stripeset[diskgroupStripesetId]))
-                if failed_diskgroups_per_stripeset[diskgroupStripesetId] > self.sys.top_m:
+                diskgroupSpoolId = (diskgroupId % num_diskgroup_per_rack) + (diskgroupId // (num_diskgroup_per_rack * self.sys.top_n)) * num_diskgroup_per_rack
+                failed_diskgroups_per_spool[diskgroupSpoolId] += 1
+                # print('diskgroupSpoolId:{}  {}'.format(diskgroupSpoolId, failed_diskgroups_per_spool[diskgroupSpoolId]))
+                if failed_diskgroups_per_spool[diskgroupSpoolId] > self.sys.top_m:
                     return 1
         return 0
 
@@ -126,8 +126,8 @@ class Simulate:
             # print('diskgroupId:{}'.format(diskgroupId))
             failed_disks_per_diskgroup[diskgroupId] += 1
             # print('{} {}'.format(diskgroupId, failed_disks_per_diskgroup[diskgroupId]))
-            # we only increment failed_diskgroups_per_stripeset once when failed_disks_per_diskgroup first reaches m+1
-            # when it reaches m+2 or more, we don't increment failed_diskgroups_per_stripeset because we already know this diskgroup failed.
+            # we only increment failed_diskgroups_per_spool once when failed_disks_per_diskgroup first reaches m+1
+            # when it reaches m+2 or more, we don't increment failed_diskgroups_per_spool because we already know this diskgroup failed.
             if failed_disks_per_diskgroup[diskgroupId] == self.sys.m + 1:
                 rackId = diskId // self.sys.num_disks_per_rack
                 failed_diskgroups_per_rack[rackId] += 1
@@ -149,8 +149,8 @@ class Simulate:
             # print('diskgroupId:{}'.format(diskgroupId))
             failed_disks_per_diskgroup[diskgroupId] += 1
             # print('{} {}'.format(diskgroupId, failed_disks_per_diskgroup[diskgroupId]))
-            # we only increment failed_diskgroups_per_stripeset once when failed_disks_per_diskgroup first reaches m+1
-            # when it reaches m+2 or more, we don't increment failed_diskgroups_per_stripeset because we already know this diskgroup failed.
+            # we only increment failed_diskgroups_per_spool once when failed_disks_per_diskgroup first reaches m+1
+            # when it reaches m+2 or more, we don't increment failed_diskgroups_per_spool because we already know this diskgroup failed.
             if failed_disks_per_diskgroup[diskgroupId] == self.sys.m + 1:
                 rackId = diskId // self.sys.num_disks_per_rack
                 failed_diskgroups_per_rack[rackId] += 1
@@ -166,7 +166,7 @@ class Simulate:
         num_diskgroups = self.sys.num_disks // self.sys.top_n
         failed_disks_per_diskgroup = [0] * num_diskgroups
         for _, diskId in failures:
-            # similar to mlec diskgroupStripesetId
+            # similar to mlec diskgroupSpoolId
             diskgroupId = (diskId % self.sys.num_disks_per_rack) + (diskId // (self.sys.num_disks_per_rack * self.sys.top_n)) * self.sys.num_disks_per_rack 
             failed_disks_per_diskgroup[diskgroupId] += 1
             if failed_disks_per_diskgroup[diskgroupId] > self.sys.top_m:
@@ -182,7 +182,7 @@ class Simulate:
         stripe_damage = [0 for i in range(num_stripes_total)]
         affected_stripes = {}
         for _, diskId in failures:
-            # similar to mlec diskgroupStripesetId
+            # similar to mlec diskgroupSpoolId
             for stripeid in stripeid_per_disk_all[diskId]:
                 stripe_damage[stripeid] += 1
                 affected_stripes[stripeid] = 1

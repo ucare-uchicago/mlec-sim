@@ -69,13 +69,13 @@ class ManualFailOneRackSim(Simulator):
             print('Probability that rack one fails: {}'.format(rack_one_fail_prob))
 
             # Compute P(rack 1 fails | system fails)
-            #       = P(rack 1 fails | rack_stripeset 1 fails) * P(rack_stripeset 1 fails | system fails)
-            num_rack_stripesets = total_drives // drives_per_rack // (k_net + p_net)
-            pro_sys_fail_contain_rack_stripeset_1 = (
-                        1 - math.comb(num_rack_stripesets - 1, 1) / math.comb(num_rack_stripesets, 1))
-            pro_rack_stripeset_1_fail_contain_s1 = (
+            #       = P(rack 1 fails | rack_spool 1 fails) * P(rack_spool 1 fails | system fails)
+            num_rack_spools = total_drives // drives_per_rack // (k_net + p_net)
+            pro_sys_fail_contain_rack_spool_1 = (
+                        1 - math.comb(num_rack_spools - 1, 1) / math.comb(num_rack_spools, 1))
+            pro_rack_spool_1_fail_contain_s1 = (
                         1 - math.comb(k_net + p_net - 1, p_net + 1) / math.comb(k_net + p_net, p_net + 1))
-            pro_sys_fail_contain_s1 = pro_sys_fail_contain_rack_stripeset_1 * pro_rack_stripeset_1_fail_contain_s1
+            pro_sys_fail_contain_s1 = pro_sys_fail_contain_rack_spool_1 * pro_rack_spool_1_fail_contain_s1
             print('------------')
             print('Probability that system failure contains rack one: {}'.format(pro_sys_fail_contain_s1))
 

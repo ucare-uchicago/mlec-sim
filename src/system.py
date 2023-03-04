@@ -61,8 +61,8 @@ class System:
             self.num_racks = self.num_disks//self.num_disks_per_rack+1
 
         # todo: for dp pool size is different
-        self.localpool_size = self.n
-        num_localpool_per_rack = self.num_disks_per_rack // self.localpool_size
+        self.spool_size = self.n
+        num_spool_per_rack = self.num_disks_per_rack // self.spool_size
 
         if place_type == PlacementType.MLEC_C_C:
             rack_repair_data = self.diskSize * self.n
@@ -75,7 +75,7 @@ class System:
         self.rackIds: range = range(self.num_racks)
         self.racks: Dict[int, Rack] = {}
         for rackId in self.rackIds:
-            self.racks[rackId] = Rack(rackId, rack_repair_data, num_localpool_per_rack)
+            self.racks[rackId] = Rack(rackId, rack_repair_data, num_spool_per_rack)
         for rackId in self.rackIds:
             if rackId == 0:
                 self.disks_per_rack[rackId] = np.array(range(num_disks_per_rack))
@@ -85,10 +85,10 @@ class System:
         self.place_type: PlacementType = place_type
         self.flat_decluster_rack_layout = {}
         self.flat_cluster_rack_layout = {}
-        self.net_raid_stripesets_layout = {}
+        self.net_raid_spools_layout = {}
         self.num_diskgroups = 0
-        self.num_diskgroup_stripesets = 0
-        self.diskgroup_stripesets: Dict[int, List[int]] = {}
+        self.num_diskgroup_spools = 0
+        self.diskgroup_spools: Dict[int, List[int]] = {}
         
         #--------------------------------------------
         self.utilizeRatio: float = utilizeRatio

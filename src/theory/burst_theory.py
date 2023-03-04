@@ -398,13 +398,13 @@ if __name__ == "__main__":
     use_stripe = args.use_stripe
     print(use_stripe)
 
-    for num_failed_disks in range(10, 11):
-    #     # for num_affected_racks in range(1, num_failed_disks+1):
-        for num_affected_racks in range(3,4):
+    # for num_failed_disks in range(10, 11):
+    # # #     # for num_affected_racks in range(1, num_failed_disks+1):
+    #     for num_affected_racks in range(1,2):
 
-    # for num_failed_disks in range(1, 61):
-    #     max_racks = min(40, num_failed_disks)
-    #     for num_affected_racks in range(1,max_racks+1):
+    for num_failed_disks in range(1, 61):
+        max_racks = min(60, num_failed_disks)
+        for num_affected_racks in range(1,max_racks+1):
             burst_theory(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk, use_stripe)
 
@@ -451,5 +451,6 @@ if __name__ == "__main__":
     #     if failure_list[i] in counts:
     #         aggr_prob *= ((1-prob_dl) ** counts[failure_list[i]])
 
+    # print(aggr_prob)
     # nines = round(-math.log10(1-aggr_prob),4)
     # print("aggr prob survival: {} nines: {}".format(aggr_prob, nines))

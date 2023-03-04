@@ -79,12 +79,12 @@ class State:
     
     # This returns dict {stripeId: [disksId]}
     # WARNING: only use for debug. This will cause long simulation time
-    def get_failed_disks_each_stripeset(self):
-        stripesets = self.sys.net_raid_stripesets_layout
+    def get_failed_disks_each_spool(self):
+        spools = self.sys.net_raid_spools_layout
         result = {}
-        for ssid in stripesets:
+        for ssid in spools:
             failed_disks = []
-            for diskId in stripesets[ssid]:
+            for diskId in spools[ssid]:
                 if self.disks[diskId].state == Disk.STATE_FAILED:
                     failed_disks.append(diskId)
             
@@ -96,23 +96,23 @@ class State:
         # logging.info("sedrver {} get: {}".format(rackId, list(self.racks[rackId].failed_disks.keys())))
         return self.racks[rackId].failed_disks.keys()
 
-    def get_failed_disks_per_stripeset(self, stripesetId):
+    def get_failed_disks_per_spool(self, spoolId):
         failed_disks = []
-        stripeset = self.sys.net_raid_stripesets_layout[stripesetId]
-        for diskId in stripeset:
-            # logging.info("  get_failed_disks_per_stripeset  diskId: {}".format(diskId))
+        spool = self.sys.net_raid_spools_layout[spoolId]
+        for diskId in spool:
+            # logging.info("  get_failed_disks_per_spool  diskId: {}".format(diskId))
             if self.disks[diskId].state == Disk.STATE_FAILED:
                 failed_disks.append(diskId)
         return failed_disks
 
 
-    def get_failed_disks_per_stripeset_diskId(self, diskId):
+    def get_failed_disks_per_spool_diskId(self, diskId):
         failed_disks = []
         rackId = diskId // self.sys.num_disks_per_rack
-        stripesetId = (diskId % self.sys.num_disks_per_rack) // self.n
-        stripeset = self.sys.flat_cluster_rack_layout[rackId][stripesetId]
-        for d in stripeset:
-            # logging.info("  get_failed_disks_per_stripeset  diskId: {}".format(diskId))
+        spoolId = (diskId % self.sys.num_disks_per_rack) // self.n
+        spool = self.sys.flat_cluster_rack_layout[rackId][spoolId]
+        for d in spool:
+            # logging.info("  get_failed_disks_per_spool  diskId: {}".format(diskId))
             if self.disks[d].state == Disk.STATE_FAILED:
                 failed_disks.append(d)
         return failed_disks
