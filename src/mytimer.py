@@ -27,6 +27,9 @@ class Mytimer:
         self.newFailTime = 0.0
         self.checkLossTime = 0.0
         self.updateRepairTime = 0.0
+        
+        self.resetParseFailTime = 0.0
+        self.totalTime = 0.0
     
     def __str__(self):
         return (" TotalTimePerThread:\t{}\n"
