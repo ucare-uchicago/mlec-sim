@@ -48,7 +48,7 @@ class Simulator:
                 # print("Finishing iter " + str(iter) + " taking " + str((iter_end - iter_start) * 1000) + "ms")
             end = time.time()
             mytimer.totalTime += end - start
-            print(mytimer)
+            # print(mytimer)
             return (res, mytimer, sys.metrics)
         except Exception as e:
             print(traceback.format_exc())
