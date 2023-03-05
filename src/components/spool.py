@@ -15,16 +15,14 @@ class Spool:
     #----------------------------------
     # Initialize the rack
     #----------------------------------
-    def __init__(self, spoolId, repair_data, num_disks, rackId=-1, mpoolId=-1):
+    def __init__(self, spoolId, num_disks, rackId=-1, mpoolId=-1, repair_data=-1):
         self.spoolId = spoolId
         self.num_disks = num_disks
-        self.rackId = rackId
-        self.mpoolId = mpoolId
         self.state = self.STATE_NORMAL
         # -------------------
-        # rackGroupId, used for netraid
-        # -------
-        self.rackGroupId: int = -1
+        self.rackId = rackId
+        self.mpoolId = mpoolId
+        self.rackgroupId: int = -1
         #-------------------------------
         # initialize the repair priority
         #-------------------------------

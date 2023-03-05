@@ -21,7 +21,7 @@ from numpy.typing import NDArray
 class System:
     def __init__(self, num_disks, num_disks_per_rack, k, m, place_type: PlacementType, diskCap, rebuildRate, intrarack_speed, interrack_speed,
                     utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = 0, num_disks_per_enclosure = -1, 
-                    infinite_chunks = True, chunksize=128):
+                    infinite_chunks = True, chunksize=128, spool_size=-1):
         #--------------------------------------------
         # set up the erasure coding configuration
         #--------------------------------------------
@@ -61,21 +61,16 @@ class System:
             self.num_racks = self.num_disks//self.num_disks_per_rack+1
 
         # todo: for dp pool size is different
-        self.spool_size = self.n
-        num_spool_per_rack = self.num_disks_per_rack // self.spool_size
-
-        if place_type == PlacementType.MLEC_C_C:
-            rack_repair_data = self.diskSize * self.n
-            # rack_repair_data = sys.diskSize * (self.sys.m + 1)
-        else:
-            rack_repair_data = self.diskSize * self.num_disks_per_rack
-            # rack_repair_data = sys.diskSize * (self.sys.m + 1)
+        if place_type in [PlacementType.MLEC_C_C, PlacementType.MLEC_D_C, PlacementType.RAID]:
+            self.spool_size = self.n
+        elif place_type in [PlacementType.MLEC_C_D, PlacementType.MLEC_D_D, PlacementType.DP]:
+            self.spool_size = spool_size
 
 
         self.rackIds: range = range(self.num_racks)
         self.racks: Dict[int, Rack] = {}
         for rackId in self.rackIds:
-            self.racks[rackId] = Rack(rackId, rack_repair_data, num_spool_per_rack)
+            self.racks[rackId] = Rack(rackId)
         for rackId in self.rackIds:
             if rackId == 0:
                 self.disks_per_rack[rackId] = np.array(range(num_disks_per_rack))

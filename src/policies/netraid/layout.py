@@ -16,20 +16,20 @@ def net_raid_layout(sys: System):
     for spoolId in range(num_spools):
         
         num_spools_per_rack_group = sys.num_disks_per_rack
-        rackGroupId = spoolId // num_spools_per_rack_group
+        rackgroupId = spoolId // num_spools_per_rack_group
         diskIds_in_spool = []
-        for rackId in range(rackGroupId * sys.top_n, (rackGroupId + 1) * sys.top_n):
+        for rackId in range(rackgroupId * sys.top_n, (rackgroupId + 1) * sys.top_n):
             diskId = rackId * num_spools_per_rack_group + spoolId % num_spools_per_rack_group
             disk = sys.disks[diskId]
             disk.rackId = rackId
             disk.spoolId = spoolId
-            disk.rackGroupId = rackGroupId
+            disk.rackgroupId = rackgroupId
             diskIds_in_spool.append(diskId)
             # logging.info(" spoolId: {} diskId: {}".format(i, diskId))
-        spool = Spool(spoolId=spoolId, repair_data=-1, num_disks=sys.top_n)
-        spool.rackGroupId = rackGroupId
+        spool = Spool(spoolId=spoolId, num_disks=sys.top_n)
+        spool.rackgroupId = rackgroupId
         sys.spools.append(spool)
     
-    sys.affected_spools_per_rackGroup = []
-    for rackGroupId in range(num_rack_group):
-        sys.affected_spools_per_rackGroup.append({})
+    sys.affected_spools_per_rackgroup = []
+    for rackgroupId in range(num_rack_group):
+        sys.affected_spools_per_rackgroup.append({})

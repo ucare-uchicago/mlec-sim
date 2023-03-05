@@ -139,7 +139,7 @@ class Simulate:
     # run simulation based on statistical model or production traces
     #----------------------------------------------------------------
     def run_simulation(self, failureGenerator, mytimer):
-        logging.info("---------")
+        # logging.info("---------")
 
         self.sys.metrics.iter_count += 1
         self.mytimer: Mytimer = mytimer

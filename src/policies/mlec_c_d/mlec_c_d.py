@@ -152,7 +152,7 @@ class MLEC_C_D(Policy):
     def update_rack_state(self, event_type, diskId):
         if event_type == Disk.EVENT_FAIL:
             rackId = diskId // self.sys.num_disks_per_rack
-            rackGroupId = rackId // self.sys.top_n
+            rackgroupId = rackId // self.sys.top_n
             # if rack already fails, we don't need to fail it again.
             if self.racks[rackId].state == Rack.STATE_FAILED:
                 return None
@@ -168,26 +168,26 @@ class MLEC_C_D(Policy):
             if max_priority > self.sys.m:
                 self.racks[rackId].state = Rack.STATE_FAILED
                 self.failed_racks[rackId] = 1
-                self.rack_group_failures[rackGroupId] += 1
+                self.rack_group_failures[rackgroupId] += 1
                 return rackId
         
         if event_type == Rack.EVENT_FAIL:
             rackId = diskId
-            rackGroupId = rackId // self.sys.top_n
+            rackgroupId = rackId // self.sys.top_n
             self.racks[rackId].state = Rack.STATE_FAILED
             self.failed_racks[rackId] = 1
-            self.rack_group_failures[rackGroupId] += 1
+            self.rack_group_failures[rackgroupId] += 1
             return rackId
 
         if event_type == Rack.EVENT_REPAIR:
             rackId = diskId
-            rackGroupId = rackId // self.sys.top_n
+            rackgroupId = rackId // self.sys.top_n
             self.racks[rackId].state = Rack.STATE_NORMAL
             self.failed_racks.pop(rackId, None)
             for dId in self.racks[rackId].failed_disks:
                 self.failed_disks.pop(dId, None)
             self.racks[rackId].failed_disks.clear()
-            self.rack_group_failures[rackGroupId] -= 1
+            self.rack_group_failures[rackgroupId] -= 1
             
             for dId in self.sys.disks_per_rack[rackId]:
                 self.disks[dId].state = Disk.STATE_NORMAL 

@@ -18,7 +18,7 @@ class NetRAID(Policy):
     def __init__(self, state):
         super().__init__(state)
         self.spools = state.sys.spools
-        self.affected_spools_per_rackGroup = state.sys.affected_spools_per_rackGroup
+        self.affected_spools_per_rackgroup = state.sys.affected_spools_per_rackgroup
         self.sys_failed = False
         self.affected_spools = {}
         
@@ -32,7 +32,7 @@ class NetRAID(Policy):
             # This is removing the disk from the failed disk array
             self.spools[spoolId].failed_disks.pop(diskId, None)
             if len(self.spools[spoolId].failed_disks) == 0:
-                self.affected_spools_per_rackGroup[disk.rackGroupId].pop(spoolId, None)
+                self.affected_spools_per_rackgroup[disk.rackgroupId].pop(spoolId, None)
                 self.affected_spools.pop(spoolId, None)
             self.sys.metrics.disks_aggregate_down_time += self.curr_time - self.disks[diskId].metric_down_start_time
             
@@ -40,7 +40,7 @@ class NetRAID(Policy):
         if event_type == Disk.EVENT_FAIL:
             disk.state = Disk.STATE_FAILED
             self.spools[spoolId].failed_disks[diskId] = 1
-            self.affected_spools_per_rackGroup[disk.rackGroupId][spoolId] = 1
+            self.affected_spools_per_rackgroup[disk.rackgroupId][spoolId] = 1
             self.affected_spools[spoolId] = 1
             self.disks[diskId].metric_down_start_time = self.curr_time
 
@@ -69,9 +69,9 @@ class NetRAID(Policy):
             else:
                 # If this pool recovers, then other affected pools' network bandwidth share could increase
                 # In this case, we need to update repair time for all the affected pools in this rack group
-                rackGroupId = disk.rackGroupId
-                num_affected_pools = len(self.affected_spools_per_rackGroup[rackGroupId])
-                for affected_spool_id in self.affected_spools_per_rackGroup[rackGroupId]:
+                rackgroupId = disk.rackgroupId
+                num_affected_pools = len(self.affected_spools_per_rackgroup[rackgroupId])
+                for affected_spool_id in self.affected_spools_per_rackgroup[rackgroupId]:
                     affected_spool = self.spools[affected_spool_id]
                     affected_spool.repair_rate = min(self.sys.diskIO, self.sys.interrack_speed/num_affected_pools)
 
@@ -106,9 +106,9 @@ class NetRAID(Policy):
                 # If it's the first disk failure in this pool, then the pool is going to share network bandwidth.
                 # Therefore, other affected pools' network bandwidth share could decrease
                 # In this case, we need to update repair time for all the affected pools in this rack group
-                rackGroupId = disk.rackGroupId
-                num_affected_pools = len(self.affected_spools_per_rackGroup[rackGroupId])
-                for affected_spool_id in self.affected_spools_per_rackGroup[rackGroupId]:
+                rackgroupId = disk.rackgroupId
+                num_affected_pools = len(self.affected_spools_per_rackgroup[rackgroupId])
+                for affected_spool_id in self.affected_spools_per_rackgroup[rackgroupId]:
                     affected_spool = self.spools[affected_spool_id]
                     affected_spool.repair_rate = min(self.sys.diskIO, self.sys.interrack_speed/num_affected_pools)
 
@@ -155,7 +155,7 @@ class NetRAID(Policy):
                 self.curr_prio_repair_started = False
             spool = self.spools[spoolId]
             spool.failed_disks = {}
-            affected_rack_groups[spool.rackGroupId] = 1
-        for rackGroupId in affected_rack_groups:
-            self.affected_spools_per_rackGroup[rackGroupId] = {}
+            affected_rack_groups[spool.rackgroupId] = 1
+        for rackgroupId in affected_rack_groups:
+            self.affected_spools_per_rackgroup[rackgroupId] = {}
         

@@ -5,6 +5,9 @@ import numpy as np
 from typing import List, Dict, Optional, Tuple
 
 from components.diskgroup import Diskgroup
+from components.spool import Spool
+from components.mpool import Mpool
+from components.rackgroup import Rackgroup
 
 if typing.TYPE_CHECKING:
     from system import System
@@ -24,40 +27,47 @@ if typing.TYPE_CHECKING:
 
 # layout for mlec cluster raid
 def mlec_c_c_layout(sys: System):
-    # In network level, we form top_n diskgroups into a diskgroup_spool
-    sys.n = sys.k + sys.m
-    sys.top_n = sys.top_k + sys.top_m
-    sys.num_diskgroups = sys.num_disks // sys.n
-    sys.num_diskgroup_spools = sys.num_diskgroups // sys.top_n
-    sys.diskgroup_spools = {}
-    # print(self.rack_spools)
-    # print(self.spools_per_racks)
+    # In network level, we form top_n spools into a mpool
+    sys.num_spools = sys.num_disks // sys.spool_size
+    sys.num_mpools = sys.num_spools // sys.top_n
+    sys.num_rackgroups = sys.num_racks // sys.top_n
+    sys.rackgroups = {}
+    sys.mpools = {}
+    sys.spools = {}
     
-    # Initialize diskgroup spool layout
-    diskgroup_each_rack = sys.num_disks_per_rack // sys.n
-    diskgroups: List[List[int]] = np.arange(0, sys.num_diskgroups).reshape((-1, diskgroup_each_rack, )).tolist()
+    # Initialize spool layout
+    num_spools_per_rack = sys.num_disks_per_rack // sys.n
+    num_spools_per_rackgroup = num_spools_per_rack * sys.top_n
+    num_mpools_per_rackgroup = sys.num_mpools // sys.num_rackgroups
     
-    # print(diskgroups)
-    diskgroup_spools = {}
-    for spoolId in range(sys.num_diskgroup_spools):
-        spool = []
-        # print(diskgroups)
-        # For each spool, we need to select sys.top_n diskgroups
-        for diskgroupId in range(sys.top_n):
-            spool.append(diskgroups[diskgroupId].pop(0))
-        # After we pop, we remove those diskgroup banks that are already empty
-        diskgroups = list(filter(lambda a: len(a) != 0, diskgroups))
-        diskgroup_spools[spoolId] = spool
-    
-    sys.diskgroup_spools = diskgroup_spools
 
-    diskgroup_repair_data = sys.diskSize * sys.n  # when disk group fails, we repair the whole disk group
-    num_diskgroups_per_rack = sys.num_disks_per_rack // sys.n
-    sys.diskgroups: Dict[int, Diskgroup] = {}
-    for diskgroupId in range(sys.num_diskgroups):
-        num_diskgroup_per_rack = sys.num_disks_per_rack // sys.n
-        diskgroupSpoolId = (diskgroupId % num_diskgroup_per_rack) + (diskgroupId // (num_diskgroup_per_rack * sys.top_n)) * num_diskgroup_per_rack
-        rackId = diskgroupId // num_diskgroups_per_rack
-        sys.diskgroups[diskgroupId] = Diskgroup(diskgroupId, diskgroup_repair_data, sys.n, rackId, diskgroupSpoolId)
-        for diskId in sys.diskgroups[diskgroupId].disks:
-            sys.disks[diskId].diskgroupId = diskgroupId
+    for rackgroupId in range(sys.num_rackgroups):
+        rackgroup = Rackgroup(rackgroupId)
+        for mpoolId in range(rackgroupId*num_mpools_per_rackgroup, (rackgroupId+1)*num_mpools_per_rackgroup):
+            mpool = Mpool(mpoolId)
+            mpool.rackgroupId = rackgroupId
+            for i in range(sys.top_n):
+                spoolId = rackgroupId*num_spools_per_rackgroup + i*num_spools_per_rack + mpoolId%num_mpools_per_rackgroup
+                mpool.spoolIds.append(spoolId)
+                spool = Spool(spoolId=spoolId, num_disks=sys.spool_size)
+                spool.mpoolId = mpoolId
+                spool.rackgroupId = rackgroupId
+                spool.diskIds = range(spoolId*sys.spool_size, (spoolId+1)*sys.spool_size)
+                for diskId in spool.diskIds:
+                    sys.disks[diskId].spoolId = spoolId
+                sys.spools[spoolId] = spool
+            rackgroup.mpoolIds.append(mpoolId)
+            sys.mpools[mpoolId] = mpool
+        sys.rackgroups[rackgroupId] = rackgroup
+
+    
+    print(sys.rackgroups.keys())
+    for rackgroupId in range(sys.num_rackgroups):
+        rackgroup = sys.rackgroups[rackgroupId]
+        print(rackgroup.mpoolIds)
+        for mpoolId in rackgroup.mpoolIds:
+            mpool = sys.mpools[mpoolId]
+            print('  {}'.format(mpool.spoolIds))
+            for spoolId in mpool.spoolIds:
+                spool = sys.spools[spoolId]
+                print('    {}'.format(spool.diskIds))

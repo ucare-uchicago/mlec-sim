@@ -30,7 +30,7 @@ class Disk:
         self.rackId: int = rackId
         self.diskgroupId: int = 0
         self.spoolId: int = 0
-        self.rackGroupId: int = 0
+        self.rackgroupId: int = 0
         #-------------------------------
         # initialize the state be normal
         #-------------------------------
