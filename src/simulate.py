@@ -177,7 +177,7 @@ class Simulate:
             get_event_done_time = time.time()
             self.mytimer.getEventTime += (get_event_done_time - event_start)
 
-            logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
+            # logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
             
             #--------------------------------------
             # update all disks state/priority
@@ -245,7 +245,7 @@ class Simulate:
                 #curr_failures = self.state.get_failed_disks()
                 if self.state.policy.check_pdl():
                     prob = 1
-                    logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+                    # logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     break
 
             check_loss_done_time = time.time()

@@ -61,8 +61,25 @@ class NetRAID(Policy):
             # This is updating the rest of the failed disks for their repair time.
             #  If there is only one failure in the spool, this would not be run
             num_fail_in_spool = len(spool.failed_disks)
-            for diskId_per_spool in spool.failed_disks:
+            if num_fail_in_spool > 0:
+                # If this pool still have failed disks, then this pool still share network bandwidth
+                # Therefore, there is no need to update the repair time in other pool.
+                for diskId_per_spool in spool.failed_disks:
                     self.update_disk_repair_time(diskId_per_spool, num_fail_in_spool)
+            else:
+                # If this pool recovers, then other affected pools' network bandwidth share could increase
+                # In this case, we need to update repair time for all the affected pools in this rack group
+                rackGroupId = disk.rackGroupId
+                num_affected_pools = len(self.affected_spools_per_rackGroup[rackGroupId])
+                for affected_spool_id in self.affected_spools_per_rackGroup[rackGroupId]:
+                    affected_spool = self.spools[affected_spool_id]
+                    affected_spool.repair_rate = min(self.sys.diskIO, self.sys.interrack_speed/num_affected_pools)
+
+                    failed_disks_in_affected_pool = affected_spool.failed_disks
+                    num_fail_in_affected_pool = len(failed_disks_in_affected_pool)
+                    
+                    for diskId_per_spool in failed_disks_in_affected_pool:
+                        self.update_disk_repair_time(diskId_per_spool, num_fail_in_affected_pool)
 
         if event_type == Disk.EVENT_FAIL:
             # Note: the assignment of repair_start_time is moved into update_disk_repair_time()
@@ -80,12 +97,31 @@ class NetRAID(Policy):
             # so the rebuild IO is shared by all failed disks
             # we need to update the repair rate for all failed disks, because every failed disk gets less share now
             #--------------------------------------------
-            for diskId_per_spool in spool.failed_disks:
-                self.update_disk_repair_time(diskId_per_spool, num_fail_in_spool)
+            if num_fail_in_spool > 1:
+                # If this pool already had disk failures, then the pool already received network bandwidth share.
+                # Therefore, there is no need to update the repair time in other pool.
+                for diskId_per_spool in spool.failed_disks:
+                    self.update_disk_repair_time(diskId_per_spool, num_fail_in_spool)
+            else:
+                # If it's the first disk failure in this pool, then the pool is going to share network bandwidth.
+                # Therefore, other affected pools' network bandwidth share could decrease
+                # In this case, we need to update repair time for all the affected pools in this rack group
+                rackGroupId = disk.rackGroupId
+                num_affected_pools = len(self.affected_spools_per_rackGroup[rackGroupId])
+                for affected_spool_id in self.affected_spools_per_rackGroup[rackGroupId]:
+                    affected_spool = self.spools[affected_spool_id]
+                    affected_spool.repair_rate = min(self.sys.diskIO, self.sys.interrack_speed/num_affected_pools)
+
+                    failed_disks_in_affected_pool = affected_spool.failed_disks
+                    num_fail_in_affected_pool = len(failed_disks_in_affected_pool)
+                    
+                    for diskId_per_spool in failed_disks_in_affected_pool:
+                        self.update_disk_repair_time(diskId_per_spool, num_fail_in_affected_pool)
     
     
     def update_disk_repair_time(self, diskId, num_fail_in_spool):
         disk = self.disks[diskId]
+        spool = self.spools[disk.spoolId]
         repaired_time = self.curr_time - disk.repair_start_time
         if repaired_time == 0:
             repaired_percent = 0
@@ -95,7 +131,7 @@ class NetRAID(Policy):
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
         
-        repair_time = float(disk.curr_repair_data_remaining) / (self.sys.diskIO / num_fail_in_spool)
+        repair_time = float(disk.curr_repair_data_remaining) / (spool.repair_rate / num_fail_in_spool)
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]

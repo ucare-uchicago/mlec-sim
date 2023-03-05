@@ -43,3 +43,6 @@ class Spool:
         #-------------------------------
         self.failed_disks = {}
         self.diskIds = []
+        # -----------
+        self.repair_rate = -1
+        
