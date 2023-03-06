@@ -151,20 +151,47 @@ class MLEC_C_C(Policy):
             num_failed_spools_per_mpool = len(mpool.failed_spools)
             if num_failed_spools_per_mpool > self.sys.top_m:
                 self.sys_failed = True
-                return 
-            for failedSpoolId in mpool.failed_spools:
-                self.update_spool_repair_time(failedSpoolId, num_failed_spools_per_mpool)
+                return
+            
+            rackgroup = self.rackgroups[mpool.rackgroupId]
+            if num_failed_spools_per_mpool > 1:
+                # this mpool is already in repair. So no need to update other mpools' repair time
+                mpool_repair_rate = min(self.sys.diskIO * self.sys.spool_size, 
+                                        self.sys.interrack_speed / len(rackgroup.affected_mpools))
+                for failedSpoolId in mpool.failed_spools:
+                    self.update_spool_repair_time(failedSpoolId, num_failed_spools_per_mpool, mpool_repair_rate)
+            else:
+                # this mpool is now in repair, which is goind to steal network bandwidth from other mpools in the same rackgroup
+                # therefore, we need to update network bandwidth for all mpools in repair in this rackgroup
+                mpool_repair_rate = min(self.sys.diskIO * self.sys.spool_size, 
+                                        self.sys.interrack_speed / len(rackgroup.affected_mpools))
+                for mpoolId in rackgroup.affected_mpools:
+                    affected_mpool = self.mpools[mpoolId]
+                    for failedSpoolId in affected_mpool.failed_spools:
+                        num_failed_spools_in_affected_mpool = len(affected_mpool.failed_spools)
+                        self.update_spool_repair_time(failedSpoolId, num_failed_spools_in_affected_mpool, mpool_repair_rate)
+                
 
         if event_type == spool.EVENT_REPAIR:
             num_failed_spools_per_mpool = len(mpool.failed_spools)
-            if num_failed_spools_per_mpool == 0:
-                return
-            # logging.info('mpool.failed_spools: {}'.format(mpool.failed_spools))
-            for failedSpoolId in mpool.failed_spools:
-                self.update_spool_repair_time(failedSpoolId, num_failed_spools_per_mpool)
+            rackgroup = self.rackgroups[mpool.rackgroupId]
+            if num_failed_spools_per_mpool > 0:
+                mpool_repair_rate = min(self.sys.diskIO * self.sys.spool_size, 
+                                        self.sys.interrack_speed / len(rackgroup.affected_mpools))
+                for failedSpoolId in mpool.failed_spools:
+                    self.update_spool_repair_time(failedSpoolId, num_failed_spools_per_mpool, mpool_repair_rate)
+            else:
+                if len(rackgroup.affected_mpools) > 0:
+                    mpool_repair_rate = min(self.sys.diskIO * self.sys.spool_size, 
+                                        self.sys.interrack_speed / len(rackgroup.affected_mpools))
+                    for mpoolId in rackgroup.affected_mpools:
+                        affected_mpool = self.mpools[mpoolId]
+                        for failedSpoolId in affected_mpool.failed_spools:
+                            num_failed_spools_in_affected_mpool = len(affected_mpool.failed_spools)
+                            self.update_spool_repair_time(failedSpoolId, num_failed_spools_in_affected_mpool, mpool_repair_rate)
     
     
-    def update_spool_repair_time(self, spoolId, num_failed_spools_per_mpool):
+    def update_spool_repair_time(self, spoolId, num_failed_spools_per_mpool, mpool_repair_rate):
         spool = self.spools[spoolId]
         repaired_time = self.curr_time - spool.repair_start_time
         if repaired_time == 0:            
@@ -174,7 +201,7 @@ class MLEC_C_C(Policy):
             repaired_percent = repaired_time / spool.repair_time[0]
             spool.curr_repair_data_remaining = spool.curr_repair_data_remaining * (1 - repaired_percent)
     
-        repair_time = float(spool.curr_repair_data_remaining)/(self.sys.diskIO * self.sys.spool_size / num_failed_spools_per_mpool)
+        repair_time = float(spool.curr_repair_data_remaining)/(mpool_repair_rate / num_failed_spools_per_mpool)
             
         spool.repair_time[0] = repair_time / 3600 / 24
         spool.repair_start_time = self.curr_time
