@@ -162,7 +162,7 @@ def burst_theory_mlec_cp_cp(k_net, p_net, k_local, p_local,
     # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
     print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
 
-    dl_prob = 1 - survival_cases/total_cases
+    dl_prob = 1 - Decimal(int(survival_cases))/Decimal(int(total_cases))
     print("dl prob: \t{}\n".format(dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {}\n".format(
@@ -240,7 +240,7 @@ def burst_theory_mlec_cp_dp(k_net, p_net, k_local, p_local,
     # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
     print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
 
-    dl_prob = 1 - survival_cases/total_cases
+    dl_prob = 1 - Decimal(int(survival_cases))/Decimal(int(total_cases))
     print("dl prob: \t{}\n".format(dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {}\n".format(
@@ -398,9 +398,9 @@ if __name__ == "__main__":
     use_stripe = args.use_stripe
     print(use_stripe)
 
-    # for num_failed_disks in range(10, 11):
+    # for num_failed_disks in range(12, 13):
     # # #     # for num_affected_racks in range(1, num_failed_disks+1):
-    #     for num_affected_racks in range(1,2):
+    #     for num_affected_racks in range(3,4):
 
     for num_failed_disks in range(1, 61):
         max_racks = min(60, num_failed_disks)

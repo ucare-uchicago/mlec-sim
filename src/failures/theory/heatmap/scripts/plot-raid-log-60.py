@@ -23,7 +23,7 @@ if len(sys.argv) - 1 < 6:
     exit(-1)
 
 input_file_path = sys.argv[1]
-placements = {'cc': 'CP-CP', 'cd': 'CP-DP', 'dc': 'DP-CP', 'dd': 'DP-DP'}
+placements = {'cc': 'C/C', 'cd': 'C/D', 'dc': 'D/C', 'dd': 'D/D'}
 if sys.argv[2] not in placements:
     print('wrong chunk placement.')
     exit(-1)
@@ -47,8 +47,8 @@ import math
 figure, axes = plt.subplots()
 
 axes.set_aspect( 1 )
-x_range = [0,42]
-y_range = [0,68]
+x_range = [0,61]
+y_range = [0,70]
 axes.set_xlim(x_range)
 axes.set_ylim(y_range)
 
@@ -95,24 +95,24 @@ plt.xlabel('Number of racks affected', fontsize=title_font_size)
 plt.ylabel('Number of drives affected', fontsize=title_font_size)
 # plt.title('Frequency of failure bursts sorted by racks and drives affected')
 plt.title('({}+{})/({}+{}) MLEC {}\n'.format(k_n, p_n, k_l, p_l, placement), fontsize=title_font_size)
-# plt.title(r'$\mathdefault{(18+2)/(18+2)}$ MLEC CP-CP\n', fontsize=24)
+# plt.title(r'$\mathdefault{(18+2)/(18+2)}$ MLEC C/C\n', fontsize=24)
 
-plt.xticks([0,10,20,30,40],fontsize=tick_font_size)
+plt.xticks([0,10,20,30,40,50,60],fontsize=tick_font_size)
 plt.yticks([0,10,20,30,40,50,60],fontsize=tick_font_size)
 axes.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 axes.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 
 
-label_y = 64.8
+label_y = 65.5
 plt.text(0.8, label_y, '0', **label_font)
-plt.text(4.5, label_y, r'$\mathdefault{10^{-7}}$', **label_font)
-plt.text(10, label_y, r'$\mathdefault{10^{-6}}$', **label_font)
-plt.text(15, label_y, r'$\mathdefault{10^{-5}}$', **label_font)
-plt.text(20, label_y, r'$\mathdefault{10^{-4}}$', **label_font)
-plt.text(25, label_y, r'$\mathdefault{10^{-3}}$', **label_font)
-plt.text(30, label_y, r'$\mathdefault{10^{-2}}$', **label_font)
-plt.text(35, label_y, r'$\mathdefault{10^{-1}}$', **label_font)
-plt.text(40.2, label_y, r'$\mathdefault{1}$', **label_font)
+plt.text(6.5, label_y, r'$\mathdefault{10^{-7}}$', **label_font)
+plt.text(14, label_y, r'$\mathdefault{10^{-6}}$', **label_font)
+plt.text(21.1, label_y, r'$\mathdefault{10^{-5}}$', **label_font)
+plt.text(28.2, label_y, r'$\mathdefault{10^{-4}}$', **label_font)
+plt.text(35.2, label_y, r'$\mathdefault{10^{-3}}$', **label_font)
+plt.text(42.3, label_y, r'$\mathdefault{10^{-2}}$', **label_font)
+plt.text(49.4, label_y, r'$\mathdefault{10^{-1}}$', **label_font)
+plt.text(58, label_y, r'$\mathdefault{1}$', **label_font)
 
 import matplotlib as mpl
 import matplotlib.colors as colors
@@ -144,48 +144,50 @@ th.append(1)
 anotation_color = 'blue'
 
 
-if placement == 'CP-CP':
-    plt.text(7, 2, 'Finding #3', **annotation_font, color=anotation_color)
-    plt.arrow(12,5.5,-10,9,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
-    plt.arrow(12,5.5,2,10,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+if placement == 'C/C':
+    plt.text(18, 5, 'Finding #3', **annotation_font, color=anotation_color)
+    plt.arrow(25,10,-23,20,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+    plt.arrow(25,10,5,22,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
 
-    plt.text(26.5, 22.5, 'Finding #4', **annotation_font, color=anotation_color)
-    plt.arrow(33,26,-29,32,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+    # plt.text(26.5, 22.5, 'Finding #4', **annotation_font, color=anotation_color)
+    # plt.arrow(33,26,-29,32,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
 
-if placement == 'CP-DP':
+if placement == 'C/D':
     axes.add_patch(patches.Rectangle((2.5, 2.5), 2, 58, linewidth=3, edgecolor=anotation_color, facecolor='none'))
-    plt.text(10, 6, 'Finding #1', **annotation_font, color=anotation_color)
-    plt.arrow(15,10,-10,10,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+    plt.text(15, 6, 'Finding #1', **annotation_font, color=anotation_color)
+    plt.arrow(20,10,-15,10,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
 
-    plt.text(26.5, 22.5, 'Finding #5', **annotation_font, color=anotation_color)
-    plt.arrow(33,26,-12,17,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+    plt.text(36.5, 22.5, 'Finding #5', **annotation_font, color=anotation_color)
+    plt.arrow(43,26,-32,27,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
     
 
-if placement == 'DP-CP':
-    axes.add_patch(patches.Rectangle((0.5, 41.5), 40, 2, linewidth=3, edgecolor=anotation_color, facecolor='none'))
-    plt.text(26.5, 22.5, 'Finding #2', **annotation_font, color=anotation_color)
-    plt.arrow(33,26,-10,15,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
-    plt.text(10, 6, 'Finding #6', **annotation_font, color=anotation_color)
-    plt.arrow(15,10,-8,22,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+if placement == 'D/C':
+    axes.add_patch(patches.Rectangle((0.5, 48.5), 48, 2, linewidth=3, edgecolor=anotation_color, facecolor='none'))
+    plt.text(37.5, 22.5, 'Finding #2', **annotation_font, color=anotation_color)
+    plt.arrow(44,26,-18,22,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+    plt.text(15, 6, 'Finding #6', **annotation_font, color=anotation_color)
+    plt.arrow(22,11,-19,30,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
 
 
-if placement == 'DP-DP':
-    plt.text(20, 12, 'Finding #7', **annotation_font, color=anotation_color)
-    plt.arrow(26,15.5,-15,24,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+if placement == 'D/D':
+    plt.text(37.5, 22.5, 'Finding #4', **annotation_font, color=anotation_color)
+    plt.arrow(44,27,-40,32,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+    plt.text(15, 6, 'Finding #7', **annotation_font, color=anotation_color)
+    plt.arrow(22,11,-19,20,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
 
 
 mycolors=list(zip(th, hc))
 cm = colors.LinearSegmentedColormap.from_list('test', mycolors)
 
 # As for a more fancy example, you can also give an axes by hand:
-c_map_ax = figure.add_axes([0.192, 0.8191, 0.64, 0.015])
+c_map_ax = figure.add_axes([0.142, 0.78, 0.74, 0.015])
 c_map_ax.axes.get_xaxis().set_visible(False)
 c_map_ax.axes.get_yaxis().set_visible(True)
 
 # and create another colorbar with:
 mpl.colorbar.ColorbarBase(c_map_ax, cmap=cm, orientation = 'horizontal')
 
-figure.set_size_inches(8, 11)
+figure.set_size_inches(6.5, 8)
 figure.set_dpi(500)
 
 plt.show()
