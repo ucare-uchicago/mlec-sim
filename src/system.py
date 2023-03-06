@@ -100,7 +100,7 @@ class System:
         # We need to convert Gbps to GBps and then to MBps
         self.intrarack_speed = intrarack_speed / 8 * kilo
         self.interrack_speed = interrack_speed / 8 * kilo
-        self.network: Network = Network(self, intrarack_speed / 8 * kilo, interrack_speed / 8 * kilo)
+        self.network: Network = Network(self, intrarack_speed / 8 * 1000, interrack_speed / 8 * 1000)
         # ----------
         self.infinite_chunks = infinite_chunks
         self.chunksize = chunksize
