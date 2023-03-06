@@ -266,12 +266,12 @@ class Simulate:
         self.repair_queue.clear()
         self.state.policy.update_repair_events(self.repair_queue)
         
-        if len(self.repair_queue) > 0:
-            if not self.state.repairing:
-                self.state.repairing = True
-                self.state.repair_start_time = curr_time
-        else:
-            if self.state.repairing:
-                self.state.repairing = False
-                self.state.sys.metrics.total_rebuild_time += curr_time - self.state.repair_start_time
+        # if len(self.repair_queue) > 0:
+        #     if not self.state.repairing:
+        #         self.state.repairing = True
+        #         self.state.repair_start_time = curr_time
+        # else:
+        #     if self.state.repairing:
+        #         self.state.repairing = False
+        #         self.state.sys.metrics.total_rebuild_time += curr_time - self.state.repair_start_time
 

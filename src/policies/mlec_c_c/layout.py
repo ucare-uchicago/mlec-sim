@@ -61,13 +61,13 @@ def mlec_c_c_layout(sys: System):
         sys.rackgroups[rackgroupId] = rackgroup
 
     
-    print(sys.rackgroups.keys())
-    for rackgroupId in range(sys.num_rackgroups):
-        rackgroup = sys.rackgroups[rackgroupId]
-        print(rackgroup.mpoolIds)
-        for mpoolId in rackgroup.mpoolIds:
-            mpool = sys.mpools[mpoolId]
-            print('  {}'.format(mpool.spoolIds))
-            for spoolId in mpool.spoolIds:
-                spool = sys.spools[spoolId]
-                print('    {}'.format(spool.diskIds))
+    # print(sys.rackgroups.keys())
+    # for rackgroupId in range(sys.num_rackgroups):
+    #     rackgroup = sys.rackgroups[rackgroupId]
+    #     print(rackgroup.mpoolIds)
+    #     for mpoolId in rackgroup.mpoolIds:
+    #         mpool = sys.mpools[mpoolId]
+    #         print('  {}'.format(mpool.spoolIds))
+    #         for spoolId in mpool.spoolIds:
+    #             spool = sys.spools[spoolId]
+    #             print('    {}'.format(spool.diskIds))
