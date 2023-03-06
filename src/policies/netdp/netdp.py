@@ -14,8 +14,8 @@ class NetDP(Policy):
         super().__init__(state)
         self.affected_racks = {}
         self.priority_queue = {}
-        for i in range(self.sys.m+1):
-            self.priority_queue[i+1] = {}
+        for i in range(self.sys.top_m + 1):
+            self.priority_queue[i + 1] = {}
         self.max_priority = 0
         self.total_interrack_bandwidth = state.sys.interrack_speed * state.sys.num_racks
         
@@ -97,7 +97,7 @@ class NetDP(Policy):
             if (len(self.state.racks[rackId].failed_disks) == 1) or self.max_priority < len(self.affected_racks):
                 self.max_priority += 1
             
-            if self.max_priority > self.sys.m:
+            if self.max_priority > self.sys.top_m:
                 # if a disk has infinite chunks, then there must be some stripe that have max_priority
                 if self.sys.infinite_chunks:
                     return 1
@@ -159,7 +159,7 @@ class NetDP(Policy):
         total_disk_IO = disk.good_num * self.sys.diskIO
         total_repair_bandwidth = min(total_disk_IO, self.total_interrack_bandwidth)
 
-        total_repair_data_readwrite = float(disk.curr_repair_data_remaining) * (self.sys.k + 1) 
+        total_repair_data_readwrite = float(disk.curr_repair_data_remaining) * (self.sys.top_k + 1) 
         # we repair multiple disks concurrently. So rebuild bandwidth is shared
         per_disk_total_repair_bandwidth = total_repair_bandwidth / len(self.priority_queue[priority])
         repair_time = total_repair_data_readwrite / per_disk_total_repair_bandwidth
