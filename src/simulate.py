@@ -201,23 +201,12 @@ class Simulate:
             # disk group using network erasure.
             # Note that other disk groups in this rack can be healthy and don't need repair
             #--------------------------------------
-            if self.sys.place_type == PlacementType.MLEC_C_C:
+            if self.sys.place_type in [PlacementType.MLEC_C_C, PlacementType.MLEC_C_D]:
                 new_diskgroup_failure = self.state.policy.update_diskgroup_state(event_type, diskId)
                 if new_diskgroup_failure != None:
                     self.state.policy.update_diskgroup_priority(event_type, new_diskgroup_failure, diskId)
             update_diskgroup_priority_done_time = time.time()
             self.mytimer.updateDiskgrpPriorityTime += (update_diskgroup_priority_done_time - update_priority_done_time)
-            #--------------------------------------
-            # In MLEC-DP, a rack can have more disks
-            # If the rack has m+1 or more disk failures, then we need to repair the rack
-            #--------------------------------------
-            if self.sys.place_type == PlacementType.MLEC_C_D:
-                new_rack_failure = self.state.policy.update_rack_state(event_type, diskId)
-                if new_rack_failure != None:
-                    self.state.policy.update_rack_priority(event_type, new_rack_failure, diskId)
-            
-            update_rack_done_time = time.time()
-            self.mytimer.updateRackPriorityTime += (update_rack_done_time - update_diskgroup_priority_done_time)
             #---------------------------
             # exceed mission-time, exit
             #---------------------------
@@ -236,7 +225,7 @@ class Simulate:
                     # logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
 
             gen_new_fail_done_time = time.time()
-            self.mytimer.newFailTime += (gen_new_fail_done_time - update_rack_done_time)
+            self.mytimer.newFailTime += (gen_new_fail_done_time - update_diskgroup_priority_done_time)
             
             #---------------------------
             # failure event, check PDL

@@ -1,26 +1,17 @@
 from heapq import heappush
 from components.disk import Disk
-from components.rack import Rack
+from components.spool import Spool
 
-def mlec_c_d_repair(state, repair_queue):
+def mlec_c_d_repair(mlec_c_d, repair_queue):
     
-    for rackId in state.get_failed_racks():
-        repair_event = state.policy.get_rack_repair_event(rackId)
-        if repair_event is not None:
-            heappush(repair_queue, repair_event)
-                
-    #-----------------------------------------------------
-    # FIFO reconstruct, utilize the hot spares
-    #-----------------------------------------------------
-    for diskId in state.get_failed_disks():
-        rackId = diskId // state.sys.num_disks_per_rack
-        if state.racks[rackId].state == Rack.STATE_NORMAL:
-            disk = state.disks[diskId]
-            priority = disk.priority
-            estimate_time = disk.estimate_repair_time
-            if priority > 1:
-                heappush(repair_queue, (estimate_time, Disk.EVENT_FASTREBUILD, diskId))
-                # print("push to repair queue  finish time{} {} {}".format(estimate_time, 
-                #           Disk.EVENT_FASTREBUILD, diskId))
-            if priority == 1:
-                heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+    for spoolId in mlec_c_d.affected_spools:
+        spool = mlec_c_d.spools[spoolId]
+        if spool.state == Spool.STATE_NORMAL:
+            for diskId in spool.failed_disks:
+                disk = mlec_c_d.disks[diskId]
+                if disk.priority > 1:
+                    heappush(repair_queue, (disk.estimate_repair_time, Disk.EVENT_FASTREBUILD, diskId))
+                else:
+                    heappush(repair_queue, (disk.estimate_repair_time, Disk.EVENT_REPAIR, diskId))
+        else:
+            heappush(repair_queue, (spool.estimate_repair_time, Spool.EVENT_REPAIR, spoolId))

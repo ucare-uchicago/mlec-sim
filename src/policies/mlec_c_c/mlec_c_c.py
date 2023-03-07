@@ -46,7 +46,7 @@ class MLEC_C_C(Policy):
         spool = self.spools[disk.spoolId]
 
         if event_type in [Disk.EVENT_FAIL]:
-            # If the diskgroup is already failing, we do nothing
+            # If the spool is already failing, we do nothing
             if spool.state == Spool.STATE_FAILED:
                 # logging.info("Diskgroup already in failed state, ignoring")
                 return

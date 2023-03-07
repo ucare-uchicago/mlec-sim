@@ -1,16 +1,12 @@
-from __future__ import annotations
-import typing
-
-if typing.TYPE_CHECKING:
-    from system import System
-    from state import State
-
 import logging
+import time
+import math
+from typing import List, Dict, Optional, Tuple
 
 from components.disk import Disk
-from components.rack import Rack
+from components.spool import Spool
+from constants.Components import Components
 from policies.policy import Policy
-from helpers.common_math import ncr
 from .pdl import mlec_c_d_pdl
 from .repair import mlec_c_d_repair
 
@@ -18,71 +14,80 @@ class MLEC_C_D(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
-    def __init__(self, state: State):
+    def __init__(self, state):
         super().__init__(state)
-        self.num_rack_groups = self.sys.num_racks // self.sys.top_n 
-        self.rack_group_failures = [0] * self.num_rack_groups
+        self.spools = state.sys.spools
+        self.mpools = state.sys.mpools
+        self.rackgroups = state.sys.rackgroups
+        
+        self.affected_spools = {}
+        self.affected_rackgroups = {}
+        self.sys_failed = False
+        
+
+    def update_disk_state(self, event_type, diskId):
+        disk = self.disks[diskId]
+        spool = self.spools[disk.spoolId]
+        
+        if event_type == Disk.EVENT_REPAIR:
+            self.disks[diskId].state = Disk.STATE_NORMAL
+            spool.failed_disks.pop(diskId, None)
+            if len(spool.failed_disks) == 0:
+                self.affected_spools.pop(disk.spoolId, None)
+            
+        if event_type == Disk.EVENT_FAIL:
+            disk.state = Disk.STATE_FAILED
+            spool.failed_disks[diskId] = 1
+            self.affected_spools[disk.spoolId] = 1
+
 
     #----------------------------------------------
     def update_disk_priority(self, event_type, diskId):
-        if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
-            curr_priority = self.disks[diskId].priority
-            del self.disks[diskId].repair_time[curr_priority]
-            self.disks[diskId].priority -= 1
-            self.disks[diskId].repair_start_time = self.curr_time
-
-            rackId = diskId // self.sys.num_disks_per_rack
-            if self.racks[rackId].state == Rack.STATE_FAILED:
-                # logging.info("update_disk_priority(): rack {} is failed. Event type: {}".format(rackId, event_type))
-                return
-            fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
-            if len(fail_per_rack) > 0:
-                if self.sys.adapt:
-                    priorities = []
-                    for diskId in fail_per_rack:
-                        priorities.append(self.disks[diskId].priority)
-                    max_priority = max(priorities)
-                    for diskId in fail_per_rack:
-                        self.update_disk_repair_time_adapt(diskId, 
-                            self.disks[diskId].priority, len(fail_per_rack), max_priority)
-                else:
-                    for diskId in fail_per_rack:
-                        self.update_disk_repair_time(diskId, self.disks[diskId].priority, len(fail_per_rack))
+        disk = self.disks[diskId]
+        spool = self.spools[disk.spoolId]
 
         if event_type == Disk.EVENT_FAIL:
-                rackId = diskId // self.sys.num_disks_per_rack
-                if self.racks[rackId].state == Rack.STATE_FAILED:
-                    # logging.info("update_disk_priority(): rack {} is failed".format(rackId))
-                    return
-                fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
+            # If the spool is already failing, we do nothing
+            if spool.state == Spool.STATE_FAILED:
+                return
+            #-----------------------------------------------------
+            # calculate repairT and update priority for decluster
+            #-----------------------------------------------------
+            #----------------------------------------------
+            fail_num = len(spool.failed_disks)
+            good_num = self.sys.spool_size - fail_num
+            #----------------------------------------------
+            priorities = []
+            for failedDiskId in spool.failed_disks:
+                priorities.append(self.disks[failedDiskId].priority)
+            max_priority = max(priorities)+1
+            #----------------------------------------------
+            disk.priority = max_priority
+            disk.repair_start_time = self.curr_time
+            disk.good_num = good_num
+            disk.fail_num = fail_num
 
-                #-----------------------------------------------------
-                # calculate repairT and update priority for decluster
-                #-----------------------------------------------------
-                #----------------------------------------------
-                fail_num = len(fail_per_rack) # count total failed disks number
-                good_num = len(self.sys.disks_per_rack[rackId]) - fail_num
-                #----------------------------------------------
-                priorities = []
-                for diskId in fail_per_rack:
-                    priorities.append(self.disks[diskId].priority)
-                max_priority = max(priorities)+1
-                #----------------------------------------------
-                curr_priority = self.disks[diskId].priority
-                self.disks[diskId].priority = max_priority
-                self.disks[diskId].repair_start_time = self.curr_time
-                self.disks[diskId].good_num = good_num
-                self.disks[diskId].fail_num = fail_num
-                # logging.info("\tdisk {} priority {}".format(diskId, self.disks[diskId].priority))
+            if disk.priority > self.sys.m:
+                return
 
-                if self.sys.adapt:
-                    for dId in fail_per_rack:
-                        self.update_disk_repair_time_adapt(dId, self.disks[dId].priority, 
-                            len(fail_per_rack), max_priority)
-                else:
-                    for dId in fail_per_rack:
-                        self.update_disk_repair_time(dId, self.disks[dId].priority, 
-                            len(fail_per_rack))
+            for dId in spool.failed_disks:
+                self.update_disk_repair_time(dId, self.disks[dId].priority, len(spool.failed_disks))
+                        
+        if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
+            curr_priority = disk.priority
+            del disk.repair_time[curr_priority]
+            disk.priority -= 1
+            disk.repair_start_time = self.curr_time
+
+            if spool.state == Spool.STATE_FAILED:
+                # logging.info("update_disk_priority(): rack {} is failed. Event type: {}".format(rackId, event_type))
+                return
+            if len(spool.failed_disks) > 0:
+                for dId in spool.failed_disks:
+                    self.update_disk_repair_time(dId, self.disks[dId].priority, len(spool.failed_disks))
+
+
+
 
     def update_disk_repair_time(self, diskId, priority, fail_per_rack):
         disk = self.disks[diskId]
@@ -92,8 +97,8 @@ class MLEC_C_D(Policy):
         repaired_time = self.curr_time - disk.repair_start_time
         # print("disk {}  priority {}  repair time {}".format(diskId, priority, disk.repair_time))
         if repaired_time == 0:
-            priority_sets = ncr(good_num, self.n-priority)*ncr(fail_num-1, priority-1)
-            total_sets = ncr((good_num+fail_num-1), (self.n-1)) 
+            priority_sets = math.comb(good_num, self.n-priority)*math.comb(fail_num-1, priority-1)
+            total_sets = math.comb((good_num+fail_num-1), (self.n-1)) 
             priority_percent = float(priority_sets)/total_sets
             repaired_percent = 0
             disk.curr_repair_data_remaining = disk.repair_data * priority_percent
@@ -101,124 +106,159 @@ class MLEC_C_D(Policy):
                 self.sys.metrics.total_rebuild_io_per_year -= disk.curr_repair_data_remaining * (priority - 1) * self.sys.k
 
         else:
-            # print("disk {}  priority {}  repair time {}".format(diskId, priority, disk.repair_time))
             repaired_percent = repaired_time / disk.repair_time[priority]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
         #----------------------------------------------------
-        #print priority, "priority percent ", priority_percent
         parallelism = good_num
-        #print "decluster parallelism", diskId, parallelism
         #----------------------------------------------------
-        # amplification = self.sys.k + priority
         amplification = self.sys.k + 1
         if priority < fail_per_rack:
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism/fail_per_rack)
         else:
             repair_time = disk.curr_repair_data_remaining*amplification/(self.sys.diskIO*parallelism)
-        #print "-----", self.sys.diskSize, amplification, self.sys.diskIO, parallelism
         #----------------------------------------------------
-        # self.disks[diskId].repair_time[priority] = repair_time/3600
         self.disks[diskId].repair_time[priority] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[priority]
-        # print("{}  disk {}  priority {}  repair time {}".format(self.curr_time, diskId, priority, disk.repair_time))
         #----------------------------------------------------
+
+
+    #----------------------------------------------
+    # update diskgroup state
+    #----------------------------------------------
+    def update_diskgroup_state(self, event_type, diskId):
+        if event_type == Disk.EVENT_FAIL:
+            disk = self.disks[diskId]
+            spool = self.spools[disk.spoolId]
+            # if spool already fails, we don't need to fail it again.
+            if spool.state == Spool.STATE_FAILED:
+                return None
+            
+            # otherwise, we need to check if a new diskgroup fails
+            if len(spool.failed_disks) > self.sys.m:
+                # logging.error("Diskgroup %s failed due to the disk failure, it has failed disks %s", diskgroupId, self.get_failed_disks_per_diskgroup(diskgroupId))
+                spool.state = Spool.STATE_FAILED
+                mpool = self.mpools[spool.mpoolId]
+                mpool.failed_spools[spool.spoolId] = 1
+                rackgroup = self.rackgroups[mpool.rackgroupId]
+                rackgroup.affected_mpools[mpool.mpoolId] = 1
+                self.affected_rackgroups[rackgroup.rackgroupId] = 1
+                return spool.spoolId
+
+        if event_type == Spool.EVENT_REPAIR:
+            spoolId = diskId
+            spool = self.spools[spoolId]
+            # logging.info("Diskgroup %s is repaired", diskId)
+            for failedDiskId in spool.failed_disks:
+                failed_disk = self.disks[failedDiskId]
+                failed_disk.state = Disk.STATE_NORMAL
+                failed_disk.priority = 0
+            spool.failed_disks.clear()
+            spool.state = Spool.STATE_NORMAL
+            self.affected_spools.pop(spool.spoolId, None)
+            mpool = self.mpools[spool.mpoolId]
+            mpool.failed_spools.pop(spool.spoolId, None)
+            if len(mpool.failed_spools) == 0:
+                rackgroup = self.rackgroups[mpool.rackgroupId]
+                rackgroup.affected_mpools.pop(mpool.rackgroupId, None)
+                if len(rackgroup.affected_mpools) == 0:
+                    self.affected_rackgroups.pop(rackgroup.rackgroupId)
+            return spoolId
+        return None
 
 
     #----------------------------------------------
     # update network-level priority
     #----------------------------------------------
-    def update_rack_priority(self, event_type, rackId, diskId):
-        failed_racks = self.state.get_failed_racks()
+    def update_diskgroup_priority(self, event_type, spoolId, diskId):
+        spool = self.spools[spoolId]
+        mpool = self.mpools[spool.mpoolId]
         if event_type == Disk.EVENT_FAIL:
-                self.racks[rackId].repair_start_time = self.curr_time
-                self.racks[rackId].init_repair_start_time = self.curr_time
-                for rId in failed_racks:
-                    self.update_rack_repair_time(rId, len(failed_racks))
-
-        if event_type == Rack.EVENT_FAIL:
-                self.racks[rackId].repair_start_time = self.curr_time
-                self.racks[rackId].init_repair_start_time = self.curr_time
-                for rId in failed_racks:
-                    self.update_rack_repair_time(rId, len(failed_racks))
-
-        if event_type == Rack.EVENT_REPAIR:
-                for rId in failed_racks:
-                    self.update_rack_repair_time(rId, len(failed_racks))
-    
-    #----------------------------------------------
-    # update rack state
-    #----------------------------------------------
-    def update_rack_state(self, event_type, diskId):
-        if event_type == Disk.EVENT_FAIL:
-            rackId = diskId // self.sys.num_disks_per_rack
-            rackgroupId = rackId // self.sys.top_n
-            # if rack already fails, we don't need to fail it again.
-            if self.racks[rackId].state == Rack.STATE_FAILED:
-                return None
-            # otherwise, we need to check if a new rack fails
-            fail_per_rack = self.state.get_failed_disks_per_rack(rackId)
-            max_priority = 0
-            for dId in fail_per_rack:
-                # logging.info("\tdisk {} priority {}".format(diskId, self.disks[diskId].priority))
-                if self.disks[dId].priority > max_priority:
-                    max_priority = self.disks[dId].priority
-            # logging.info("max_priority: {}  fail_per_rack: {}"
-            #                 .format(max_priority, fail_per_rack))
-            if max_priority > self.sys.m:
-                self.racks[rackId].state = Rack.STATE_FAILED
-                self.failed_racks[rackId] = 1
-                self.rack_group_failures[rackgroupId] += 1
-                return rackId
-        
-        if event_type == Rack.EVENT_FAIL:
-            rackId = diskId
-            rackgroupId = rackId // self.sys.top_n
-            self.racks[rackId].state = Rack.STATE_FAILED
-            self.failed_racks[rackId] = 1
-            self.rack_group_failures[rackgroupId] += 1
-            return rackId
-
-        if event_type == Rack.EVENT_REPAIR:
-            rackId = diskId
-            rackgroupId = rackId // self.sys.top_n
-            self.racks[rackId].state = Rack.STATE_NORMAL
-            self.failed_racks.pop(rackId, None)
-            for dId in self.racks[rackId].failed_disks:
-                self.failed_disks.pop(dId, None)
-            self.racks[rackId].failed_disks.clear()
-            self.rack_group_failures[rackgroupId] -= 1
+            spool.repair_start_time = self.curr_time
+            num_failed_spools_per_mpool = len(mpool.failed_spools)
+            if num_failed_spools_per_mpool > self.sys.top_m:
+                self.sys_failed = True
+                return
             
-            for dId in self.sys.disks_per_rack[rackId]:
-                self.disks[dId].state = Disk.STATE_NORMAL 
-            
-            self.sys.metrics.total_net_traffic += self.racks[rackId].repair_data * (self.sys.top_k + 1)
-            self.sys.metrics.total_net_repair_time += self.curr_time - self.racks[rackId].init_repair_start_time
-            self.sys.metrics.total_net_repair_count += 1
-            return rackId
+            rackgroup = self.rackgroups[mpool.rackgroupId]
+            if num_failed_spools_per_mpool > 1:
+                # this mpool is already in repair. So no need to update other mpools' repair time
+                mpool_repair_rate = min(self.sys.diskIO * self.sys.spool_size, 
+                                        self.sys.interrack_speed / len(rackgroup.affected_mpools))
+                for failedSpoolId in mpool.failed_spools:
+                    self.update_spool_repair_time(failedSpoolId, num_failed_spools_per_mpool, mpool_repair_rate)
+            else:
+                # this mpool is now in repair, which is goind to steal network bandwidth from other mpools in the same rackgroup
+                # therefore, we need to update network bandwidth for all mpools in repair in this rackgroup
+                mpool_repair_rate = min(self.sys.diskIO * self.sys.spool_size, 
+                                        self.sys.interrack_speed / len(rackgroup.affected_mpools))
+                for mpoolId in rackgroup.affected_mpools:
+                    affected_mpool = self.mpools[mpoolId]
+                    for failedSpoolId in affected_mpool.failed_spools:
+                        num_failed_spools_in_affected_mpool = len(affected_mpool.failed_spools)
+                        self.update_spool_repair_time(failedSpoolId, num_failed_spools_in_affected_mpool, mpool_repair_rate)
+                
 
+        if event_type == spool.EVENT_REPAIR:
+            num_failed_spools_per_mpool = len(mpool.failed_spools)
+            rackgroup = self.rackgroups[mpool.rackgroupId]
+            if num_failed_spools_per_mpool > 0:
+                mpool_repair_rate = min(self.sys.diskIO * self.sys.spool_size, 
+                                        self.sys.interrack_speed / len(rackgroup.affected_mpools))
+                for failedSpoolId in mpool.failed_spools:
+                    self.update_spool_repair_time(failedSpoolId, num_failed_spools_per_mpool, mpool_repair_rate)
+            else:
+                if len(rackgroup.affected_mpools) > 0:
+                    mpool_repair_rate = min(self.sys.diskIO * self.sys.spool_size, 
+                                        self.sys.interrack_speed / len(rackgroup.affected_mpools))
+                    for mpoolId in rackgroup.affected_mpools:
+                        affected_mpool = self.mpools[mpoolId]
+                        for failedSpoolId in affected_mpool.failed_spools:
+                            num_failed_spools_in_affected_mpool = len(affected_mpool.failed_spools)
+                            self.update_spool_repair_time(failedSpoolId, num_failed_spools_in_affected_mpool, mpool_repair_rate)
     
-    def update_rack_repair_time(self, rackId, failed_racks):
-        rack = self.racks[rackId]
-        repaired_time = self.curr_time - rack.repair_start_time
-        if repaired_time == 0:
+    
+    def update_spool_repair_time(self, spoolId, num_failed_spools_per_mpool, mpool_repair_rate):
+        spool = self.spools[spoolId]
+        repaired_time = self.curr_time - spool.repair_start_time
+        if repaired_time == 0:            
             repaired_percent = 0
-            rack.curr_repair_data_remaining = rack.repair_data
+            spool.curr_repair_data_remaining = self.sys.spool_size * self.sys.diskSize
         else:
-            repaired_percent = repaired_time / rack.repair_time[0]
-            rack.curr_repair_data_remaining = rack.curr_repair_data_remaining * (1 - repaired_percent)
-        repair_time = float(rack.curr_repair_data_remaining)/(self.sys.diskIO * self.sys.num_disks_per_rack / failed_racks)
-        rack.repair_time[0] = repair_time / 3600 / 24
-        rack.repair_start_time = self.curr_time
-        rack.estimate_repair_time = self.curr_time + rack.repair_time[0]
-        # logging.info("calculate repair time for rack {}  repaired time: {} remaining repair time: {} repair_start_time: {}".format(
-        #                 rackId, repaired_time, rack.repair_time[0], rack.repair_start_time))
+            repaired_percent = repaired_time / spool.repair_time[0]
+            spool.curr_repair_data_remaining = spool.curr_repair_data_remaining * (1 - repaired_percent)
     
-    def update_disk_repair_time_adapt(self, diskId, priority, fail_per_rack, max_priority):
-        raise NotImplementedError("update_disk_repair_time_adapt() for mlecdp is not implemented")
-    
+        repair_time = float(spool.curr_repair_data_remaining)/(mpool_repair_rate / num_failed_spools_per_mpool)
+            
+        spool.repair_time[0] = repair_time / 3600 / 24
+        spool.repair_start_time = self.curr_time
+        spool.estimate_repair_time = self.curr_time + spool.repair_time[0]
+
+
     def check_pdl(self):
-        return mlec_c_d_pdl(self.state)
+        return mlec_c_d_pdl(self)
     
     def update_repair_events(self, repair_queue):
-        mlec_c_d_repair(self.state, repair_queue)
+        mlec_c_d_repair(self, repair_queue)
+
+
+    def clean_failures(self):
+        affected_spools = {}
+        
+        for spoolId in self.affected_spools:
+            spool = self.spools[spoolId]
+            for diskId in spool.failed_disks:
+                disk = self.disks[diskId]
+                disk.state = Disk.STATE_NORMAL
+                disk.priority = 0
+                disk.repair_time = {}
+            spool.failed_disks.clear()
+    
+        for rackgroupId in self.affected_rackgroups:
+            rackgroup = self.rackgroups[rackgroupId]
+            for mpoolId in rackgroup.affected_mpools:
+                mpool = self.mpools[mpoolId]
+                for spoolId in mpool.failed_spools:
+                    self.spools[spoolId].state = Spool.STATE_NORMAL
+                mpool.failed_spools.clear()
+            rackgroup.affected_mpools.clear()
