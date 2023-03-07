@@ -46,3 +46,7 @@ class Spool:
         # -----
         self.min_disk_counter = 0
         self.max_disk_counter = 0
+        # ----
+        # priority queue for local dp
+        self.disk_priority_queue = {}
+        self.disk_max_priority = 0

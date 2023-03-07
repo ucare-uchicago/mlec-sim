@@ -56,38 +56,80 @@ class MLEC_C_D(Policy):
             #----------------------------------------------
             fail_num = len(spool.failed_disks)
             good_num = self.sys.spool_size - fail_num
-            #----------------------------------------------
-            priorities = []
-            for failedDiskId in spool.failed_disks:
-                priorities.append(self.disks[failedDiskId].priority)
-            max_priority = max(priorities)+1
-            #----------------------------------------------
-            disk.priority = max_priority
-            disk.repair_start_time = self.curr_time
             disk.good_num = good_num
             disk.fail_num = fail_num
 
-            if disk.priority > self.sys.m:
+            if spool.disk_max_priority > 0:
+                for dId in spool.disk_priority_queue[spool.disk_max_priority]:
+                    logging.info('pausing for disk {} with priority {}  spool max priority {}'.format(
+                            dId, self.disks[diskId], spool.disk_max_priority
+                    ))
+                    self.pause_disk_repair_time(dId, spool.disk_max_priority)
+            #----------------------------------------------
+            spool.disk_max_priority += 1
+            if spool.disk_max_priority > self.sys.m:
                 return
+            #----------------------------------------------
+            disk.priority = spool.disk_max_priority
+            spool.disk_priority_queue[disk.priority][diskId] = 1
+            disk.repair_start_time = self.curr_time
+            disk.curr_prio_repair_started = False
+            self.compute_priority_percents(disk)
 
-            for dId in spool.failed_disks:
-                self.update_disk_repair_time(dId, self.disks[dId].priority, len(spool.failed_disks))
+
+            for dId in spool.disk_priority_queue[disk.priority]:
+                self.resume_repair_time(dId, disk.priority, spool)
+                # logging.info("===")
                         
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
             curr_priority = disk.priority
             del disk.repair_time[curr_priority]
+
+            spool.disk_priority_queue[curr_priority].pop(diskId, None)
+            for dId in spool.disk_priority_queue[curr_priority]:
+                self.pause_repair_time(dId, curr_priority)
+            
             disk.priority -= 1
+            if disk.priority > 0:
+                spool.disk_priority_queue[disk.priority][diskId] = 1
+
             disk.repair_start_time = self.curr_time
+            disk.curr_prio_repair_started = False
 
-            if spool.state == Spool.STATE_FAILED:
-                # logging.info("update_disk_priority(): rack {} is failed. Event type: {}".format(rackId, event_type))
-                return
-            if len(spool.failed_disks) > 0:
-                for dId in spool.failed_disks:
-                    self.update_disk_repair_time(dId, self.disks[dId].priority, len(spool.failed_disks))
+            if len(spool.disk_priority_queue[spool.disk_max_priority]) == 0:
+                spool.disk_max_priority -= 1      
+            
+            if spool.disk_max_priority > 0:
+                for dId in spool.disk_priority_queue[spool.disk_max_priority]:
+                    self.resume_repair_time(dId, spool.disk_max_priority, spool)
 
 
-
+    def compute_priority_percents(self, disk):
+        good_num = disk.good_num
+        fail_num = disk.fail_num
+        for i in range(disk.priority):
+            priority = i+1
+            priority_sets = math.comb(good_num, self.sys.n-priority)*math.comb(fail_num-1, priority-1)
+            total_sets = math.comb((good_num+fail_num-1), (self.sys.n-1))
+            disk.priority_percents[priority] = float(priority_sets)/total_sets
+        
+    def pause_disk_repair_time(self, diskId, priority):
+        disk = self.state.disks[diskId]
+        repaired_time = self.state.curr_time - disk.repair_start_time
+        repaired_percent = repaired_time / disk.repair_time[priority]
+        disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
+    
+    def resume_repair_time(self, diskId, priority, spool):
+        disk = self.disks[diskId]
+        if not disk.curr_prio_repair_started:
+            priority_percent = disk.priority_percents[priority]
+            disk.curr_repair_data_remaining = disk.repair_data * priority_percent
+            disk.curr_prio_repair_started = True
+        good_num = self.sys.spool_size - len(spool.failed_disks)
+        repair_time = disk.curr_repair_data_remaining * (self.sys.k+1) / (self.sys.diskIO * good_num / len(spool.disk_priority_queue[priority]))
+        disk.repair_time[priority] = repair_time / 3600 / 24
+        disk.repair_start_time = self.state.curr_time
+        disk.estimate_repair_time = self.state.curr_time + disk.repair_time[priority]
 
     def update_disk_repair_time(self, diskId, priority, fail_per_rack):
         disk = self.disks[diskId]
@@ -133,14 +175,9 @@ class MLEC_C_D(Policy):
             # if spool already fails, we don't need to fail it again.
             if spool.state == Spool.STATE_FAILED:
                 return None
-
-            priorities = []
-            for failedDiskId in spool.failed_disks:
-                priorities.append(self.disks[failedDiskId].priority)
-            max_priority = max(priorities)
             
             # otherwise, we need to check if a new diskgroup fails
-            if max_priority > self.sys.m:
+            if spool.disk_max_priority > self.sys.m:
                 # logging.error("Diskgroup %s failed due to the disk failure, it has failed disks %s", diskgroupId, self.get_failed_disks_per_diskgroup(diskgroupId))
                 spool.state = Spool.STATE_FAILED
                 mpool = self.mpools[spool.mpoolId]
@@ -160,6 +197,9 @@ class MLEC_C_D(Policy):
                 failed_disk.priority = 0
             spool.failed_disks.clear()
             spool.state = Spool.STATE_NORMAL
+            spool.disk_max_priority = 0
+            for i in range(self.sys.m + 1):
+                spool.disk_priority_queue[i + 1].clear()
             self.affected_spools.pop(spool.spoolId, None)
             mpool = self.mpools[spool.mpoolId]
             mpool.failed_spools.pop(spool.spoolId, None)
@@ -258,6 +298,9 @@ class MLEC_C_D(Policy):
                 disk.priority = 0
                 disk.repair_time = {}
             spool.failed_disks.clear()
+            spool.disk_max_priority = 0
+            for i in range(self.sys.m + 1):
+                spool.disk_priority_queue[i + 1].clear()
     
         for rackgroupId in self.affected_rackgroups:
             rackgroup = self.rackgroups[rackgroupId]
