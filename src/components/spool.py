@@ -43,4 +43,6 @@ class Spool:
         self.diskIds = []
         # -----------
         self.repair_rate = -1
-        
+        # -----
+        self.min_disk_counter = 0
+        self.max_disk_counter = 0

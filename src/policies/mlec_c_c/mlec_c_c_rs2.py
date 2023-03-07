@@ -9,7 +9,7 @@ from policies.policy import Policy
 from .pdl import mlec_c_c_pdl
 from .repair import mlec_c_c_repair
 
-class MLEC_C_C(Policy):
+class MLEC_C_C_RS2(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
@@ -196,12 +196,13 @@ class MLEC_C_C(Policy):
         repaired_time = self.curr_time - spool.repair_start_time
         if repaired_time == 0:            
             repaired_percent = 0
-            spool.curr_repair_data_remaining = self.sys.spool_size * self.sys.diskSize
+            spool.curr_repair_data_remaining = len(spool.failed_disks) * self.sys.diskSize
         else:
             repaired_percent = repaired_time / spool.repair_time[0]
             spool.curr_repair_data_remaining = spool.curr_repair_data_remaining * (1 - repaired_percent)
     
         repair_time = float(spool.curr_repair_data_remaining)/(mpool_repair_rate / num_failed_spools_per_mpool)
+        # print(repair_time)
             
         spool.repair_time[0] = repair_time / 3600 / 24
         spool.repair_start_time = self.curr_time

@@ -9,7 +9,7 @@ from policies.policy import Policy
 from .pdl import mlec_c_c_pdl
 from .repair import mlec_c_c_repair
 
-class MLEC_C_C(Policy):
+class MLEC_C_C_RS3(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
@@ -31,12 +31,14 @@ class MLEC_C_C(Policy):
         if event_type == Disk.EVENT_REPAIR:
             self.disks[diskId].state = Disk.STATE_NORMAL
             spool.failed_disks.pop(diskId, None)
+            spool.min_disk_counter += 1
             if len(spool.failed_disks) == 0:
                 self.affected_spools.pop(disk.spoolId, None)
             
         if event_type == Disk.EVENT_FAIL:
             disk.state = Disk.STATE_FAILED
-            spool.failed_disks[diskId] = 1
+            spool.failed_disks[diskId] = spool.max_disk_counter
+            spool.max_disk_counter += 1
             self.affected_spools[disk.spoolId] = 1
 
 
@@ -124,18 +126,21 @@ class MLEC_C_C(Policy):
             spoolId = diskId
             spool = self.spools[spoolId]
             # logging.info("Diskgroup %s is repaired", diskId)
+            spool.max_disk_counter -= 1
             for failedDiskId in spool.failed_disks:
-                self.disks[failedDiskId].state = Disk.STATE_NORMAL
-            spool.failed_disks.clear()
-            spool.state = Spool.STATE_NORMAL
-            self.affected_spools.pop(spool.spoolId, None)
-            mpool = self.mpools[spool.mpoolId]
-            mpool.failed_spools.pop(spool.spoolId, None)
-            if len(mpool.failed_spools) == 0:
-                rackgroup = self.rackgroups[mpool.rackgroupId]
-                rackgroup.affected_mpools.pop(mpool.rackgroupId, None)
-                if len(rackgroup.affected_mpools) == 0:
-                    self.affected_rackgroups.pop(rackgroup.rackgroupId)
+                if spool.failed_disks[failedDiskId] == spool.max_disk_counter:
+                    self.disks[failedDiskId].state = Disk.STATE_NORMAL
+                    spool.failed_disks.pop(failedDiskId, None)
+                    break
+            if len(spool.failed_disks) <= self.sys.m:
+                spool.state = Spool.STATE_NORMAL
+                mpool = self.mpools[spool.mpoolId]
+                mpool.failed_spools.pop(spool.spoolId, None)
+                if len(mpool.failed_spools) == 0:
+                    rackgroup = self.rackgroups[mpool.rackgroupId]
+                    rackgroup.affected_mpools.pop(mpool.rackgroupId, None)
+                    if len(rackgroup.affected_mpools) == 0:
+                        self.affected_rackgroups.pop(rackgroup.rackgroupId)
             return spoolId
         return None
 
@@ -196,12 +201,13 @@ class MLEC_C_C(Policy):
         repaired_time = self.curr_time - spool.repair_start_time
         if repaired_time == 0:            
             repaired_percent = 0
-            spool.curr_repair_data_remaining = self.sys.spool_size * self.sys.diskSize
+            spool.curr_repair_data_remaining = 1 * self.sys.diskSize
         else:
             repaired_percent = repaired_time / spool.repair_time[0]
             spool.curr_repair_data_remaining = spool.curr_repair_data_remaining * (1 - repaired_percent)
     
         repair_time = float(spool.curr_repair_data_remaining)/(mpool_repair_rate / num_failed_spools_per_mpool)
+        # print(repair_time)
             
         spool.repair_time[0] = repair_time / 3600 / 24
         spool.repair_start_time = self.curr_time

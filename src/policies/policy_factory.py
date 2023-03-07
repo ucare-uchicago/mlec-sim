@@ -11,7 +11,10 @@ from policies.raid.raid import RAID
 from policies.netraid.netraid import NetRAID
 from policies.decluster.decluster import Decluster
 from policies.netdp.netdp import NetDP
-from policies.mlec_c_c.mlec_c_c import MLEC_C_C
+from policies.mlec_c_c.mlec_c_c_rs0 import MLEC_C_C_RS0
+from policies.mlec_c_c.mlec_c_c_rs1 import MLEC_C_C_RS1
+from policies.mlec_c_c.mlec_c_c_rs2 import MLEC_C_C_RS2
+from policies.mlec_c_c.mlec_c_c_rs3 import MLEC_C_C_RS3
 from policies.mlec_c_d.mlec_c_d import MLEC_C_D
 
 
@@ -45,7 +48,14 @@ def get_policy(placement: PlacementType, state):
     elif placement == PlacementType.DP:
         return Decluster(state)
     elif placement == PlacementType.MLEC_C_C:
-        return MLEC_C_C(state)
+        if state.sys.repair_scheme == 0:
+            return MLEC_C_C_RS0(state)
+        elif state.sys.repair_scheme == 1:
+            return MLEC_C_C_RS1(state)
+        elif state.sys.repair_scheme == 2:
+            return MLEC_C_C_RS2(state)
+        elif state.sys.repair_scheme == 3:
+            return MLEC_C_C_RS3(state)
     elif placement == PlacementType.RAID_NET:
         return NetRAID(state)
     elif placement == PlacementType.MLEC_C_D:
