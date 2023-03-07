@@ -133,9 +133,14 @@ class MLEC_C_D(Policy):
             # if spool already fails, we don't need to fail it again.
             if spool.state == Spool.STATE_FAILED:
                 return None
+
+            priorities = []
+            for failedDiskId in spool.failed_disks:
+                priorities.append(self.disks[failedDiskId].priority)
+            max_priority = max(priorities)
             
             # otherwise, we need to check if a new diskgroup fails
-            if len(spool.failed_disks) > self.sys.m:
+            if max_priority > self.sys.m:
                 # logging.error("Diskgroup %s failed due to the disk failure, it has failed disks %s", diskgroupId, self.get_failed_disks_per_diskgroup(diskgroupId))
                 spool.state = Spool.STATE_FAILED
                 mpool = self.mpools[spool.mpoolId]
