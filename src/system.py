@@ -61,7 +61,7 @@ class System:
             self.num_racks = self.num_disks//self.num_disks_per_rack+1
 
         # todo: for dp pool size is different
-        if place_type in [PlacementType.MLEC_C_C, PlacementType.MLEC_D_C, PlacementType.LOCAL_CP]:
+        if place_type in [PlacementType.MLEC_C_C, PlacementType.MLEC_D_C, PlacementType.SLEC_LOCAL_CP]:
             self.spool_size = self.n
         elif place_type in [PlacementType.MLEC_C_D, PlacementType.MLEC_D_D, PlacementType.DP]:
             self.spool_size = spool_size

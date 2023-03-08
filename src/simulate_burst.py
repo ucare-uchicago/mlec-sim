@@ -30,7 +30,7 @@ class Simulate:
 
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))
         failures = failureGenerator.gen_failure_burst(self.sys.num_disks_per_rack, self.sys.num_racks)
-        if self.place_type == PlacementType.LOCAL_CP:
+        if self.place_type == PlacementType.SLEC_LOCAL_CP:
             return self.flat_cluster_check_burst(failures)
         if self.place_type == PlacementType.DP:
             return self.flat_decluster_check_burst(failures)
