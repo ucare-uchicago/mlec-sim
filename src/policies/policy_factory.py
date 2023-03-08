@@ -22,7 +22,7 @@ from constants.PlacementType import PlacementType
 
 # Because system config happens before State initialization, cannot merge into Policy class
 def config_system_layout(placement: PlacementType, system):
-    if placement == PlacementType.RAID:
+    if placement == PlacementType.LOCAL_CP:
         flat_cluster_layout(system)
     elif placement == PlacementType.DP:
         flat_decluster_layout(system)
@@ -43,7 +43,7 @@ def config_system_layout(placement: PlacementType, system):
         raise NotImplementedError("Cannot recognize the placement type")
     
 def get_policy(placement: PlacementType, state):
-    if placement == PlacementType.RAID:
+    if placement == PlacementType.LOCAL_CP:
         return RAID(state)
     elif placement == PlacementType.DP:
         return Decluster(state)

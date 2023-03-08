@@ -28,7 +28,7 @@ class ManualFailTwoRackSim(Simulator):
                         total_drives, drives_per_rack, placement, dist, concur, epoch, iters):
         for cap in range(100, 110, 10):
             # 1. get P(rack 1 fails)
-            local_place_type = PlacementType.RAID        # local RAID
+            local_place_type = PlacementType.LOCAL_CP        # local RAID
             if placement == PlacementType.MLEC_C_D:         # if MLEC_C_D
                 local_place_type = PlacementType.DP    # local DP
             failureGenerator = FailureGenerator(afr)
