@@ -1,5 +1,5 @@
 from .decluster.layout import flat_decluster_layout
-from .raid.layout import flat_cluster_layout
+from .slec_local_cp.layout import slec_local_cp_layout
 from .netdp.layout import net_dp_layout
 from .netraid.layout import net_raid_layout
 from .mlec_c_c.layout import mlec_c_c_layout
@@ -7,7 +7,7 @@ from .mlec_c_d.layout import mlec_c_d_layout
 from .mlec_d_c.layout import mlec_d_c_layout
 from .mlec_d_d.layout import mlec_d_d_layout
 
-from policies.raid.raid import RAID
+from policies.slec_local_cp.slec_local_cp import SLEC_LOCAL_CP
 from policies.netraid.netraid import NetRAID
 from policies.decluster.decluster import Decluster
 from policies.netdp.netdp import NetDP
@@ -23,7 +23,7 @@ from constants.PlacementType import PlacementType
 # Because system config happens before State initialization, cannot merge into Policy class
 def config_system_layout(placement: PlacementType, system):
     if placement == PlacementType.SLEC_LOCAL_CP:
-        flat_cluster_layout(system)
+        slec_local_cp_layout(system)
     elif placement == PlacementType.DP:
         flat_decluster_layout(system)
     elif placement == PlacementType.RAID_NET:
@@ -44,7 +44,7 @@ def config_system_layout(placement: PlacementType, system):
     
 def get_policy(placement: PlacementType, state):
     if placement == PlacementType.SLEC_LOCAL_CP:
-        return RAID(state)
+        return SLEC_LOCAL_CP(state)
     elif placement == PlacementType.DP:
         return Decluster(state)
     elif placement == PlacementType.MLEC_C_C:

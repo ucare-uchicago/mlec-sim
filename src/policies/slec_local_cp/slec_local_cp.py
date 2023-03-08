@@ -2,10 +2,10 @@ import logging
 from components.disk import Disk
 from components.rack import Rack
 from policies.policy import Policy
-from .pdl import flat_cluster_pdl
-from .repair import raid_repair
+from .pdl import slec_local_cp_pdl
+from .repair import slec_local_cp_repair
 
-class RAID(Policy):
+class SLEC_LOCAL_CP(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
@@ -112,10 +112,10 @@ class RAID(Policy):
         # rack.spools_repair_finish[spoolId] = disk.estimate_repair_time
     
     def check_pdl(self):
-        return flat_cluster_pdl(self.state)
+        return slec_local_cp_pdl(self.state)
     
     def update_repair_events(self, repair_queue):
-        return raid_repair(self.state, repair_queue)
+        return slec_local_cp_repair(self.state, repair_queue)
 
     def clean_failures(self):
         failed_disks = self.state.get_failed_disks()
