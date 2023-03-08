@@ -1,20 +1,25 @@
 from __future__ import annotations
 import typing
 
+from typing import List
+
 if typing.TYPE_CHECKING:
     from system import System
 
+from components.spool import Spool
+
 def slec_local_cp_layout(sys: System):
-    sys.flat_cluster_rack_layout = {}
-    for rackId in sys.rackIds:
-        disks_per_rack = sys.disks_per_rack[rackId]
-        num_spools = len(disks_per_rack) // (sys.k+sys.m)
-        sets = []
-        for i in range(num_spools):
-            spool  = disks_per_rack[i*(sys.k+sys.m) :(i+1)*(sys.k+sys.m)]
-            sets.append(spool)
-        sys.flat_cluster_rack_layout[rackId] = sets
+    sys.spools = []
+    num_spools = sys.num_disks // sys.spool_size
+    num_spools_per_rack = sys.num_disks_per_rack // sys.spool_size
+
+    for spoolId in range(num_spools):
+        spool = Spool(spoolId, sys.spool_size)
+        spool.rackId = spoolId // num_spools_per_rack
+        for diskId in range(spoolId*sys.spool_size, (spoolId+1)*sys.spool_size):
+            sys.disks[diskId].spoolId = spoolId
+        sys.spools.append(spool)
+            
     
-        # logging.info("* rack {} has {} spools".format(rackId, num_spools))
-    #for rackId in self.racks:
-    #    print "rackId", rackId, len(self.flat_cluster_rack_layout[rackId])
+    # for diskId in range(sys.num_disks):
+    #     print(sys.disks[diskId].spoolId)

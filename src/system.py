@@ -4,6 +4,7 @@ from metrics import Metrics
 from components.disk import Disk
 from components.network import Network
 from components.rack import Rack
+from components.spool import Spool
 
 from constants.PlacementType import PlacementType
 from constants.constants import kilo
@@ -65,7 +66,7 @@ class System:
             self.spool_size = self.n
         elif place_type in [PlacementType.MLEC_C_D, PlacementType.MLEC_D_D, PlacementType.DP]:
             self.spool_size = spool_size
-
+        self.spools: List[Spool] = []
 
         self.rackIds: range = range(self.num_racks)
         self.racks: Dict[int, Rack] = {}

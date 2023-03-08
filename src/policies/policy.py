@@ -18,6 +18,7 @@ class Policy:
         self.top_n = self.sys.top_k + self.sys.top_m
         self.racks = state.racks
         self.disks = state.disks
+        self.spools = state.sys.spools
         self.curr_time = state.curr_time
         self.failed_disks = state.failed_disks
         self.failed_racks = state.failed_racks

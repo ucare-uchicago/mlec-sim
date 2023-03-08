@@ -1,5 +1,4 @@
-def slec_local_cp_pdl(state):
-    for raidgroupId in state.failures_per_raidgroup:
-        if state.failures_per_raidgroup[raidgroupId] > state.sys.m:
-            return 1        # data loss
+def slec_local_cp_pdl(slec_local_cp):
+    if slec_local_cp.sys_failed:
+        return 1   # data loss
     return 0
