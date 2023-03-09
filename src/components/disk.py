@@ -61,6 +61,10 @@ class Disk:
         # 
         self.priority_percents = {}
         self.curr_prio_repair_started: bool = False
+        # -----
+        # record fail time for manual failure injection
+        # ----
+        self.fail_time: float = 0.0
         #-------------------------------
         # metrics
         # ----

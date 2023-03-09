@@ -23,7 +23,7 @@ class Simulator:
                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, spool_size, repair_scheme) -> SimulationResult:
         raise NotImplementedError("simulate() not implemented")
 
-    def iter(self, failureGenerator_: FailureGenerator, sys_, iters, mission):
+    def iter(self, failureGenerator_: FailureGenerator, sys_, iters, mission, prev_fail_reports=None):
         try:
             res = 0
             start = time.time()
@@ -40,7 +40,7 @@ class Simulator:
             for iter in range(0, iters):
                 # logging.info("")
                 iter_start = time.time()
-                sim = Simulate(mission, sys.num_disks, sys)
+                sim = Simulate(mission, sys.num_disks, sys, prev_fail_reports=prev_fail_reports)
                 mytimer.simInitTime += time.time() - iter_start
                 res += sim.run_simulation(failureGenerator, mytimer)
                 iter_end = time.time()
@@ -49,7 +49,7 @@ class Simulator:
             end = time.time()
             mytimer.totalTime += end - start
             # print(mytimer)
-            return (res, mytimer, sys.metrics)
+            return (res, mytimer, sys.metrics, sys.fail_reports)
         except Exception as e:
             print(traceback.format_exc())
             return None
@@ -58,22 +58,25 @@ class Simulator:
     # This is a parallel/multi-iter wrapper around iter() function
     # We run X threads in parallel to run the simulation. X = concur.
     # ----------------------------
-    def run(self, failureGenerator, sys, iters, epochs, concur=10, mission=YEAR):
+    def run(self, failureGenerator, sys, iters, epochs, concur=10, mission=YEAR, prev_fail_reports=None):
         # So tick(state) is for a single system, and we want to simulate multiple systems
         executor = ProcessPoolExecutor(concur)
         
         failed_instances = 0
         futures = []
         metrics = Metrics()
+        fail_reports = []
 
         for epoch in range(0, epochs):
-            futures.append(executor.submit(self.iter, failureGenerator, sys, iters, mission))
+            futures.append(executor.submit(self.iter, failureGenerator, sys, iters, mission, prev_fail_reports))
         ress = wait_futures(futures)
         
         executor.shutdown()
         for res in ress:
             failed_instances += res[0]
             metrics += res[2]
+            fail_reports += res[3]
+
         
         # logging.info("  failed_instances: {}".format(failed_instances))
-        return [failed_instances, epochs * iters, metrics]
+        return [failed_instances, epochs * iters, metrics, fail_reports]

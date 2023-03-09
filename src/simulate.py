@@ -24,7 +24,7 @@ from typing import Tuple, Optional
 
 class Simulate:
     
-    def __init__(self, mission_time, num_disks, sys: System):
+    def __init__(self, mission_time, num_disks, sys: System, prev_fail_reports=None):
         self.mission_time = mission_time
         #---------------------------------------
         self.sys: System = sys
@@ -35,6 +35,7 @@ class Simulate:
         self.delay_repair_queue: Dict[Components, Dict[int, bool]] = {Components.DISK: {}, Components.DISKGROUP: {}}
         self.network_queue = []
         self.prev_event = None
+        self.prev_fail_reports = prev_fail_reports
 
 
     #------------------------------------------
@@ -68,6 +69,16 @@ class Simulate:
         else:
             start_genfailure_time = time.time()
             initialFailures = failureGenerator.gen_new_failures(self.sys.num_disks)
+            if self.prev_fail_reports != None:
+                spoolId = random.randrange(len(self.sys.spools))
+                spool = self.sys.spools[spoolId]
+                fail_report_index = random.randrange(len(self.prev_fail_reports))
+                fail_report = self.prev_fail_reports[fail_report_index]
+                diskIds = random.sample(spool.diskIds, len(fail_report))
+                for i in range(len(fail_report)):
+                    diskId = diskIds[i]
+                    initialFailures[diskId] = fail_report[i]['fail_time']
+
             finish_genfailure_time = time.time()
             mytimer.resetGenFailTime += finish_genfailure_time - start_state_reset_time
 
@@ -107,12 +118,7 @@ class Simulate:
                 # logging.info("    >>>>> reset {} {} {}".format(disk_fail_time, Rack.EVENT_FAIL, diskId))
 
 
-    def get_next_event(self) -> Optional[Tuple[float, str, int]]:
-        # We check if policy decides that there are something that should be returned
-        intercept = self.state.policy.intercept_next_event(self.prev_event)
-        if intercept is not None:
-            return intercept
-        
+    def get_next_event(self) -> Optional[Tuple[float, str, int]]:        
         if self.failure_queue or self.repair_queue:
             if len(self.repair_queue) == 0:
                 next_event = heappop(self.failure_queue)

@@ -4,13 +4,9 @@ import argparse
 
 from constants.PlacementType import parse_placement
 
-from simulators.burst_sim import BurstSim
-from simulators.metric_sim import MetricSim
-from simulators.io_over_year_sim import IoOverYearSim
 from simulators.normal_sim import NormalSim
-from simulators.weibull_sim import WeibullSim
-from simulators.manual_1_rack_fail_sim import ManualFailOneRackSim
-from simulators.manual_2_rack_fail_sim import ManualFailTwoRackSim
+from simulators.manual_fail_sim import ManualFailSim
+
 
 
 if __name__ == "__main__":
@@ -95,29 +91,30 @@ if __name__ == "__main__":
                    total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, distribution=dist, concur=concur, epoch=epoch, iters=iters,
                    infinite_chunks=infinite_chunks, chunksize=chunksize, spool_size=spool_size, repair_scheme=repair_scheme)
     elif sim_mode == 1:
-        result = ManualFailOneRackSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+        result = ManualFailSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
                    cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
-                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
-    elif sim_mode == 2:
-        result = ManualFailTwoRackSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
-                   cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
-                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
-    elif sim_mode == 3:
-        result = IoOverYearSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
-                   cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
-                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
-    elif sim_mode == 4:
-        result = WeibullSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
-                   cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
-                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
-    elif sim_mode == 5:
-        result = MetricSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
-                   cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
-                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
-    elif sim_mode == 6:
-        result = BurstSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
-                   cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
-                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
+                   total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, distribution=dist, concur=concur, epoch=epoch, iters=iters,
+                   infinite_chunks=infinite_chunks, chunksize=chunksize, spool_size=spool_size, repair_scheme=repair_scheme)
+    # elif sim_mode == 2:
+    #     result = ManualFailTwoRackSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+    #                cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
+    #                total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
+    # elif sim_mode == 3:
+    #     result = IoOverYearSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+    #                cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
+    #                total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
+    # elif sim_mode == 4:
+    #     result = WeibullSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+    #                cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
+    #                total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
+    # elif sim_mode == 5:
+    #     result = MetricSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+    #                cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
+    #                total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
+    # elif sim_mode == 6:
+    #     result = BurstSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
+    #                cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
+    #                total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, concur=concur, epoch=epoch, iters=iters, distribution=dist)
     else:
         raise NotImplementedError("Simulation mode not recognized")
     

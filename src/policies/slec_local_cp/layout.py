@@ -16,7 +16,8 @@ def slec_local_cp_layout(sys: System):
     for spoolId in range(num_spools):
         spool = Spool(spoolId, sys.spool_size)
         spool.rackId = spoolId // num_spools_per_rack
-        for diskId in range(spoolId*sys.spool_size, (spoolId+1)*sys.spool_size):
+        spool.diskIds = range(spoolId*sys.spool_size, (spoolId+1)*sys.spool_size)
+        for diskId in spool.diskIds:
             sys.disks[diskId].spoolId = spoolId
         sys.spools.append(spool)
             

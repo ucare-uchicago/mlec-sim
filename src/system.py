@@ -22,7 +22,8 @@ from numpy.typing import NDArray
 class System:
     def __init__(self, num_disks, num_disks_per_rack, k, m, place_type: PlacementType, diskCap, rebuildRate, intrarack_speed, interrack_speed,
                     utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = 0, num_disks_per_enclosure = -1, 
-                    infinite_chunks = True, chunksize=128, spool_size=-1, repair_scheme=0):
+                    infinite_chunks = True, chunksize=128, spool_size=-1, repair_scheme=0, num_local_fail_to_report=-1, num_top_fail_to_report=-1,
+                    collect_fail_reports = True):
         #--------------------------------------------
         # set up the erasure coding configuration
         #--------------------------------------------
@@ -107,6 +108,17 @@ class System:
         self.chunksize = chunksize
         self.num_chunks_per_disk = self.diskSize * kilo // chunksize
         self.repair_scheme = repair_scheme
+        # --------
+        if num_local_fail_to_report == -1:
+            self.num_local_fail_to_report = m+1
+        else:
+            self.num_local_fail_to_report = num_local_fail_to_report
+        if num_top_fail_to_report == -1:
+            self.num_top_fail_to_report = top_m+1
+        else:
+            self.num_top_fail_to_report = num_top_fail_to_report
+        self.collect_fail_reports = collect_fail_reports
+        self.fail_reports = []
         # ---
         config_system_layout(self.place_type, self)
 
