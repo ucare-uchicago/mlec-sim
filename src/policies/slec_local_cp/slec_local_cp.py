@@ -42,15 +42,19 @@ class SLEC_LOCAL_CP(Policy):
             if len(spool.failed_disks) >= self.sys.num_local_fail_to_report:
                 self.sys_failed = True
                 if self.sys.collect_fail_reports:
-                    fail_report = []
+                    fail_report = {'curr_time': self.curr_time, 'disk_infos': []}
                     disk.curr_repair_data_remaining = disk.repair_data
                     for failedDiskId in self.failed_disks:
                         failedDisk = self.disks[failedDiskId]
-                        fail_report.append({'curr_repair_data_remaining': failedDisk.curr_repair_data_remaining, 'diskId': int(failedDiskId),
-                                            'repair_time': {
-                                                0: failedDisk.repair_time[0]
-                                                }
-                                            })
+                        fail_report['disk_infos'].append(
+                            {
+                            'curr_repair_data_remaining': failedDisk.curr_repair_data_remaining,
+                            'diskId': int(failedDiskId),
+                            'estimate_repair_time': failedDisk.estimate_repair_time,
+                            'repair_time': {
+                                0: failedDisk.repair_time[0]
+                                }
+                            })
                     self.sys.fail_reports.append(fail_report)
                 return
 
@@ -99,12 +103,12 @@ class SLEC_LOCAL_CP(Policy):
             spool.failed_disks.clear()
     
     def manual_inject_failures(self, fail_report):
-        for disk_info in fail_report:
+        for disk_info in fail_report['disk_infos']:
             diskId = int(disk_info['diskId'])
             disk = self.sys.disks[diskId]
             disk.state = Disk.STATE_FAILED
             disk.curr_repair_data_remaining = float(disk_info['curr_repair_data_remaining'])
-            disk.estimate_repair_time = 0 + float(disk_info['repair_time']['0'])
+            disk.estimate_repair_time = float(disk_info['estimate_repair_time'])
             disk.repair_time[0] = float(disk_info['repair_time']['0'])
             self.failed_disks[diskId] = 1
 

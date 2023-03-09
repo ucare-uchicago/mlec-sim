@@ -36,6 +36,7 @@ class Simulate:
         self.network_queue = []
         self.prev_event = None
         self.prev_fail_reports = prev_fail_reports
+        self.curr_time = 0
 
 
     #------------------------------------------
@@ -73,9 +74,10 @@ class Simulate:
                 fail_report_index = random.randrange(len(self.prev_fail_reports))
                 fail_report = self.prev_fail_reports[fail_report_index]
                 # logging.info('fail_report: {}'.format(fail_report))
+                self.curr_time = float(fail_report['curr_time'])
                 self.state.policy.manual_inject_failures(fail_report)
                 self.update_repair_events()
-                for disk_info in fail_report:
+                for disk_info in fail_report['disk_infos']:
                     initialFailures[disk_info['diskId']] = YEAR*10000
                 
             finish_genfailure_time = time.time()
@@ -83,7 +85,9 @@ class Simulate:
 
             start_parse_failure_time = time.time()
             
-            failure_idxs = np.where(initialFailures < self.mission_time)[0]
+            failure_idxs_1 = np.where(initialFailures < self.mission_time)[0]
+            failure_idxs_2 = np.where(initialFailures >= self.curr_time)[0]
+            failure_idxs = failure_idxs_1[np.in1d(failure_idxs_1, failure_idxs_2)]
             
             finish_parse_failure_time = time.time()
             mytimer.resetParseFailTime += finish_parse_failure_time - start_parse_failure_time
@@ -158,7 +162,7 @@ class Simulate:
         reset_done_time = time.time()
         self.mytimer.resettime += (reset_done_time - simulation_start_time)
 
-        curr_time = 0
+        self.curr_time = 0
         prob = 0
         loss_events = 0
         
@@ -187,8 +191,8 @@ class Simulate:
             #--------------------------------------
             # update all disks state/priority
             #--------------------------------------
-            curr_time = event_time
-            self.state.update_curr_time(curr_time)
+            self.curr_time = event_time
+            self.state.update_curr_time(self.curr_time)
             update_clock_done_time = time.time()
             self.mytimer.updateClockTime += (update_clock_done_time - get_event_done_time)
 
@@ -215,7 +219,7 @@ class Simulate:
             #---------------------------
             # exceed mission-time, exit
             #---------------------------
-            if curr_time > self.mission_time:
+            if self.curr_time > self.mission_time:
                 break
             #---------------------------
             # new failure should be generated
@@ -224,7 +228,7 @@ class Simulate:
             #---------------------------
             if event_type == Disk.EVENT_REPAIR and not failureGenerator.is_burst:
                 new_failure_intervals = failureGenerator.gen_new_failures(1)
-                disk_fail_time = new_failure_intervals[0] + curr_time
+                disk_fail_time = new_failure_intervals[0] + self.curr_time
                 if disk_fail_time < self.mission_time:
                     heappush(self.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, diskId))
                     # logging.info("    >>>>> reset {} {}".format(diskId, disk_fail_time))
