@@ -43,7 +43,6 @@ class SLEC_LOCAL_CP(Policy):
                 self.sys_failed = True
                 if self.sys.collect_fail_reports:
                     fail_report = {'curr_time': self.curr_time, 'disk_infos': []}
-                    disk.curr_repair_data_remaining = disk.repair_data
                     for failedDiskId in self.failed_disks:
                         failedDisk = self.disks[failedDiskId]
                         fail_report['disk_infos'].append(

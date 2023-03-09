@@ -33,7 +33,7 @@ class ManualFailSim(Simulator):
         mission = YEAR
         failureGenerator = FailureGenerator(afr, failures_store_len=total_drives*100)
 
-        num_local_fail_to_report_list = [2,3]
+        num_local_fail_to_report_list = [3,4,5]
         
         sys = System(
             num_disks=total_drives, 
@@ -133,5 +133,50 @@ class ManualFailSim(Simulator):
         sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
         print("Num of Nine: " + nines)
         print("error sigma: " + sigma)
+
+
+        # # -----
+        # # round 3
+
+        # failed_iters = 0
+        # total_iters = 0
+        # metrics = Metrics()
+        # new_fail_reports = []
+
+        # sys.num_local_fail_to_report = num_local_fail_to_report_list[2]
+        # fail_reports_filename = 'fail_reports.log'
+        # with open(fail_reports_filename, 'w') as fout:
+        #     json.dump(fail_reports, fout)
+        # fail_reports = None
+        
+
+        # # temp = simulate(sys_state1, iters=10000, epochs=1, concur=1, mission=mission)
+        # # return
+
+        # # We need to get enough failures in order to compute accurate nines #
+        # while failed_iters < 10:
+        #     logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+        #     start  = time.time()
+        #     res = self.run(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission, prev_fail_reports_filename=fail_reports_filename)
+        #     failed_iters += res[0]
+        #     total_iters += res[1]
+        #     metrics += res[2]
+        #     new_fail_reports += res[3]
+        #     # print(metrics)
+        #     simulationTime = time.time() - start
+        #     print("simulation time: {}".format(simulationTime))
+        #     print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
+
+        # total_iters *= mission/YEAR
+
+        # print(metrics.count)
+
+        # # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+        # prob = failed_iters/total_iters
+        # nines = str(round(-math.log10(failed_iters/total_iters),3))
+        # sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
+        # print("Num of Nine: " + nines)
+        # print("error sigma: " + sigma)
+
 
         return SimulationResult(failed_iters, int(total_iters), metrics)

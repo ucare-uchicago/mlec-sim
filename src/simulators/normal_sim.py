@@ -11,6 +11,7 @@ from constants.constants import kilo
 
 from system import System
 from metrics import Metrics
+import json
 
 class NormalSim(Simulator):
     
@@ -78,6 +79,8 @@ class NormalSim(Simulator):
         
         # print(fail_reports)
         # print(metrics)
+        with open('fail_reports.log', 'w') as fout:
+            json.dump(fail_reports, fout)
 
         total_iters *= mission/YEAR
 
