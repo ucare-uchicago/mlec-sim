@@ -70,14 +70,10 @@ class Simulate:
             start_genfailure_time = time.time()
             initialFailures = failureGenerator.gen_new_failures(self.sys.num_disks)
             if self.prev_fail_reports != None:
-                spoolId = random.randrange(len(self.sys.spools))
-                spool = self.sys.spools[spoolId]
                 fail_report_index = random.randrange(len(self.prev_fail_reports))
                 fail_report = self.prev_fail_reports[fail_report_index]
-                diskIds = random.sample(spool.diskIds, len(fail_report))
-                for i in range(len(fail_report)):
-                    diskId = diskIds[i]
-                    initialFailures[diskId] = fail_report[i]['fail_time']
+                for disk_info in fail_report:
+                    initialFailures[disk_info['diskId']] = disk_info['fail_time']
 
             finish_genfailure_time = time.time()
             mytimer.resetGenFailTime += finish_genfailure_time - start_state_reset_time

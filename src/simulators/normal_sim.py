@@ -77,6 +77,7 @@ class NormalSim(Simulator):
             # return None
         
         # print(fail_reports)
+        print(metrics)
 
         total_iters *= mission/YEAR
 

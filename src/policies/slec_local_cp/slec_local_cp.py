@@ -35,14 +35,16 @@ class SLEC_LOCAL_CP(Policy):
         disk = self.disks[diskId]
         spool = self.spools[disk.spoolId]
         if event_type == Disk.EVENT_FAIL:
+            if len(spool.failed_disks) == 2:
+                self.sys.metrics.count += 1
             if len(spool.failed_disks) >= self.sys.num_local_fail_to_report:
                 self.sys_failed = True
                 if self.sys.collect_fail_reports:
                     fail_report = []
                     disk.curr_repair_data_remaining = disk.repair_data
-                    for failedDiskId in spool.failed_disks:
+                    for failedDiskId in self.failed_disks:
                         failedDisk = self.disks[failedDiskId]
-                        fail_report.append({'fail_time': failedDisk.fail_time})
+                        fail_report.append({'fail_time': failedDisk.fail_time, 'diskId': int(failedDiskId)})
                     self.sys.fail_reports.append(fail_report)
                 return
             

@@ -6,6 +6,7 @@ if (typing.TYPE_CHECKING):
 import copy 
 import traceback
 import time
+import json
 
 from concurrent.futures import ProcessPoolExecutor
 
@@ -23,7 +24,7 @@ class Simulator:
                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, spool_size, repair_scheme) -> SimulationResult:
         raise NotImplementedError("simulate() not implemented")
 
-    def iter(self, failureGenerator_: FailureGenerator, sys_, iters, mission, prev_fail_reports=None):
+    def iter(self, failureGenerator_: FailureGenerator, sys_, iters, mission, prev_fail_reports_filename=None):
         try:
             res = 0
             start = time.time()
@@ -36,7 +37,10 @@ class Simulator:
             deepcopyend = time.time()
             mytimer.copytime += deepcopyend - deepcopystart
 
-            
+            prev_fail_reports = None
+            if prev_fail_reports_filename:
+                with open(prev_fail_reports_filename, 'r') as f:
+                    prev_fail_reports = json.load(f)
             for iter in range(0, iters):
                 # logging.info("")
                 iter_start = time.time()
@@ -58,7 +62,7 @@ class Simulator:
     # This is a parallel/multi-iter wrapper around iter() function
     # We run X threads in parallel to run the simulation. X = concur.
     # ----------------------------
-    def run(self, failureGenerator, sys, iters, epochs, concur=10, mission=YEAR, prev_fail_reports=None):
+    def run(self, failureGenerator, sys, iters, epochs, concur=10, mission=YEAR, prev_fail_reports_filename=None):
         # So tick(state) is for a single system, and we want to simulate multiple systems
         executor = ProcessPoolExecutor(concur)
         
@@ -68,7 +72,7 @@ class Simulator:
         fail_reports = []
 
         for epoch in range(0, epochs):
-            futures.append(executor.submit(self.iter, failureGenerator, sys, iters, mission, prev_fail_reports))
+            futures.append(executor.submit(self.iter, failureGenerator, sys, iters, mission, prev_fail_reports_filename))
         ress = wait_futures(futures)
         
         executor.shutdown()

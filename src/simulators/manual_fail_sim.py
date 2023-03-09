@@ -2,6 +2,7 @@ import numpy as np
 import logging
 import math
 import time
+import json
 
 from failure_generator import FailureGenerator
 from simulators.Simulator import Simulator
@@ -99,6 +100,11 @@ class ManualFailSim(Simulator):
         new_fail_reports = []
 
         sys.num_local_fail_to_report = num_local_fail_to_report_list[1]
+        fail_reports_filename = 'fail_reports.log'
+        with open(fail_reports_filename, 'w') as fout:
+            json.dump(fail_reports, fout)
+        fail_reports = None
+        
 
         # temp = simulate(sys_state1, iters=10000, epochs=1, concur=1, mission=mission)
         # return
@@ -107,7 +113,7 @@ class ManualFailSim(Simulator):
         while failed_iters < 10:
             logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
             start  = time.time()
-            res = self.run(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission, prev_fail_reports=fail_reports)
+            res = self.run(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission, prev_fail_reports_filename=fail_reports_filename)
             failed_iters += res[0]
             total_iters += res[1]
             metrics += res[2]
@@ -118,6 +124,8 @@ class ManualFailSim(Simulator):
             print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
 
         total_iters *= mission/YEAR
+
+        print(metrics.count)
 
         # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
         prob = failed_iters/total_iters
