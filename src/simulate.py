@@ -72,9 +72,12 @@ class Simulate:
             if self.prev_fail_reports != None:
                 fail_report_index = random.randrange(len(self.prev_fail_reports))
                 fail_report = self.prev_fail_reports[fail_report_index]
+                # logging.info('fail_report: {}'.format(fail_report))
+                self.state.policy.manual_inject_failures(fail_report)
+                self.update_repair_events()
                 for disk_info in fail_report:
-                    initialFailures[disk_info['diskId']] = disk_info['fail_time']
-
+                    initialFailures[disk_info['diskId']] = YEAR*10000
+                
             finish_genfailure_time = time.time()
             mytimer.resetGenFailTime += finish_genfailure_time - start_state_reset_time
 
@@ -243,7 +246,7 @@ class Simulate:
             self.mytimer.checkLossTime += (check_loss_done_time - gen_new_fail_done_time)
             
             
-            self.update_repair_event(curr_time)
+            self.update_repair_events()
             update_repair_event_done_time = time.time()
             self.mytimer.updateRepairTime += (update_repair_event_done_time - check_loss_done_time)
             events += 1
@@ -253,7 +256,7 @@ class Simulate:
         return prob
 
 
-    def update_repair_event(self, curr_time):
+    def update_repair_events(self):
         self.repair_queue.clear()
         self.state.policy.update_repair_events(self.repair_queue)
         

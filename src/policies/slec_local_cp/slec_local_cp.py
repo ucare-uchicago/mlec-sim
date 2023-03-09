@@ -35,8 +35,10 @@ class SLEC_LOCAL_CP(Policy):
         disk = self.disks[diskId]
         spool = self.spools[disk.spoolId]
         if event_type == Disk.EVENT_FAIL:
-            if len(spool.failed_disks) == 2:
-                self.sys.metrics.count += 1
+            disk.repair_start_time = self.curr_time
+            for dId in spool.failed_disks:
+                self.update_disk_repair_time(dId, len(spool.failed_disks))
+            
             if len(spool.failed_disks) >= self.sys.num_local_fail_to_report:
                 self.sys_failed = True
                 if self.sys.collect_fail_reports:
@@ -44,13 +46,13 @@ class SLEC_LOCAL_CP(Policy):
                     disk.curr_repair_data_remaining = disk.repair_data
                     for failedDiskId in self.failed_disks:
                         failedDisk = self.disks[failedDiskId]
-                        fail_report.append({'fail_time': failedDisk.fail_time, 'diskId': int(failedDiskId)})
+                        fail_report.append({'curr_repair_data_remaining': failedDisk.curr_repair_data_remaining, 'diskId': int(failedDiskId),
+                                            'repair_time': {
+                                                0: failedDisk.repair_time[0]
+                                                }
+                                            })
                     self.sys.fail_reports.append(fail_report)
                 return
-            
-            disk.repair_start_time = self.curr_time
-            for dId in spool.failed_disks:
-                self.update_disk_repair_time(dId, len(spool.failed_disks))
 
         if event_type == Disk.EVENT_REPAIR:
             for dId in spool.failed_disks:
@@ -95,3 +97,17 @@ class SLEC_LOCAL_CP(Policy):
         for spoolId in affected_spools:
             spool = self.spools[spoolId]
             spool.failed_disks.clear()
+    
+    def manual_inject_failures(self, fail_report):
+        for disk_info in fail_report:
+            diskId = int(disk_info['diskId'])
+            disk = self.sys.disks[diskId]
+            disk.state = Disk.STATE_FAILED
+            disk.curr_repair_data_remaining = float(disk_info['curr_repair_data_remaining'])
+            disk.estimate_repair_time = 0 + float(disk_info['repair_time']['0'])
+            disk.repair_time[0] = float(disk_info['repair_time']['0'])
+            self.failed_disks[diskId] = 1
+
+            spool = self.spools[disk.spoolId]
+            spool.failed_disks[diskId] = 1
+        
