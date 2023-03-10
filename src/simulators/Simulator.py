@@ -16,23 +16,28 @@ from metrics import Metrics
 from constants.time import YEAR
 from constants.SimulationResult import SimulationResult
 
+from system import System
+from failure_generator import FailureGenerator
+
 from util import wait_futures
 
 class Simulator:
     
     def simulate(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
-                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, spool_size, repair_scheme) -> SimulationResult:
+                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, spool_size, repair_scheme,
+                num_local_fail_to_report, prev_fail_reports_filename) -> SimulationResult:
         raise NotImplementedError("simulate() not implemented")
 
-    def iter(self, failureGenerator_: FailureGenerator, sys_, iters, mission, prev_fail_reports_filename=None):
+    def iter(self, afr, iters, mission, prev_fail_reports_filename=None, **sys_kwargs):
         try:
             res = 0
             start = time.time()
             mytimer: Mytimer = Mytimer()
 
             deepcopystart = time.time()
-            failureGenerator = copy.deepcopy(failureGenerator_)
-            sys = copy.deepcopy(sys_)
+            
+            sys = System(**sys_kwargs)
+            failureGenerator = FailureGenerator(afr, failures_store_len=sys.num_disks*100)
 
             deepcopyend = time.time()
             mytimer.copytime += deepcopyend - deepcopystart
@@ -52,7 +57,7 @@ class Simulator:
                 # print("Finishing iter " + str(iter) + " taking " + str((iter_end - iter_start) * 1000) + "ms")
             end = time.time()
             mytimer.totalTime += end - start
-            print(mytimer)
+            # print(mytimer)
             return (res, mytimer, sys.metrics, sys.fail_reports)
         except Exception as e:
             print(traceback.format_exc())
@@ -62,7 +67,7 @@ class Simulator:
     # This is a parallel/multi-iter wrapper around iter() function
     # We run X threads in parallel to run the simulation. X = concur.
     # ----------------------------
-    def run(self, failureGenerator, sys, iters, epochs, concur=10, mission=YEAR, prev_fail_reports_filename=None):
+    def run(self, afr, iters, epochs, concur=10, mission=YEAR, prev_fail_reports_filename=None, **sys_kwargs):
         # So tick(state) is for a single system, and we want to simulate multiple systems
         executor = ProcessPoolExecutor(concur)
         
@@ -72,7 +77,7 @@ class Simulator:
         fail_reports = []
 
         for epoch in range(0, epochs):
-            futures.append(executor.submit(self.iter, failureGenerator, sys, iters, mission, prev_fail_reports_filename))
+            futures.append(executor.submit(self.iter, afr, iters, mission, prev_fail_reports_filename, **sys_kwargs))
         ress = wait_futures(futures)
         
         executor.shutdown()

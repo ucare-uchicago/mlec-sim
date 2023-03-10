@@ -19,15 +19,15 @@ def gen_failure_burst(disks_per_rack, num_total_racks, num_fail_disks):
     return count
 
 
-for num_fail_disks in range(1, 26):
+for num_fail_disks in range(1, 60):
     iters = 100000
     counts = {}
     for i in range(num_fail_disks):
         counts[i+1] = 0
     for i in range(iters):
-        count = gen_failure_burst(800, 40, num_fail_disks)
+        count = gen_failure_burst(800, 60, num_fail_disks)
         counts[count] += 1
 
-    with open("output.txt", "a") as f:
+    with open("output.log", "a") as f:
         for i in range(num_fail_disks):
             f.write("{} {} {}\n".format(num_fail_disks, i+1, counts[i+1]/iters))

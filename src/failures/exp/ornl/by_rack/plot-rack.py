@@ -1,4 +1,16 @@
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib
+import math
+
+title_font_size = 24
+tick_font_size = 18
+
+plt.rcParams["font.family"] = "Helvetica"
+label_font = {'fontname':'Helvetica', 'fontsize':'20'}
+annotation_font = {'fontname':'Helvetica', 'fontsize':title_font_size}
+
+
 # prob[i,j] means the probability 
 df = pd.read_csv ('Alpine_disk_failure_events_final.csv')
 
@@ -73,14 +85,12 @@ with open('burst_node_rack.csv', 'w') as the_file:
 
 
 
-import matplotlib.pyplot as plt
-import matplotlib
-import math
+
 figure, axes = plt.subplots()
 
 axes.set_aspect( 1 )
-x_range = [0.8,500]
-y_range = [0.8,500]
+x_range = [0.8,200]
+y_range = [0.8,200]
 axes.set_xlim(x_range)
 axes.set_ylim(y_range)
 
@@ -100,24 +110,24 @@ for burst in burst_counts_by_node_rack:
 
 plt.plot(x_range, y_range, linewidth=0.4, color='green')
 
-plt.text(100, 15, "1 occurances")
+plt.text(100, 15, "1 occurances", **label_font)
 axes.plot(50, 15.5,1,marker='o',ms=cal_radius(1),mfc='None',mec='black')
-plt.text(100, 8, "10 occurances")
+plt.text(100, 8, "10 occurances", **label_font)
 axes.plot(50, 8.3,1,marker='o',ms=cal_radius(10),mfc='None',mec='black')
-plt.text(100, 4, "100 occurances")
+plt.text(100, 4, "100 occurances", **label_font)
 axes.plot(50, 4.15,1,marker='o',ms=cal_radius(100),mfc='None',mec='black')
-plt.text(100, 1.5, "1000 occurances")
+plt.text(100, 1.5, "1000 occurances", **label_font)
 axes.plot(50, 1.55,marker='o',ms=cal_radius(1000),mfc='None',mec='black')
 
 
-plt.legend()
-plt.xlabel('Number of racks affected')
+# plt.legend()
+plt.xlabel('Number of racks affected', fontsize=title_font_size)
 plt.xscale("log")
-plt.ylabel('Number of drives affected')
+plt.ylabel('Number of drives affected', fontsize=title_font_size)
 plt.yscale("log")
-plt.title('Frequency of failure bursts sorted by racks and drives affected')
-axes.set_xticks([1,2,5,10,20,50,100,200,500])
-axes.set_yticks([1,2,5,10,20,50,100,200,500])
+plt.title('Frequency of failure bursts sorted by racks and drives affected', fontsize=title_font_size)
+plt.xticks([1,2,5,10,20,50,100,200], fontsize=tick_font_size)
+plt.yticks([1,2,5,10,20,50,100,200], fontsize=tick_font_size)
 axes.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 axes.get_yaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 

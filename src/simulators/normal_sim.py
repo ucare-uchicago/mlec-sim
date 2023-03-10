@@ -27,32 +27,32 @@ class NormalSim(Simulator):
     # -----------------------------
     def normal_sim(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
                     total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, infinite_chunks=True, chunksize=128,
-                    spool_size=-1, repair_scheme=0):
+                    spool_size=-1, repair_scheme=0, num_local_fail_to_report=0, prev_fail_reports_filename=None):
         # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
 
         mission = YEAR
-        failureGenerator = FailureGenerator(afr, failures_store_len=total_drives*100)
         
-        sys = System(
-            num_disks=total_drives, 
-            num_disks_per_rack=drives_per_rack, 
-            k=k_local, 
-            m=p_local, 
-            place_type=placement, 
-            diskCap=cap * kilo * kilo,
-            rebuildRate=io_speed, 
-            intrarack_speed=intrarack_speed, 
-            interrack_speed=interrack_speed, 
-            utilizeRatio=1, 
-            top_k=k_net, 
-            top_m=p_net, 
-            adapt=adapt, 
-            rack_fail=0,
-            infinite_chunks=infinite_chunks,
-            chunksize=chunksize,
-            spool_size=spool_size,
-            repair_scheme=repair_scheme,
-            collect_fail_reports=True)
+        sys_kwargs = {
+            "num_disks": total_drives, 
+            "num_disks_per_rack": drives_per_rack, 
+            "k": k_local, 
+            "m": p_local, 
+            "place_type": placement, 
+            "diskCap": cap * kilo * kilo,
+            "rebuildRate": io_speed, 
+            "intrarack_speed": intrarack_speed, 
+            "interrack_speed": interrack_speed, 
+            "utilizeRatio": 1, 
+            "top_k": k_net, 
+            "top_m": p_net, 
+            "adapt": adapt, 
+            "rack_fail": 0,
+            "infinite_chunks": infinite_chunks,
+            "chunksize": chunksize,
+            "spool_size": spool_size,
+            "repair_scheme": repair_scheme,
+            "collect_fail_reports": True
+            }
 
         failed_iters = 0
         total_iters = 0
@@ -66,7 +66,7 @@ class NormalSim(Simulator):
         while failed_iters < 10:
             logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
             start  = time.time()
-            res = self.run(failureGenerator, sys, iters=iters, epochs=epoch, concur=concur, mission=mission)
+            res = self.run(afr, iters=iters, epochs=epoch, concur=concur, mission=mission, prev_fail_reports_filename=None, **sys_kwargs)
             failed_iters += res[0]
             total_iters += res[1]
             metrics += res[2]
