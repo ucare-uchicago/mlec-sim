@@ -81,7 +81,7 @@ class ManualFailSim(Simulator):
         
         # print(fail_reports)
         # print(metrics)
-        new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}.log'.format(k_net, p_net, k_local, p_local, placement, num_local_fail_to_report)
+        new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f.log'.format(k_net, p_net, k_local, p_local, placement, num_local_fail_to_report)
         with open(new_fail_reports_filename, 'w') as fout:
             json.dump(fail_reports, fout)
 
