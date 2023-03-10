@@ -73,6 +73,7 @@ class Simulate:
             if self.prev_fail_reports != None:
                 fail_report_index = random.randrange(len(self.prev_fail_reports))
                 fail_report = self.prev_fail_reports[fail_report_index]
+
                 # logging.info('fail_report: {}'.format(fail_report))
                 self.curr_time = float(fail_report['curr_time'])
                 self.state.policy.manual_inject_failures(fail_report)

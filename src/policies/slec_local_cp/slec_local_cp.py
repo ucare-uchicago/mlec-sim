@@ -52,8 +52,10 @@ class SLEC_LOCAL_CP(Policy):
                             'estimate_repair_time': failedDisk.estimate_repair_time,
                             'repair_time': {
                                 0: failedDisk.repair_time[0]
-                                }
+                                },
+                            'repair_start_time': failedDisk.repair_start_time
                             })
+                    # logging.info('new fail report: {}'.format(fail_report))
                     self.sys.fail_reports.append(fail_report)
                 return
 
@@ -109,7 +111,10 @@ class SLEC_LOCAL_CP(Policy):
             disk.curr_repair_data_remaining = float(disk_info['curr_repair_data_remaining'])
             disk.estimate_repair_time = float(disk_info['estimate_repair_time'])
             disk.repair_time[0] = float(disk_info['repair_time']['0'])
+            disk.repair_start_time = float(disk_info['repair_start_time'])
             self.failed_disks[diskId] = 1
+
+            # logging.info('disk: {}'.format(disk))
 
             spool = self.spools[disk.spoolId]
             spool.failed_disks[diskId] = 1
