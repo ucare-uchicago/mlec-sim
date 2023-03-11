@@ -65,7 +65,7 @@ class System:
         # todo: for dp pool size is different
         if place_type in [PlacementType.MLEC_C_C, PlacementType.MLEC_D_C, PlacementType.SLEC_LOCAL_CP]:
             self.spool_size = self.n
-        elif place_type in [PlacementType.MLEC_C_D, PlacementType.MLEC_D_D, PlacementType.DP]:
+        elif place_type in [PlacementType.MLEC_C_D, PlacementType.MLEC_D_D, PlacementType.SLEC_LOCAL_DP]:
             self.spool_size = spool_size
         self.spools: List[Spool] = []
 
@@ -128,4 +128,4 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
         # __init__(self, num_disks, num_disks_per_rack, k, m, place_type, diskCap, rebuildRate,
         #             utilizeRatio, top_k = 1, top_m = 0, adapt = False, rack_fail = False):
-    sys = System(100, 10, 4, 1, PlacementType.DP ,2,1,1, 4, 1)
+    sys = System(100, 10, 4, 1, PlacementType.SLEC_LOCAL_DP ,2,1,1, 4, 1)

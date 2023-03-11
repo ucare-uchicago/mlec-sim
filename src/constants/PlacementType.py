@@ -2,7 +2,7 @@ from enum import Enum
 
 class PlacementType(str, Enum):
     SLEC_LOCAL_CP = 'SLEC_LOCAL_CP'
-    RAID_NET = 'RAID_NET'
+    SLEC_LOCAL_DP = 'SLEC_LOCAL_DP'
     
     DP = "DP"
     DP_NET = 'DP_NET'

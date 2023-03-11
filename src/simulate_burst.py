@@ -32,7 +32,7 @@ class Simulate:
         failures = failureGenerator.gen_failure_burst(self.sys.num_disks_per_rack, self.sys.num_racks)
         if self.place_type == PlacementType.SLEC_LOCAL_CP:
             return self.flat_cluster_check_burst(failures)
-        if self.place_type == PlacementType.DP:
+        if self.place_type == PlacementType.SLEC_LOCAL_DP:
             return self.flat_decluster_check_burst(failures)
         if self.place_type == PlacementType.MLEC_C_C:
             return self.mlec_cluster_check_burst(failures)

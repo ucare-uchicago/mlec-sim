@@ -4,11 +4,11 @@ from components.disk import Disk
 from components.rack import Rack
 from policies.policy import Policy
 from helpers.common_math import ncr
-from .pdl import flat_decluster_pdl
-from .repair import decluster_repair
+from .pdl import slec_local_dp_pdl
+from .repair import slec_local_dp_repair
 
 
-class Decluster(Policy):
+class SLEC_LOCAL_DP(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
@@ -182,7 +182,7 @@ class Decluster(Policy):
                             diskId, disk.priority, fail_per_rack, critical_repair_time, disk.estimate_repair_time))
 
     def check_pdl(self):
-        return flat_decluster_pdl(self.state)
+        return slec_local_dp_pdl(self.state)
     
     def update_repair_events(self, event_type, diskId, repair_queue):
-        decluster_repair(self.state, repair_queue)
+        slec_local_dp_repair(self.state, repair_queue)

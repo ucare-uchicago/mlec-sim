@@ -1,4 +1,4 @@
-def flat_decluster_pdl(state):
+def slec_local_dp_pdl(state):
     prob = 0
     for diskId in state.disks:
         #print "diskId", diskId, "priority",state.disks[diskId].priority
