@@ -262,7 +262,6 @@ class Simulate:
 
 
     def update_repair_events(self):
-        self.repair_queue.clear()
         self.state.policy.update_repair_events(self.repair_queue)
         
         # if len(self.repair_queue) > 0:

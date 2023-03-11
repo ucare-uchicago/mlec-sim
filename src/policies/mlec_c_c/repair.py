@@ -8,6 +8,7 @@ from components.spool import Spool
 
 # update the repair event queue
 def mlec_c_c_repair(mlec_c_c, repair_queue):
+    repair_queue.clear()
     return mlec_repair_heappush(mlec_c_c, repair_queue)
 
 

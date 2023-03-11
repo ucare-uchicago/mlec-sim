@@ -5,6 +5,7 @@ import logging
 
 
 def netdp_repair(state, repair_queue):
+    repair_queue.clear()
     priority = state.policy.max_priority
     if priority > 0:
         for diskId in state.policy.priority_queue[priority]:

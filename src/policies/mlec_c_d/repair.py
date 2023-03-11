@@ -3,6 +3,7 @@ from components.disk import Disk
 from components.spool import Spool
 
 def mlec_c_d_repair(mlec_c_d, repair_queue):
+    repair_queue.clear()
     
     for spoolId in mlec_c_d.affected_spools:
         spool = mlec_c_d.spools[spoolId]

@@ -4,6 +4,7 @@ from components.rack import Rack
 from heapq import heappush
 
 def decluster_repair(state, repair_queue):
+    repair_queue.clear()
     for diskId in state.get_failed_disks():
         rackId = diskId // state.sys.num_disks_per_rack
         if state.racks[rackId].state == Rack.STATE_NORMAL:
