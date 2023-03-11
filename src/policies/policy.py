@@ -8,6 +8,7 @@ if typing.TYPE_CHECKING:
     from state import State
 
 from components.disk import Disk
+from heapq import heappush, heappop
 
 class Policy:
     
@@ -92,4 +93,23 @@ class Policy:
             self.curr_prio_repair_started = False
     
     def manual_inject_failures(self, fail_report, simulate) -> None:
+        return None
+
+    def get_next_event(self, simulate) -> Optional[Tuple[float, str, int]]:
+        if simulate.failure_queue or simulate.repair_queue:
+            if len(simulate.repair_queue) == 0:
+                next_event = heappop(simulate.failure_queue)
+            elif len(simulate.failure_queue) == 0:
+                next_event = heappop(simulate.repair_queue)
+            else:
+                first_event_time = simulate.failure_queue[0][0]
+                first_repair_time = simulate.repair_queue[0][0]
+                if first_event_time < first_repair_time:
+                    next_event = heappop(simulate.failure_queue)
+                else:
+                    next_event = heappop(simulate.repair_queue)
+                    
+            simulate.prev_event = next_event
+            return next_event
+        
         return None

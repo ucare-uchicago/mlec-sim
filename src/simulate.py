@@ -122,23 +122,7 @@ class Simulate:
 
 
     def get_next_event(self) -> Optional[Tuple[float, str, int]]:        
-        if self.failure_queue or self.repair_queue:
-            if len(self.repair_queue) == 0:
-                next_event = heappop(self.failure_queue)
-            elif len(self.failure_queue) == 0:
-                next_event = heappop(self.repair_queue)
-            else:
-                first_event_time = self.failure_queue[0][0]
-                first_repair_time = self.repair_queue[0][0]
-                if first_event_time < first_repair_time:
-                    next_event = heappop(self.failure_queue)
-                else:
-                    next_event = heappop(self.repair_queue)
-                    
-            self.prev_event = next_event
-            return next_event
-        
-        return None
+        return self.state.policy.get_next_event(self)
 
 
     def clean_failures(self):
