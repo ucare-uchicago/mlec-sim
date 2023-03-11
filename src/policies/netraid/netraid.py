@@ -142,7 +142,7 @@ class NetRAID(Policy):
     def check_pdl(self):
         return net_raid_pdl(self, self.state)
     
-    def update_repair_events(self, repair_queue):
+    def update_repair_events(self, event_type, diskId, repair_queue):
         netraid_repair(self.state, repair_queue)
     
     def clean_failures(self) -> None:

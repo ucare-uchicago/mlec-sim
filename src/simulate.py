@@ -76,8 +76,7 @@ class Simulate:
 
                 # logging.info('fail_report: {}'.format(fail_report))
                 self.curr_time = float(fail_report['curr_time'])
-                self.state.policy.manual_inject_failures(fail_report)
-                self.update_repair_events()
+                self.state.policy.manual_inject_failures(fail_report, self)
                 for disk_info in fail_report['disk_infos']:
                     initialFailures[disk_info['diskId']] = YEAR*10000
                 
@@ -251,7 +250,7 @@ class Simulate:
             self.mytimer.checkLossTime += (check_loss_done_time - gen_new_fail_done_time)
             
             
-            self.update_repair_events()
+            self.update_repair_events(event_type, diskId)
             update_repair_event_done_time = time.time()
             self.mytimer.updateRepairTime += (update_repair_event_done_time - check_loss_done_time)
             events += 1
@@ -261,15 +260,7 @@ class Simulate:
         return prob
 
 
-    def update_repair_events(self):
-        self.state.policy.update_repair_events(self.repair_queue)
+    def update_repair_events(self, event_type, diskId):
+        self.state.policy.update_repair_events(event_type, diskId, self.repair_queue)
         
-        # if len(self.repair_queue) > 0:
-        #     if not self.state.repairing:
-        #         self.state.repairing = True
-        #         self.state.repair_start_time = curr_time
-        # else:
-        #     if self.state.repairing:
-        #         self.state.repairing = False
-        #         self.state.sys.metrics.total_rebuild_time += curr_time - self.state.repair_start_time
 

@@ -335,7 +335,7 @@ class MLEC(Policy):
     def check_pdl(self):
         return mlec_cluster_pdl(self.state)
     
-    def update_repair_events(self, repair_queue):
+    def update_repair_events(self, event_type, diskId, repair_queue):
         mlec_repair(self.diskgroups, self.get_failed_diskgroups(), self.state, repair_queue)
     
     def intercept_next_event(self, prev_event) -> Optional[Tuple[float, str, int]]:

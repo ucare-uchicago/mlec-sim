@@ -1,10 +1,12 @@
 import logging
 from components.disk import Disk
-from components.rack import Rack
 from policies.policy import Policy
 from .pdl import slec_local_cp_pdl
-from .repair import slec_local_cp_repair
+from heapq import heappush
 
+# Repair scheme 0
+# For a failed stripe with 2 failed chunks, we assume the repairer can read the stripe once,
+# reconstruct the 2 lost chunks together, and then write to the two spare disks in parallel.
 class SLEC_LOCAL_CP_RS0(Policy):
     #--------------------------------------
     # system state consists of disks state
@@ -35,9 +37,7 @@ class SLEC_LOCAL_CP_RS0(Policy):
         disk = self.disks[diskId]
         spool = self.spools[disk.spoolId]
         if event_type == Disk.EVENT_FAIL:
-            disk.repair_start_time = self.curr_time
-            for dId in spool.failed_disks:
-                self.update_disk_repair_time(dId, len(spool.failed_disks))
+            self.update_disk_repair_time(disk)
             
             if len(spool.failed_disks) >= self.sys.num_local_fail_to_report:
                 self.sys_failed = True
@@ -47,7 +47,6 @@ class SLEC_LOCAL_CP_RS0(Policy):
                         failedDisk = self.disks[failedDiskId]
                         fail_report['disk_infos'].append(
                             {
-                            'curr_repair_data_remaining': failedDisk.curr_repair_data_remaining,
                             'diskId': int(failedDiskId),
                             'estimate_repair_time': failedDisk.estimate_repair_time,
                             'repair_time': {
@@ -60,24 +59,14 @@ class SLEC_LOCAL_CP_RS0(Policy):
                 return
 
         if event_type == Disk.EVENT_REPAIR:
-            for dId in spool.failed_disks:
-                self.update_disk_repair_time(dId, len(spool.failed_disks))
+            return
 
         
         
         
 
-    def update_disk_repair_time(self, diskId, fail_per_rack):
-        disk = self.disks[diskId]
-        repaired_time = self.curr_time - disk.repair_start_time
-        if repaired_time == 0:
-            repaired_percent = 0
-            disk.curr_repair_data_remaining = disk.repair_data
-        else:
-            repaired_percent = repaired_time / disk.repair_time[0]
-            disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
-            
-        repair_time = float(disk.curr_repair_data_remaining)/(self.sys.diskIO/fail_per_rack)
+    def update_disk_repair_time(self, disk):
+        repair_time = float(self.sys.diskSize)/float(self.sys.diskIO)
 
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
@@ -87,8 +76,10 @@ class SLEC_LOCAL_CP_RS0(Policy):
     def check_pdl(self):
         return slec_local_cp_pdl(self)
     
-    def update_repair_events(self, repair_queue):
-        return slec_local_cp_repair(self, repair_queue)
+    def update_repair_events(self, event_type, diskId, repair_queue):
+        if event_type == Disk.EVENT_FAIL:
+            disk = self.disks[diskId]
+            heappush(repair_queue, (disk.estimate_repair_time, Disk.EVENT_REPAIR, diskId))
 
     def clean_failures(self):
         affected_spools = {}
@@ -103,19 +94,18 @@ class SLEC_LOCAL_CP_RS0(Policy):
             spool = self.spools[spoolId]
             spool.failed_disks.clear()
     
-    def manual_inject_failures(self, fail_report):
+    def manual_inject_failures(self, fail_report, simulate):
         for disk_info in fail_report['disk_infos']:
             diskId = int(disk_info['diskId'])
             disk = self.sys.disks[diskId]
             disk.state = Disk.STATE_FAILED
-            disk.curr_repair_data_remaining = float(disk_info['curr_repair_data_remaining'])
             disk.estimate_repair_time = float(disk_info['estimate_repair_time'])
             disk.repair_time[0] = float(disk_info['repair_time']['0'])
             disk.repair_start_time = float(disk_info['repair_start_time'])
             self.failed_disks[diskId] = 1
 
-            # logging.info('disk: {}'.format(disk))
-
             spool = self.spools[disk.spoolId]
             spool.failed_disks[diskId] = 1
+
+            heappush(simulate.repair_queue, (disk.estimate_repair_time, Disk.EVENT_REPAIR, diskId))
         

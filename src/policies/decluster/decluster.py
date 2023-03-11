@@ -184,5 +184,5 @@ class Decluster(Policy):
     def check_pdl(self):
         return flat_decluster_pdl(self.state)
     
-    def update_repair_events(self, repair_queue):
+    def update_repair_events(self, event_type, diskId, repair_queue):
         decluster_repair(self.state, repair_queue)

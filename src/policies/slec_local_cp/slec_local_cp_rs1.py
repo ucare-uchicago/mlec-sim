@@ -4,6 +4,7 @@ from components.rack import Rack
 from policies.policy import Policy
 from .pdl import slec_local_cp_pdl
 from .repair import slec_local_cp_repair
+from heapq import heappush
 
 class SLEC_LOCAL_CP_RS1(Policy):
     #--------------------------------------
@@ -87,7 +88,7 @@ class SLEC_LOCAL_CP_RS1(Policy):
     def check_pdl(self):
         return slec_local_cp_pdl(self)
     
-    def update_repair_events(self, repair_queue):
+    def update_repair_events(self, event_type, diskId, repair_queue):
         return slec_local_cp_repair(self, repair_queue)
 
     def clean_failures(self):
@@ -103,7 +104,7 @@ class SLEC_LOCAL_CP_RS1(Policy):
             spool = self.spools[spoolId]
             spool.failed_disks.clear()
     
-    def manual_inject_failures(self, fail_report):
+    def manual_inject_failures(self, fail_report, simulate):
         for disk_info in fail_report['disk_infos']:
             diskId = int(disk_info['diskId'])
             disk = self.sys.disks[diskId]
@@ -118,4 +119,7 @@ class SLEC_LOCAL_CP_RS1(Policy):
 
             spool = self.spools[disk.spoolId]
             spool.failed_disks[diskId] = 1
+
+            heappush(simulate.repair_queue, (disk.estimate_repair_time, Disk.EVENT_REPAIR, diskId))
+
         

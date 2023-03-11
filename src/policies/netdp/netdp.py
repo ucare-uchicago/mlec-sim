@@ -169,7 +169,7 @@ class NetDP(Policy):
     def check_pdl(self):
         return network_decluster_pdl(self.state)
     
-    def update_repair_events(self, repair_queue):
+    def update_repair_events(self, event_type, diskId, repair_queue):
         return netdp_repair(self.state, repair_queue)
 
     def clean_failures(self) -> None:

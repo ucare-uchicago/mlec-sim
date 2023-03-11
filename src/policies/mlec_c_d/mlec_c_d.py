@@ -283,7 +283,7 @@ class MLEC_C_D(Policy):
     def check_pdl(self):
         return mlec_c_d_pdl(self)
     
-    def update_repair_events(self, repair_queue):
+    def update_repair_events(self, event_type, diskId, repair_queue):
         mlec_c_d_repair(self, repair_queue)
 
 

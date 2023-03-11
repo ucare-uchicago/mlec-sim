@@ -73,7 +73,7 @@ class Policy:
     def check_pdl(self):
         raise NotImplementedError("check_pdl() not implemented")
     
-    def update_repair_events(self, repair_queue):
+    def update_repair_events(self, event_type, diskId, repair_queue):
         raise NotImplementedError("update_repair_events() not implemented")
     
     # This function decides whether the policy intervene before we check
@@ -91,5 +91,5 @@ class Policy:
             disk.repair_time = {}
             self.curr_prio_repair_started = False
     
-    def manual_inject_failures(self) -> None:
+    def manual_inject_failures(self, fail_report, simulate) -> None:
         return None
