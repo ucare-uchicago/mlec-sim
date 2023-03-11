@@ -7,7 +7,8 @@ from .mlec_c_d.layout import mlec_c_d_layout
 from .mlec_d_c.layout import mlec_d_c_layout
 from .mlec_d_d.layout import mlec_d_d_layout
 
-from policies.slec_local_cp.slec_local_cp import SLEC_LOCAL_CP
+from policies.slec_local_cp.slec_local_cp_rs0 import SLEC_LOCAL_CP_RS0
+from policies.slec_local_cp.slec_local_cp_rs1 import SLEC_LOCAL_CP_RS1
 from policies.netraid.netraid import NetRAID
 from policies.decluster.decluster import Decluster
 from policies.netdp.netdp import NetDP
@@ -44,7 +45,10 @@ def config_system_layout(placement: PlacementType, system):
     
 def get_policy(placement: PlacementType, state):
     if placement == PlacementType.SLEC_LOCAL_CP:
-        return SLEC_LOCAL_CP(state)
+        if state.sys.repair_scheme == 0:
+            return SLEC_LOCAL_CP_RS0(state)
+        elif state.sys.repair_scheme == 1:
+            return SLEC_LOCAL_CP_RS1(state)
     elif placement == PlacementType.DP:
         return Decluster(state)
     elif placement == PlacementType.MLEC_C_C:

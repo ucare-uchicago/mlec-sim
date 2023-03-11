@@ -5,7 +5,7 @@ from policies.policy import Policy
 from .pdl import slec_local_cp_pdl
 from .repair import slec_local_cp_repair
 
-class SLEC_LOCAL_CP(Policy):
+class SLEC_LOCAL_CP_RS1(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------

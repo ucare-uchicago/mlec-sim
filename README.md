@@ -78,7 +78,7 @@ You should use `sim_mode=1` and can do it in 3 stages:
 
 1. Stage 1: Simulate the probability that the system can have 2 concurrent disk failures in a pool:
 
-`python main.py -k_local=7 -p_local=3 -total_drives=100 -drives_per_rack=50 -io_speed=100 -placement=SLEC_LOCAL_CP -concur=256 -iter=10000 -sim_mode=1 -num_local_fail_to_report=2`
+`python main.py -k_local=7 -p_local=3 -total_drives=100 -drives_per_rack=50 -io_speed=100 -placement=SLEC_LOCAL_CP -concur=256 -iter=10000 -sim_mode=1 -repair_scheme=1 -num_local_fail_to_report=2`
 
 You might see output like:
 
@@ -96,13 +96,13 @@ error sigma: 0.002
 It means the probability for the system to have 2 concurrent disk failures in a pool over one year is 39522/2560000, which means 1.811 nines.
 
 When the 2 concurrent failures happen, the simulate records the current system state. The system states of all the cases are written into the 
-log file: `fail_reports_1+0-7+3_SLEC_LOCAL_CP_2f.log`.
+log file: `fail_reports_1+0-7+3_SLEC_LOCAL_CP_2f_rs1.log`.
 
 2. Stage 2: Given the system has 2 concurrent disk failures in a pool, simulate the probability that the system can have 3 concurrent disk failures in a pool.
 
-`python main.py -k_local=7 -p_local=3 -total_drives=100 -drives_per_rack=50 -io_speed=100 -placement=SLEC_LOCAL_CP -concur=256 -iter=10000 -sim_mode=1 -num_local_fail_to_report=3 -prev_fail_reports_filename=fail_reports_1+0-7+3_SLEC_LOCAL_CP_2f.log`
+`python main.py -k_local=7 -p_local=3 -total_drives=100 -drives_per_rack=50 -io_speed=100 -placement=SLEC_LOCAL_CP -concur=256 -iter=10000 -sim_mode=1 -repair_scheme=1 -num_local_fail_to_report=3 -prev_fail_reports_filename=fail_reports_1+0-7+3_SLEC_LOCAL_CP_2f_rs1.log`
 
-The simulator will always start from a random system state from `fail_reports_1+0-7+3_SLEC_LOCAL_CP_2f.log`, and continue the simulation.
+The simulator will always start from a random system state from `fail_reports_1+0-7+3_SLEC_LOCAL_CP_2f_rs1.log`, and continue the simulation.
 
 You probably would see the output like:
 
@@ -121,14 +121,14 @@ It means given 2 concurrent disk failures in a pool, the probability that the sy
 6840/2560000, which means 2.573 nines.
 
 When the 3 concurrent failures happen, the simulate records the current system state. The system states of all the cases are written into the 
-log file: `fail_reports_1+0-7+3_SLEC_LOCAL_CP_3f.log`.
+log file: `fail_reports_1+0-7+3_SLEC_LOCAL_CP_3f_rs1.log`.
 
 3. State 3: Given the system has 3 concurrent disk failures in a pool, simulate the probability that the system can have 4 concurrent disk failures in a pool.
 Note that when the system has 4 concurrent disk failures in a pool, the system unrecoverably loses data.
 
-`python main.py -k_local=7 -p_local=3 -total_drives=100 -drives_per_rack=50 -io_speed=100 -placement=SLEC_LOCAL_CP -concur=256 -iter=10000 -sim_mode=1 -num_local_fail_to_report=4 -prev_fail_reports_filename=fail_reports_1+0-7+3_SLEC_LOCAL_CP_3f.log`
+`python main.py -k_local=7 -p_local=3 -total_drives=100 -drives_per_rack=50 -io_speed=100 -placement=SLEC_LOCAL_CP -concur=256 -iter=10000 -sim_mode=1 -repair_scheme=1 -num_local_fail_to_report=4 -prev_fail_reports_filename=fail_reports_1+0-7+3_SLEC_LOCAL_CP_3f_rs1.log`
 
-The simulator will always start from a random system state from `fail_reports_1+0-7+3_SLEC_LOCAL_CP_3f.log`, and continue the simulation.
+The simulator will always start from a random system state from `fail_reports_1+0-7+3_SLEC_LOCAL_CP_3f_rs1.log`, and continue the simulation.
 
 You probably would see the output like:
 
