@@ -14,6 +14,10 @@ def slec_local_dp_layout(sys: System):
     for spoolId in range(num_spools):
         spool = Spool(spoolId, sys.spool_size)
         spool.rackId = spoolId // num_spools_per_rack
+
+        for i in range(sys.m + 1):
+            spool.disk_priority_queue[i + 1] = {}
+
         spool.diskIds = range(spoolId*sys.spool_size, (spoolId+1)*sys.spool_size)
         for diskId in spool.diskIds:
             sys.disks[diskId].spoolId = spoolId

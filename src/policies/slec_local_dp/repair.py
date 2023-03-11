@@ -3,20 +3,15 @@ from components.rack import Rack
 
 from heapq import heappush
 
-def slec_local_dp_repair(state, repair_queue):
+def slec_local_dp_repair(slec_local_dp, repair_queue):
     repair_queue.clear()
-    for diskId in state.get_failed_disks():
-        rackId = diskId // state.sys.num_disks_per_rack
-        if state.racks[rackId].state == Rack.STATE_NORMAL:
-            disk = state.disks[diskId]
-            estimate_time = disk.repair_start_time
-            priority = disk.priority
-            estimate_time  += disk.repair_time[priority]
-            if priority > 1:
-                heappush(repair_queue, (estimate_time, Disk.EVENT_FASTREBUILD, diskId))
-                # print("push to repair queue  finish time{} {} {}".format(estimate_time, 
-                #           Disk.EVENT_FASTREBUILD, diskId))
-            if priority == 1:
-                heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
-                # print("push to repair queue  finish time{} {} {}".format(estimate_time, 
-                #           Disk.EVENT_REPAIR, diskId))
+
+    for spoolId in slec_local_dp.affected_spools:
+        spool = slec_local_dp.spools[spoolId]
+        for diskId in spool.disk_priority_queue[spool.disk_max_priority]:
+            disk = slec_local_dp.disks[diskId]
+            if disk.priority > 1:
+                heappush(repair_queue, (disk.estimate_repair_time, Disk.EVENT_FASTREBUILD, diskId))
+
+            if disk.priority == 1:
+                heappush(repair_queue, (disk.estimate_repair_time, Disk.EVENT_REPAIR, diskId))

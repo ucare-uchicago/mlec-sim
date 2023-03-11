@@ -61,9 +61,9 @@ class MLEC_C_D(Policy):
 
             if spool.disk_max_priority > 0:
                 for dId in spool.disk_priority_queue[spool.disk_max_priority]:
-                    logging.info('pausing for disk {} with priority {}  spool max priority {}'.format(
-                            dId, self.disks[diskId], spool.disk_max_priority
-                    ))
+                    # logging.info('pausing for disk {} with priority {}  spool max priority {}'.format(
+                    #         dId, self.disks[diskId], spool.disk_max_priority
+                    # ))
                     self.pause_disk_repair_time(dId, spool.disk_max_priority)
             #----------------------------------------------
             spool.disk_max_priority += 1
@@ -77,17 +77,18 @@ class MLEC_C_D(Policy):
             self.compute_priority_percents(disk)
 
 
-            for dId in spool.disk_priority_queue[disk.priority]:
+            for dId in spool.disk_priority_queue[spool.disk_max_priority]:
                 self.resume_repair_time(dId, disk.priority, spool)
                 # logging.info("===")
                         
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
             curr_priority = disk.priority
+            assert curr_priority == spool.disk_max_priority, "repair disk priority is not spool disk max priority"
             del disk.repair_time[curr_priority]
 
             spool.disk_priority_queue[curr_priority].pop(diskId, None)
             for dId in spool.disk_priority_queue[curr_priority]:
-                self.pause_repair_time(dId, curr_priority)
+                self.pause_disk_repair_time(dId, curr_priority)
             
             disk.priority -= 1
             if disk.priority > 0:
