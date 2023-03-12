@@ -71,6 +71,7 @@ class SLEC_LOCAL_CP_RS0(Policy):
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
+        # logging.info("repair time: {}".format(disk.repair_time[0]))
         
     
     def check_pdl(self):

@@ -29,7 +29,7 @@ class ManualFailSim(Simulator):
     def manual_fail_sim(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
                     total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, infinite_chunks=True, chunksize=128,
                     spool_size=-1, repair_scheme=0, num_local_fail_to_report=0, prev_fail_reports_filename=None):
-        logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
+        # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
 
         mission = YEAR
         

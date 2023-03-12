@@ -85,9 +85,9 @@ class Simulate:
 
             start_parse_failure_time = time.time()
             
-            failure_idxs_1 = np.where(initialFailures < self.mission_time)[0]
-            failure_idxs_2 = np.where(initialFailures >= self.curr_time)[0]
-            failure_idxs = failure_idxs_1[np.in1d(failure_idxs_1, failure_idxs_2)]
+            failure_idxs = np.where(np.logical_and(
+                                        initialFailures < self.mission_time,
+                                        initialFailures >= self.curr_time))[0]
             
             finish_parse_failure_time = time.time()
             mytimer.resetParseFailTime += finish_parse_failure_time - start_parse_failure_time

@@ -119,6 +119,8 @@ class SLEC_LOCAL_DP(Policy):
         disk.repair_start_time = self.state.curr_time
         disk.estimate_repair_time = self.state.curr_time + disk.repair_time[priority]
 
+        # logging.info("repair time: {}".format(disk.repair_time[priority]))
+
 
 
 
