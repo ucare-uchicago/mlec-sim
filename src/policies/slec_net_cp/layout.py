@@ -6,7 +6,7 @@ if typing.TYPE_CHECKING:
     from system import System
 from components.spool import Spool
 
-def net_raid_layout(sys: System):
+def slec_net_cp_layout(sys: System):
     # Non-overlapping stripe sets (each member is a rack)
     num_rack_group = sys.num_racks // sys.top_n
     # How many spools in total can we have, non-overlapping disks

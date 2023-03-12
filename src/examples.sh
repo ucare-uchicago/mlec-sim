@@ -10,8 +10,8 @@ python burstBrute.py -k_net 3 -p_net 0 -k_local 6 -p_local 1
 python main.py -sim_mode 6 -k_local 8 -p_local 2 -total_drives 2500 -drives_per_rack 50 -placement=DP
 
 # burst raid net
-python main.py -sim_mode 6 -k_net 8 -p_net 2 -total_drives 2500 -drives_per_rack 50 -placement=RAID_NET
-python burst_ornl.py -k_net 8 -p_net 2 -total_drives 32000 -drives_per_rack 100 -placement=RAID_NET
+python main.py -sim_mode 6 -k_net 8 -p_net 2 -total_drives 2500 -drives_per_rack 50 -placement=SLEC_NET_CP
+python burst_ornl.py -k_net 8 -p_net 2 -total_drives 32000 -drives_per_rack 100 -placement=SLEC_NET_CP
 
 # burst mlec dp
 python main.py -sim_mode 6 -k_net 16 -p_net 2 -k_local 8 -p_local 2 -total_drives 2700 -drives_per_rack 50 -placement=MLEC_C_D

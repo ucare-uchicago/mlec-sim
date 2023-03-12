@@ -25,7 +25,7 @@ def burst_theory(k_net, p_net, k_local, p_local,
         return burst_theory_dp(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks)
     
-    if placement == 'RAID_NET':
+    if placement == 'SLEC_NET_CP':
         return burst_theory_net_raid(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
     
@@ -386,7 +386,7 @@ if __name__ == "__main__":
         p_net = 0
         
     
-    if placement in ['RAID_NET']:
+    if placement in ['SLEC_NET_CP']:
         k_local = 1
         p_local = 0
 

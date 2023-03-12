@@ -79,7 +79,7 @@ if __name__ == "__main__":
         p_net = 0
         
     
-    if placement in ['RAID_NET']:
+    if placement in [placement.SLEC_NET_CP, placement.DP_NET]:
         k_local = 1
         p_local = 0
 

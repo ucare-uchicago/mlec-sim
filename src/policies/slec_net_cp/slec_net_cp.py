@@ -8,10 +8,10 @@ from components.disk import Disk
 from components.rack import Rack
 from components.spool import Spool
 from policies.policy import Policy
-from .pdl import net_raid_pdl
-from .repair import netraid_repair
+from .pdl import slec_net_cp_pdl
+from .repair import slec_net_cp_repair
 
-class NetRAID(Policy):
+class SLEC_NET_CP(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
@@ -140,10 +140,10 @@ class NetRAID(Policy):
 
         
     def check_pdl(self):
-        return net_raid_pdl(self, self.state)
+        return slec_net_cp_pdl(self, self.state)
     
     def update_repair_events(self, event_type, diskId, repair_queue):
-        netraid_repair(self.state, repair_queue)
+        slec_net_cp_repair(self.state, repair_queue)
     
     def clean_failures(self) -> None:
         affected_rack_groups = {}

@@ -1,7 +1,7 @@
 from .slec_local_dp.layout import slec_local_dp_layout
 from .slec_local_cp.layout import slec_local_cp_layout
 from .netdp.layout import net_dp_layout
-from .netraid.layout import net_raid_layout
+from .slec_net_cp.layout import slec_net_cp_layout
 from .mlec_c_c.layout import mlec_c_c_layout
 from .mlec_c_d.layout import mlec_c_d_layout
 from .mlec_d_c.layout import mlec_d_c_layout
@@ -9,7 +9,7 @@ from .mlec_d_d.layout import mlec_d_d_layout
 
 from policies.slec_local_cp.slec_local_cp_rs0 import SLEC_LOCAL_CP_RS0
 from policies.slec_local_cp.slec_local_cp_rs1 import SLEC_LOCAL_CP_RS1
-from policies.netraid.netraid import NetRAID
+from policies.slec_net_cp.slec_net_cp import SLEC_NET_CP
 from policies.slec_local_dp.slec_local_dp import SLEC_LOCAL_DP
 from policies.netdp.netdp import NetDP
 from policies.mlec_c_c.mlec_c_c_rs0 import MLEC_C_C_RS0
@@ -27,8 +27,8 @@ def config_system_layout(placement: PlacementType, system):
         slec_local_cp_layout(system)
     elif placement == PlacementType.SLEC_LOCAL_DP:
         slec_local_dp_layout(system)
-    elif placement == PlacementType.RAID_NET:
-        net_raid_layout(system)
+    elif placement == PlacementType.SLEC_NET_CP:
+        slec_net_cp_layout(system)
     elif placement == PlacementType.DP_NET:
         net_dp_layout(system)
     elif placement == PlacementType.MLEC_C_C:
@@ -60,8 +60,8 @@ def get_policy(placement: PlacementType, state):
             return MLEC_C_C_RS2(state)
         elif state.sys.repair_scheme == 3:
             return MLEC_C_C_RS3(state)
-    elif placement == PlacementType.RAID_NET:
-        return NetRAID(state)
+    elif placement == PlacementType.SLEC_NET_CP:
+        return SLEC_NET_CP(state)
     elif placement == PlacementType.MLEC_C_D:
         return MLEC_C_D(state)
     elif placement == PlacementType.DP_NET:

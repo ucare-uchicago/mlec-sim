@@ -11,7 +11,7 @@ from components.rack import Rack
 
 from heapq import heappush, heapify
 
-def netraid_repair(state: State, repair_queue):
+def slec_net_cp_repair(state: State, repair_queue):
     repair_queue.clear()
     netraid = state.policy
     for spoolId in netraid.affected_spools:
