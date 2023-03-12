@@ -24,7 +24,7 @@ from util import wait_futures
 class Simulator:
     
     def simulate(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
-                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, spool_size, repair_scheme,
+                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, spool_size, repair_scheme, detection_time,
                 num_local_fail_to_report, prev_fail_reports_filename) -> SimulationResult:
         raise NotImplementedError("simulate() not implemented")
 

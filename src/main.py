@@ -40,6 +40,8 @@ if __name__ == "__main__":
                                 default=-1)
     parser.add_argument('-prev_fail_reports_filename', type=str, help="Previous stage's fail reportsfilename. Used for manual failure injection", 
                                 default=None)
+    parser.add_argument('-detection_time', type=int, help="In minutes. The time to detect a failure and trigger the repair. ", 
+                                default=0)
     args = parser.parse_args()
 
     sim_mode = args.sim_mode
@@ -91,19 +93,20 @@ if __name__ == "__main__":
 
     num_local_fail_to_report = args.num_local_fail_to_report
     prev_fail_reports_filename = args.prev_fail_reports_filename
+    detection_time = args.detection_time
 
     if sim_mode == 0:
         result = NormalSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
                    cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
                    total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, distribution=dist, concur=concur, epoch=epoch, iters=iters,
-                   infinite_chunks=infinite_chunks, chunksize=chunksize, spool_size=spool_size, repair_scheme=repair_scheme)
+                   infinite_chunks=infinite_chunks, chunksize=chunksize, spool_size=spool_size, repair_scheme=repair_scheme, detection_time=detection_time)
     elif sim_mode == 1:
         if num_local_fail_to_report == -1:
             raise ValueError('Please provide [num_local_fail_to_report]!')
         result = ManualFailSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
                    cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
                    total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, distribution=dist, concur=concur, epoch=epoch, iters=iters,
-                   infinite_chunks=infinite_chunks, chunksize=chunksize, spool_size=spool_size, repair_scheme=repair_scheme,
+                   infinite_chunks=infinite_chunks, chunksize=chunksize, spool_size=spool_size, repair_scheme=repair_scheme, detection_time=detection_time,
                    num_local_fail_to_report=num_local_fail_to_report, prev_fail_reports_filename=prev_fail_reports_filename)
     # elif sim_mode == 2:
     #     result = ManualFailTwoRackSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,

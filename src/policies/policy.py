@@ -14,6 +14,7 @@ class Policy:
     
     def __init__(self, state: State) -> None:
         self.state: State = state
+        self.simulation = state.simulation
         self.sys: System = state.sys
         self.n = state.n
         self.top_n = self.sys.top_k + self.sys.top_m

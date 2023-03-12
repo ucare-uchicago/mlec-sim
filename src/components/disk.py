@@ -18,6 +18,7 @@ class Disk:
     EVENT_FAIL = "<disk failure>"
     EVENT_FASTREBUILD = "<disk fast rebuild>"
     EVENT_REPAIR = "<disk repair>"
+    EVENT_DETECT = "<disk failure detected>"
 
     #----------------------------------
     # Initialize the disk
@@ -50,6 +51,7 @@ class Disk:
         self.repair_start_time: float = 0
         self.estimate_repair_time: float = 0
         self.curr_repair_data_remaining: float = 0
+        self.failure_detection_time: float = 0
         self.good_num: int = 0
         self.fail_num: int = 0
         #-------------------------------

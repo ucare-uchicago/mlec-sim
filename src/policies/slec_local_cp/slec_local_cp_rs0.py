@@ -68,7 +68,7 @@ class SLEC_LOCAL_CP_RS0(Policy):
     def update_disk_repair_time(self, disk):
         repair_time = float(self.sys.diskSize)/float(self.sys.diskIO)
 
-        disk.repair_time[0] = repair_time / 3600 / 24
+        disk.repair_time[0] = repair_time / 3600 / 24 + self.sys.detection_time
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
         # logging.info("repair time: {}".format(disk.repair_time[0]))
