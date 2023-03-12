@@ -138,7 +138,7 @@ class SLEC_NET_CP(Policy):
                     disk.repair_time = {}
                     disk.failure_detection_time = 0
                     disk.priority_percents = {}
-                    self.curr_prio_repair_started = False
+                    disk.curr_prio_repair_started = False
                 spool = self.spools[spoolId]
                 spool.failed_disks.clear()
                 spool.failed_disks_undetected.clear()
