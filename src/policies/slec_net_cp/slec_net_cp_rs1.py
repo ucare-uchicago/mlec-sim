@@ -12,7 +12,7 @@ from policies.policy import Policy
 from .pdl import slec_net_cp_pdl
 from .repair import slec_net_cp_repair
 
-class SLEC_NET_CP(Policy):
+class SLEC_NET_CP_RS1(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------

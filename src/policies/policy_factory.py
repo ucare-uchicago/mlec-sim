@@ -9,7 +9,8 @@ from .mlec_d_d.layout import mlec_d_d_layout
 
 from policies.slec_local_cp.slec_local_cp_rs0 import SLEC_LOCAL_CP_RS0
 from policies.slec_local_cp.slec_local_cp_rs1 import SLEC_LOCAL_CP_RS1
-from policies.slec_net_cp.slec_net_cp import SLEC_NET_CP
+from policies.slec_net_cp.slec_net_cp_rs0 import SLEC_NET_CP_RS0
+from policies.slec_net_cp.slec_net_cp_rs1 import SLEC_NET_CP_RS1
 from policies.slec_local_dp.slec_local_dp import SLEC_LOCAL_DP
 from policies.netdp.netdp import NetDP
 from policies.mlec_c_c.mlec_c_c_rs0 import MLEC_C_C_RS0
@@ -61,7 +62,10 @@ def get_policy(placement: PlacementType, state):
         elif state.sys.repair_scheme == 3:
             return MLEC_C_C_RS3(state)
     elif placement == PlacementType.SLEC_NET_CP:
-        return SLEC_NET_CP(state)
+        if state.sys.repair_scheme == 0:
+            return SLEC_NET_CP_RS0(state)
+        elif state.sys.repair_scheme == 1:
+            return SLEC_NET_CP_RS1(state)
     elif placement == PlacementType.MLEC_C_D:
         return MLEC_C_D(state)
     elif placement == PlacementType.DP_NET:
