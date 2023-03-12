@@ -32,6 +32,7 @@ class ManualFailSim(Simulator):
                     spool_size=-1, repair_scheme=0, detection_time=0,
                     num_local_fail_to_report=0, prev_fail_reports_filename=None):
         # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
+        # logging.basicConfig(level=logging.INFO)
 
         mission = YEAR
         
