@@ -52,6 +52,8 @@ class NetDP(Policy):
             # Also remove it from the priority queue, and pause the repair of other disks in the queue.
             curr_priority = disk.priority
             del disk.repair_time[curr_priority]
+            del disk.priority_percents[curr_priority]
+            
             self.priority_queue[curr_priority].pop(diskId, None)
             for dId in self.priority_queue[curr_priority]:
                 self.pause_repair_time(dId, curr_priority)

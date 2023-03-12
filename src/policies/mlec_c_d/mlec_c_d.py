@@ -85,6 +85,7 @@ class MLEC_C_D(Policy):
             curr_priority = disk.priority
             assert curr_priority == spool.disk_max_priority, "repair disk priority is not spool disk max priority"
             del disk.repair_time[curr_priority]
+            del disk.priority_percents[curr_priority]
 
             spool.disk_priority_queue[curr_priority].pop(diskId, None)
             for dId in spool.disk_priority_queue[curr_priority]:
