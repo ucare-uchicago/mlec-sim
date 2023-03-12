@@ -11,18 +11,12 @@ from components.rack import Rack
 
 from heapq import heappush, heapify
 
-def slec_net_cp_repair(state: State, repair_queue):
+def slec_net_cp_repair(slec_net_cp, repair_queue):
     repair_queue.clear()
-    netraid = state.policy
-    for spoolId in netraid.affected_spools:
-        spool = netraid.spools[spoolId]
-        for diskId in spool.failed_disks:
-            disk = netraid.disks[diskId]
-
-            repair_time = disk.repair_time[0]
-            #-----------------------------------------------------
-            estimate_time = disk.repair_start_time
-            estimate_time  += repair_time
-            # Generate repair event
-            heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
+    for rackgroupId in slec_net_cp.affected_rackgroups:
+        for spoolId in slec_net_cp.rackgroups[rackgroupId].affected_spools:
+            spool = slec_net_cp.spools[spoolId]
+            for diskId in spool.failed_disks:
+                disk = slec_net_cp.disks[diskId]
+                heappush(repair_queue, (disk.estimate_repair_time, Disk.EVENT_REPAIR, diskId))
             

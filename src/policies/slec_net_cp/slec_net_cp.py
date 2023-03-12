@@ -18,72 +18,39 @@ class SLEC_NET_CP(Policy):
     def __init__(self, state):
         super().__init__(state)
         self.spools = state.sys.spools
-        self.affected_spools_per_rackgroup = state.sys.affected_spools_per_rackgroup
+        self.rackgroups = state.sys.rackgroups
+
         self.sys_failed = False
-        self.affected_spools = {}
+        self.affected_rackgroups = {}
         
 
 
     def update_disk_state(self, event_type: str, diskId: int) -> None:
         disk = self.state.disks[diskId]
         spoolId = disk.spoolId
-        if event_type == Disk.EVENT_REPAIR:
-            disk.state = Disk.STATE_NORMAL
-            # This is removing the disk from the failed disk array
-            self.spools[spoolId].failed_disks.pop(diskId, None)
-            if len(self.spools[spoolId].failed_disks) == 0:
-                self.affected_spools_per_rackgroup[disk.rackgroupId].pop(spoolId, None)
-                self.affected_spools.pop(spoolId, None)
-            self.sys.metrics.disks_aggregate_down_time += self.curr_time - self.disks[diskId].metric_down_start_time
-            
-                        
+        spool = self.spools[spoolId]
         if event_type == Disk.EVENT_FAIL:
             disk.state = Disk.STATE_FAILED
-            self.spools[spoolId].failed_disks[diskId] = 1
-            self.affected_spools_per_rackgroup[disk.rackgroupId][spoolId] = 1
-            self.affected_spools[spoolId] = 1
-            self.disks[diskId].metric_down_start_time = self.curr_time
+            spool.failed_disks[diskId] = 1
+            self.affected_rackgroups[spool.rackgroupId] = 1
+            self.rackgroups[spool.rackgroupId].affected_spools[spoolId] = 1
+        
+        if event_type == Disk.EVENT_REPAIR:
+            disk.state = Disk.STATE_NORMAL
+            spool.failed_disks.pop(diskId, None)
+            if len(spool.failed_disks) == 0:
+                rackgroup = self.rackgroups[spool.rackgroupId]
+                rackgroup.affected_spools.pop(spoolId)
+                if len(rackgroup.affected_spools) == 0:
+                    self.affected_rackgroups.pop(rackgroup.rackgroupId, None)
 
 
-
-    #----------------------------------------------
-    # raid net
-    #----------------------------------------------
     def update_disk_priority(self, event_type, diskId):
         disk = self.disks[diskId]
         spoolId = disk.spoolId
         spool = self.spools[spoolId]
 
-        if event_type == Disk.EVENT_REPAIR:
-            # self.sys.metrics.total_net_traffic += disk.repair_data * (self.sys.top_k + 1)
-            # self.sys.metrics.total_rebuild_io_per_year += disk.repair_data * (self.sys.top_k + 1)
-            
-            # This is updating the rest of the failed disks for their repair time.
-            #  If there is only one failure in the spool, this would not be run
-            num_fail_in_spool = len(spool.failed_disks)
-            if num_fail_in_spool > 0:
-                # If this pool still have failed disks, then this pool still share network bandwidth
-                # Therefore, there is no need to update the repair time in other pool.
-                for diskId_per_spool in spool.failed_disks:
-                    self.update_disk_repair_time(diskId_per_spool, num_fail_in_spool)
-            else:
-                # If this pool recovers, then other affected pools' network bandwidth share could increase
-                # In this case, we need to update repair time for all the affected pools in this rack group
-                rackgroupId = disk.rackgroupId
-                num_affected_pools = len(self.affected_spools_per_rackgroup[rackgroupId])
-                for affected_spool_id in self.affected_spools_per_rackgroup[rackgroupId]:
-                    affected_spool = self.spools[affected_spool_id]
-                    affected_spool.repair_rate = min(self.sys.diskIO, self.sys.interrack_speed/num_affected_pools)
-
-                    failed_disks_in_affected_pool = affected_spool.failed_disks
-                    num_fail_in_affected_pool = len(failed_disks_in_affected_pool)
-                    
-                    for diskId_per_spool in failed_disks_in_affected_pool:
-                        self.update_disk_repair_time(diskId_per_spool, num_fail_in_affected_pool)
-
         if event_type == Disk.EVENT_FAIL:
-            # Note: the assignment of repair_start_time is moved into update_disk_repair_time()
-            #  this is because there is a chance that we might need to delay repair
             disk.repair_start_time = self.curr_time
 
             num_fail_in_spool = len(spool.failed_disks)
@@ -91,11 +58,6 @@ class SLEC_NET_CP(Policy):
                 self.sys_failed = True
                 return
 
-            #--------------------------------------------
-            # calculate repair time for disk failures
-            # all the failed disks need to read data from other surviving disks in the group to rebuild data
-            # so the rebuild IO is shared by all failed disks
-            # we need to update the repair rate for all failed disks, because every failed disk gets less share now
             #--------------------------------------------
             if num_fail_in_spool > 1:
                 # If this pool already had disk failures, then the pool already received network bandwidth share.
@@ -106,16 +68,36 @@ class SLEC_NET_CP(Policy):
                 # If it's the first disk failure in this pool, then the pool is going to share network bandwidth.
                 # Therefore, other affected pools' network bandwidth share could decrease
                 # In this case, we need to update repair time for all the affected pools in this rack group
+                rackgroup = self.rackgroups[spool.rackgroupId]
+                for affected_spool_id in rackgroup.affected_spools:
+                    affected_spool = self.spools[affected_spool_id]
+                    affected_spool.repair_rate = min(self.sys.diskIO, self.sys.interrack_speed/len(rackgroup.affected_spools))
+
+                    num_fail_in_affected_pool = len(affected_spool.failed_disks)
+                    
+                    for diskId_per_spool in affected_spool.failed_disks:
+                        self.update_disk_repair_time(diskId_per_spool, num_fail_in_affected_pool)
+
+        if event_type == Disk.EVENT_REPAIR:
+            num_fail_in_spool = len(spool.failed_disks)
+            if num_fail_in_spool > 0:
+                # If this pool still have failed disks, then this pool still share network bandwidth
+                # Therefore, there is no need to update the repair time in other pool.
+                for diskId_per_spool in spool.failed_disks:
+                    self.update_disk_repair_time(diskId_per_spool, num_fail_in_spool)
+            else:
+                # If this pool recovers, then other affected pools' network bandwidth share could increase
+                # In this case, we need to update repair time for all the affected pools in this rack group
                 rackgroupId = disk.rackgroupId
-                num_affected_pools = len(self.affected_spools_per_rackgroup[rackgroupId])
-                for affected_spool_id in self.affected_spools_per_rackgroup[rackgroupId]:
+                affected_spools = self.rackgroups[rackgroupId].affected_spools
+                num_affected_pools = len(affected_spools)
+                for affected_spool_id in affected_spools:
                     affected_spool = self.spools[affected_spool_id]
                     affected_spool.repair_rate = min(self.sys.diskIO, self.sys.interrack_speed/num_affected_pools)
 
-                    failed_disks_in_affected_pool = affected_spool.failed_disks
-                    num_fail_in_affected_pool = len(failed_disks_in_affected_pool)
+                    num_fail_in_affected_pool = len(affected_spool.failed_disks)
                     
-                    for diskId_per_spool in failed_disks_in_affected_pool:
+                    for diskId_per_spool in affected_spool.failed_disks:
                         self.update_disk_repair_time(diskId_per_spool, num_fail_in_affected_pool)
     
     
@@ -143,19 +125,24 @@ class SLEC_NET_CP(Policy):
         return slec_net_cp_pdl(self, self.state)
     
     def update_repair_events(self, event_type, diskId, repair_queue):
-        slec_net_cp_repair(self.state, repair_queue)
+        slec_net_cp_repair(self, repair_queue)
     
     def clean_failures(self) -> None:
-        affected_rack_groups = {}
-        for spoolId in self.affected_spools:
-            for diskId in self.spools[spoolId].failed_disks:
-                disk = self.state.disks[diskId]
-                disk.state = Disk.STATE_NORMAL
-                disk.repair_time = {}
-                self.curr_prio_repair_started = False
-            spool = self.spools[spoolId]
-            spool.failed_disks = {}
-            affected_rack_groups[spool.rackgroupId] = 1
-        for rackgroupId in affected_rack_groups:
-            self.affected_spools_per_rackgroup[rackgroupId] = {}
+        for rackgroupId in self.affected_rackgroups:
+            rackgroup = self.rackgroups[rackgroupId]
+            
+            for spoolId in rackgroup.affected_spools:
+                for diskId in self.spools[spoolId].failed_disks:
+                    disk = self.state.disks[diskId]
+                    disk.state = Disk.STATE_NORMAL
+                    disk.repair_time = {}
+                    disk.failure_detection_time = 0
+                    disk.priority_percents = {}
+                    self.curr_prio_repair_started = False
+                spool = self.spools[spoolId]
+                spool.failed_disks.clear()
+                spool.failed_disks_undetected.clear()
+
+            rackgroup.affected_spools.clear()
+        
         

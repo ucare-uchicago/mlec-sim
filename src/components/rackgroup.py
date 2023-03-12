@@ -10,3 +10,4 @@ class Rackgroup:
         self.mpoolIds = []
         self.spoolIds = []
         self.affected_mpools = {}
+        self.affected_spools = {}

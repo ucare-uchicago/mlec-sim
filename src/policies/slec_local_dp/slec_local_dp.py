@@ -193,6 +193,7 @@ class SLEC_LOCAL_DP(Policy):
                 disk.failure_detection_time = 0
                 disk.repair_time = {}
                 disk.priority_percents = {}
+                self.curr_prio_repair_started = False
             spool.failed_disks.clear()
             spool.failed_disks_undetected.clear()
             spool.disk_repair_max_priority = 0
