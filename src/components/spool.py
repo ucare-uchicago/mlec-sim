@@ -51,4 +51,5 @@ class Spool:
         self.disk_priority_queue = {}
         self.disk_max_priority = 0
         self.failed_disks_undetected = {}
+        self.failed_disks_in_repair = {}
         self.disk_repair_max_priority = 0

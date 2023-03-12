@@ -11,3 +11,4 @@ class Rackgroup:
         self.spoolIds = []
         self.affected_mpools = {}
         self.affected_spools = {}
+        self.affected_spools_in_repair = {}
