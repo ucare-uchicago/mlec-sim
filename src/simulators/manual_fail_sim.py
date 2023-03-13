@@ -9,6 +9,7 @@ from simulators.Simulator import Simulator
 from constants.SimulationResult import SimulationResult
 from constants.time import YEAR
 from constants.constants import kilo
+from constants.PlacementType import PlacementType
 
 from system import System
 from metrics import Metrics
@@ -18,11 +19,11 @@ class ManualFailSim(Simulator):
     def simulate(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
                  total_drives, drives_per_rack, placement, distribution, concur, epoch, iters,
                  infinite_chunks=True, chunksize=128, spool_size=-1, repair_scheme=0, detection_time=0,
-                 num_local_fail_to_report=0, prev_fail_reports_filename=None):
+                 num_local_fail_to_report=0, num_net_fail_to_report=0, prev_fail_reports_filename=None):
         return self.manual_fail_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
                                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters,
                                infinite_chunks, chunksize, spool_size, repair_scheme, detection_time,
-                               num_local_fail_to_report, prev_fail_reports_filename)    
+                               num_local_fail_to_report, num_net_fail_to_report, prev_fail_reports_filename)    
 
     # -----------------------------
     # simulation based on manual failure injection
@@ -30,7 +31,7 @@ class ManualFailSim(Simulator):
     def manual_fail_sim(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
                     total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, infinite_chunks=True, chunksize=128,
                     spool_size=-1, repair_scheme=0, detection_time=0,
-                    num_local_fail_to_report=0, prev_fail_reports_filename=None):
+                    num_local_fail_to_report=0, num_net_fail_to_report=0, prev_fail_reports_filename=None):
         # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
         # logging.basicConfig(level=logging.INFO)
 
@@ -57,7 +58,8 @@ class ManualFailSim(Simulator):
             "repair_scheme": repair_scheme,
             "collect_fail_reports": True,
             "detection_time": detection_time,
-            "num_local_fail_to_report": num_local_fail_to_report
+            "num_local_fail_to_report": num_local_fail_to_report,
+            "num_net_fail_to_report": num_net_fail_to_report
             }
 
         failed_iters = 0
@@ -85,8 +87,12 @@ class ManualFailSim(Simulator):
         
         # print(fail_reports)
         # print(metrics)
-        new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
-                    k_net, p_net, k_local, p_local, placement, num_local_fail_to_report, repair_scheme)
+        if placement in [PlacementType.SLEC_LOCAL_CP, PlacementType.SLEC_LOCAL_DP]:
+            new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
+                        k_net, p_net, k_local, p_local, placement, num_local_fail_to_report, repair_scheme)
+        elif placement in [PlacementType.SLEC_NET_CP, PlacementType.DP_NET]:
+            new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
+                        k_net, p_net, k_local, p_local, placement, num_net_fail_to_report, repair_scheme)
         with open(new_fail_reports_filename, 'w') as fout:
             json.dump(fail_reports, fout)
 

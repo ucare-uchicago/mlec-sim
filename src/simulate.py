@@ -16,6 +16,8 @@ import numpy as np
 import time
 import os
 import random
+from pprint import pformat
+
 
 from typing import Tuple, Optional
 #----------------------------
@@ -74,7 +76,7 @@ class Simulate:
                 fail_report_index = random.randrange(len(self.prev_fail_reports))
                 fail_report = self.prev_fail_reports[fail_report_index]
 
-                # logging.info('fail_report: {}'.format(fail_report))
+                # logging.info('fail_report: {}'.format(pformat(fail_report)))
                 self.curr_time = float(fail_report['curr_time'])
                 self.state.policy.manual_inject_failures(fail_report, self)
                 for disk_info in fail_report['disk_infos']:
