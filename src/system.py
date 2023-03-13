@@ -84,7 +84,6 @@ class System:
                 self.disks_per_rack[rackId] = self.disks_per_rack[rackId-1] + num_disks_per_rack
         #--------------------------------------------
         self.place_type: PlacementType = place_type
-        self.flat_decluster_rack_layout = {}
         self.flat_cluster_rack_layout = {}
         self.num_diskgroups = 0
         self.num_diskgroup_spools = 0
