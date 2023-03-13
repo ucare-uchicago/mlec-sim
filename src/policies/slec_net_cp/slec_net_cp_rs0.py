@@ -76,8 +76,7 @@ class SLEC_NET_CP_RS0(Policy):
             if num_repair_in_spool > 1:
                 # If this pool is already repairing some disks, then the pool already received network bandwidth share.
                 # Therefore, there is no need to update the repair time in other pool.
-                for diskId_per_spool in spool.failed_disks_in_repair:
-                    self.update_disk_repair_time(diskId_per_spool, num_repair_in_spool)
+                self.update_disk_repair_time(diskId)
             else:
                 # If it's the first disk failure in this pool, then the pool is going to share network bandwidth.
                 # Therefore, other affected pools' network bandwidth share could decrease
@@ -89,7 +88,7 @@ class SLEC_NET_CP_RS0(Policy):
 
                     num_repair_in_affected_pool = len(affected_spool.failed_disks_in_repair)
                     for diskId_per_spool in affected_spool.failed_disks_in_repair:
-                        self.update_disk_repair_time(diskId_per_spool, num_repair_in_affected_pool)
+                        self.update_disk_repair_time(diskId_per_spool)
 
 
         if event_type == Disk.EVENT_REPAIR:
@@ -97,8 +96,7 @@ class SLEC_NET_CP_RS0(Policy):
             if num_repair_in_spool > 0:
                 # If this pool is still reparing failed disks, then this pool still share network bandwidth
                 # Therefore, there is no need to update the repair time in other pool.
-                for diskId_per_spool in spool.failed_disks_in_repair:
-                    self.update_disk_repair_time(diskId_per_spool, num_repair_in_spool)
+                return
             else:
                 # If this pool recovers, then other affected pools' network bandwidth share could increase
                 # In this case, we need to update repair time for all the affected pools in this rack group
@@ -109,10 +107,10 @@ class SLEC_NET_CP_RS0(Policy):
 
                     num_repair_in_affected_pool = len(affected_spool.failed_disks_in_repair)
                     for diskId_per_spool in affected_spool.failed_disks_in_repair:
-                        self.update_disk_repair_time(diskId_per_spool, num_repair_in_affected_pool)
+                        self.update_disk_repair_time(diskId_per_spool)
     
     
-    def update_disk_repair_time(self, diskId, num_fail_in_spool):
+    def update_disk_repair_time(self, diskId):
         disk = self.disks[diskId]
         spool = self.spools[disk.spoolId]
         repaired_time = self.curr_time - disk.repair_start_time
@@ -124,7 +122,7 @@ class SLEC_NET_CP_RS0(Policy):
             repaired_percent = repaired_time / disk.repair_time[0]
             disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
         
-        repair_time = float(disk.curr_repair_data_remaining) / (spool.repair_rate / num_fail_in_spool)
+        repair_time = float(disk.curr_repair_data_remaining) / spool.repair_rate
         disk.repair_time[0] = repair_time / 3600 / 24
         disk.repair_start_time = self.curr_time
         disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
