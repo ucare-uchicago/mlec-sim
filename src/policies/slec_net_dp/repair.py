@@ -4,7 +4,7 @@ from components.rack import Rack
 import logging
 
 
-def netdp_repair(state, repair_queue):
+def slec_net_dp_repair(state, repair_queue):
     repair_queue.clear()
     priority = state.policy.max_priority
     if priority > 0:

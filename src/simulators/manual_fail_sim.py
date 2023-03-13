@@ -90,7 +90,7 @@ class ManualFailSim(Simulator):
         if placement in [PlacementType.SLEC_LOCAL_CP, PlacementType.SLEC_LOCAL_DP]:
             new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
                         k_net, p_net, k_local, p_local, placement, num_local_fail_to_report, repair_scheme)
-        elif placement in [PlacementType.SLEC_NET_CP, PlacementType.DP_NET]:
+        elif placement in [PlacementType.SLEC_NET_CP, PlacementType.SLEC_NET_DP]:
             new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
                         k_net, p_net, k_local, p_local, placement, num_net_fail_to_report, repair_scheme)
         with open(new_fail_reports_filename, 'w') as fout:

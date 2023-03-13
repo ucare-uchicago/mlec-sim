@@ -4,11 +4,11 @@ from components.disk import Disk
 from policies.policy import Policy
 
 from helpers import netdp_prio
-from .pdl import network_decluster_pdl
-from .repair import netdp_repair
+from .pdl import slec_net_dp_pdl
+from .repair import slec_net_dp_repair
 import random
 
-class NetDP(Policy):
+class SLEC_NET_DP(Policy):
     
     def __init__(self, state):
         super().__init__(state)
@@ -169,10 +169,10 @@ class NetDP(Policy):
         return repair_time
     
     def check_pdl(self):
-        return network_decluster_pdl(self.state)
+        return slec_net_dp_pdl(self.state)
     
     def update_repair_events(self, event_type, diskId, repair_queue):
-        return netdp_repair(self.state, repair_queue)
+        return slec_net_dp_repair(self.state, repair_queue)
 
     def clean_failures(self) -> None:
         failed_disks = self.state.get_failed_disks()

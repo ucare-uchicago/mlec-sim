@@ -38,7 +38,7 @@ class Simulate:
             return self.mlec_cluster_check_burst(failures)
         if self.place_type == PlacementType.SLEC_NET_CP:
             return self.network_cluster_check_burst(failures)
-        if self.place_type == PlacementType.DP_NET:
+        if self.place_type == PlacementType.SLEC_NET_DP:
             return self.network_decluster_check_burst(failures, num_chunks_per_disk)
             # return self.network_decluster_check_burst_theory(failures, num_chunks_per_disk)
         if self.place_type == PlacementType.MLEC_C_D:

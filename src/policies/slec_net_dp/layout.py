@@ -5,7 +5,7 @@ import random
 if typing.TYPE_CHECKING:
     from system import System
 
-def net_dp_layout(sys: System):
+def slec_net_dp_layout(sys: System):
     # Same as flat decluster
     sys.flat_decluster_rack_layout = {}
     for rackId in sys.rackIds:

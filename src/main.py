@@ -81,7 +81,7 @@ if __name__ == "__main__":
         p_net = 0
         
     
-    if placement in [placement.SLEC_NET_CP, placement.DP_NET]:
+    if placement in [placement.SLEC_NET_CP, placement.SLEC_NET_DP]:
         k_local = 1
         p_local = 0
 
