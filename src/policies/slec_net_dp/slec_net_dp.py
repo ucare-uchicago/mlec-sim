@@ -8,6 +8,7 @@ from .pdl import slec_net_dp_pdl
 from .repair import slec_net_dp_repair
 import random
 from heapq import heappush
+import json
 
 class SLEC_NET_DP(Policy):
     
@@ -56,9 +57,9 @@ class SLEC_NET_DP(Policy):
             self.priority_queue[disk.priority][diskId] = 1
             self.failed_disks_undetected.pop(diskId, None)
 
-            self.priority_queue[disk.priority][diskId] = 1
             disk.repair_start_time = self.state.curr_time
             disk.curr_prio_repair_started = False
+            disk.failure_detection_time = 0
             
             if self.repair_max_priority > 0:
                 for dId in self.priority_queue[self.repair_max_priority]:
@@ -97,6 +98,26 @@ class SLEC_NET_DP(Policy):
                 # if a disk has infinite chunks, then there must be some stripe that have max_priority
                 if self.sys.infinite_chunks:
                     self.sys_failed = True
+
+                    if self.sys.collect_fail_reports:
+                        fail_report = {'curr_time': self.curr_time, 'disk_infos': []}
+                        for failedDiskId in self.failed_disks:
+                            failedDisk = self.disks[failedDiskId]
+                            
+                            fail_report['disk_infos'].append(
+                                {
+                                'curr_repair_data_remaining': failedDisk.curr_repair_data_remaining,
+                                'diskId': int(failedDiskId),
+                                'priority': int(failedDisk.priority),
+                                'estimate_repair_time': failedDisk.estimate_repair_time,
+                                'repair_start_time': failedDisk.repair_start_time,
+                                'failure_detection_time': failedDisk.failure_detection_time,
+                                'repair_time': json.dumps(failedDisk.repair_time),
+                                'priority_percents': json.dumps(failedDisk.priority_percents)
+                                })
+                        # logging.info('new fail report: {}'.format(fail_report))
+                        self.sys.fail_reports.append(fail_report)
+
                     return
                 # otherwise it's possible that the system is lucky and have no max_priority stripe
                 # we need to compute the probability for the system to be lucky
@@ -209,3 +230,49 @@ class SLEC_NET_DP(Policy):
             self.curr_prio_repair_started = False
         for rackId in self.affected_racks:
             self.racks[rackId].failed_disks.clear()
+    
+    def manual_inject_failures(self, fail_report, simulate):
+        for disk_info in fail_report['disk_infos']:
+            diskId = int(disk_info['diskId'])
+            disk = self.sys.disks[diskId]
+            disk.state = Disk.STATE_FAILED
+            disk.curr_repair_data_remaining = float(disk_info['curr_repair_data_remaining'])
+            disk.priority = int(disk_info['priority'])
+            disk.estimate_repair_time = float(disk_info['estimate_repair_time'])
+            disk.repair_start_time = float(disk_info['repair_start_time'])
+            disk.failure_detection_time = float(disk_info['failure_detection_time'])
+
+            repair_time = json.loads(disk_info['repair_time'])
+            for key, value in repair_time.items():
+                disk.repair_time[int(key)] = float(value)
+            
+            priority_percents = json.loads(disk_info['priority_percents'])
+            for key, value in priority_percents.items():
+                disk.priority_percents[int(key)] = float(value)
+
+            rackId = disk.rackId
+            self.failed_disks[diskId] = 1
+            self.racks[rackId].failed_disks[diskId] = 1
+            self.affected_racks[rackId] = 1
+
+            self.max_priority = max(disk.priority, self.max_priority)
+            
+            if disk.failure_detection_time >= simulate.curr_time:
+                disk.curr_prio_repair_started = False
+                self.failed_disks_undetected[diskId] = 1
+            else:
+                disk.curr_prio_repair_started = True
+                self.priority_queue[disk.priority][diskId] = 1
+                self.repair_max_priority = max(disk.priority, self.repair_max_priority)
+
+        if self.repair_max_priority > 0:
+            for diskId in self.priority_queue[self.repair_max_priority]:
+                disk = self.disks[diskId]
+                if disk.priority > 1:
+                    heappush(simulate.repair_queue, (disk.estimate_repair_time, Disk.EVENT_FASTREBUILD, diskId))
+                if disk.priority == 1:
+                    heappush(simulate.repair_queue, (disk.estimate_repair_time, Disk.EVENT_REPAIR, diskId))
+            
+        for diskId in self.failed_disks_undetected:
+            disk = self.disks[diskId]
+            heappush(self.simulation.failure_queue, (disk.failure_detection_time, Disk.EVENT_DETECT, diskId))
