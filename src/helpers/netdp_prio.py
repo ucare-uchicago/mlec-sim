@@ -234,9 +234,11 @@ def compute_priority_percent(state, affected_racks, curr_rackId, priority):
         if i != curr_rackId:
             failures_per_other_affected_rack_list.append(len(state.racks[i].failed_disks))
     
-    priority_cases = stripe_fail_cases(state.sys.n-1, priority-1, state.sys.num_disks_per_rack, failures_per_other_affected_rack_list, 
+    # logging.info("failures_per_other_affected_rack_list: {}".format(failures_per_other_affected_rack_list))
+    
+    priority_cases = stripe_fail_cases(state.sys.top_n-1, priority-1, state.sys.num_disks_per_rack, failures_per_other_affected_rack_list, 
                                         state.sys.num_racks - 1 - len(failures_per_other_affected_rack_list))
-    total_cases = stripe_total_cases(state.sys.n-1, state.sys.num_racks-1, state.sys.num_disks_per_rack)
+    total_cases = stripe_total_cases(state.sys.top_n-1, state.sys.num_racks-1, state.sys.num_disks_per_rack)
     return priority_cases / total_cases
 
 total_cases_dict = {}

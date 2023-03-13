@@ -6,12 +6,6 @@ if typing.TYPE_CHECKING:
     from system import System
 
 def slec_net_dp_layout(sys: System):
-    # Same as flat decluster
-    sys.flat_decluster_rack_layout = {}
-    for rackId in sys.rackIds:
-        disks_per_rack = sys.disks_per_rack[rackId]
-        sys.flat_decluster_rack_layout[rackId] = disks_per_rack
-
     for diskId in sys.disks:
         sys.disks[diskId].diskId = diskId
         sys.disks[diskId].rackId = diskId // sys.num_disks_per_rack

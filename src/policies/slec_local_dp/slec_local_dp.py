@@ -133,7 +133,7 @@ class SLEC_LOCAL_DP(Policy):
                 for dId in spool.failed_disks_undetected:
                     failedDisk = self.disks[dId]
                     failedDisk.priority -= 1
-                    # TODO: improve percents computation
+                    # TODO: improve percents computation. Add priority n+1' percents to 1?
             
             if spool.disk_repair_max_priority > 0:
                 for dId in spool.disk_priority_queue[spool.disk_repair_max_priority]:

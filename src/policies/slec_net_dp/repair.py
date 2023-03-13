@@ -4,23 +4,15 @@ from components.rack import Rack
 import logging
 
 
-def slec_net_dp_repair(state, repair_queue):
+def slec_net_dp_repair(slec_net_dp, repair_queue):
     repair_queue.clear()
-    priority = state.policy.max_priority
-    if priority > 0:
-        for diskId in state.policy.priority_queue[priority]:
-            rackId = diskId // state.sys.num_disks_per_rack
-            if state.racks[rackId].state == Rack.STATE_NORMAL:
-                # This should be the same as flat decluster
-                disk = state.disks[diskId]
-                priority = disk.priority
-                
-                estimate_time = disk.estimate_repair_time
-                if priority > 1:
-                    heappush(repair_queue, (estimate_time, Disk.EVENT_FASTREBUILD, diskId))
-                    # print("push to repair queue  finish time{} {} {}".format(estimate_time, 
-                    #           Disk.EVENT_FASTREBUILD, diskId))
-                if priority == 1:
-                    heappush(repair_queue, (estimate_time, Disk.EVENT_REPAIR, diskId))
-                    # print("push to repair queue  finish time{} {} {}".format(estimate_time, 
-                    #           Disk.EVENT_REPAIR, diskId))
+    repair_max_priority = slec_net_dp.repair_max_priority
+    if repair_max_priority > 0:
+        for diskId in slec_net_dp.priority_queue[repair_max_priority]:
+            disk = slec_net_dp.disks[diskId]
+            
+            if disk.priority > 1:
+                heappush(repair_queue, (disk.estimate_repair_time, Disk.EVENT_FASTREBUILD, diskId))
+
+            if disk.priority == 1:
+                heappush(repair_queue, (disk.estimate_repair_time, Disk.EVENT_REPAIR, diskId))

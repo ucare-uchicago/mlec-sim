@@ -1,7 +1,6 @@
 import logging
 
-def slec_net_dp_pdl(state):
-    if state.policy.max_priority > state.sys.top_m:
-            # data loss
+def slec_net_dp_pdl(slec_net_dp):
+    if slec_net_dp.sys_failed:
             return 1
     return 0
