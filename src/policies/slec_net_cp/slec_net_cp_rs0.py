@@ -53,7 +53,7 @@ class SLEC_NET_CP_RS0(Policy):
             if len(spool.failed_disks_in_repair) == 0:
                 rackgroup.affected_spools_in_repair.pop(spoolId, None)
             if len(spool.failed_disks) == 0:
-                rackgroup.affected_spools.pop(spoolId)
+                rackgroup.affected_spools.pop(spoolId, None)
                 if len(rackgroup.affected_spools) == 0:
                     self.affected_rackgroups.pop(rackgroup.rackgroupId, None)
 

@@ -161,10 +161,17 @@ class SLEC_NET_DP(Policy):
             # update max priority when its queue is empty
             if len(self.priority_queue[self.repair_max_priority]) == 0:
                 self.repair_max_priority -= 1
-                self.max_priority -= 1       
-                for dId in self.failed_disks_undetected:
-                    failedDisk = self.disks[dId]
-                    failedDisk.priority -= 1
+                self.max_priority = self.repair_max_priority
+                if len(self.failed_disks_undetected) == self.failed_disks:
+                    for dId in self.failed_disks_undetected:
+                        failedDisk = self.disks[dId]
+                        failedDisk.priority = min(len(self.failed_disks_undetected), failedDisk.priority)
+                        self.max_priority = max(self.max_priority, failedDisk.priority)
+                else:
+                    for dId in self.failed_disks_undetected:
+                        failedDisk = self.disks[dId]
+                        failedDisk.priority = min(len(self.failed_disks_undetected)+1, failedDisk.priority)
+                        self.max_priority = max(self.max_priority, failedDisk.priority)
 
             if self.repair_max_priority > 0:
                 for dId in self.priority_queue[self.repair_max_priority]:
