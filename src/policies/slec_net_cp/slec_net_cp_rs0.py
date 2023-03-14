@@ -84,7 +84,7 @@ class SLEC_NET_CP_RS0(Policy):
                                     'repair_time': json.dumps(failedDisk.repair_time),
                                     })
                             # logging.info('new fail report: {}'.format(fail_report))
-                            self.sys.fail_reports.append(fail_report)
+                    self.sys.fail_reports.append(fail_report)
                 return
         
         if event_type == Disk.EVENT_DETECT:
