@@ -67,6 +67,7 @@ class Disk:
         # record fail time for manual failure injection
         # ----
         self.fail_time: float = 0.0
+        self.no_need_to_detect = False
         #-------------------------------
         # metrics
         # ----

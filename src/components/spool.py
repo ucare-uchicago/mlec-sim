@@ -27,6 +27,7 @@ class Spool:
         # initialize the repair priority
         #-------------------------------
         self.priority = 0
+        self.failure_detection_time: float = 0.0
         #-------------------------------
         # initialize priority percent
         #-------------------------------

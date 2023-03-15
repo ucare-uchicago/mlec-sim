@@ -32,7 +32,7 @@ class ManualFailSim(Simulator):
                     total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, infinite_chunks=True, chunksize=128,
                     spool_size=-1, repair_scheme=0, detection_time=0,
                     num_local_fail_to_report=0, num_net_fail_to_report=0, prev_fail_reports_filename=None):
-        # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
+        logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
         # logging.basicConfig(level=logging.INFO)
 
         mission = YEAR
@@ -71,7 +71,7 @@ class ManualFailSim(Simulator):
         # return
 
         # We need to get enough failures in order to compute accurate nines #
-        while failed_iters < 10:
+        while failed_iters < 1:
             logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
             start  = time.time()
             res = self.run(afr, iters=iters, epochs=epoch, concur=concur, mission=mission, prev_fail_reports_filename=prev_fail_reports_filename, **sys_kwargs)
@@ -85,7 +85,7 @@ class ManualFailSim(Simulator):
             print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
             # return None
         
-        # print(fail_reports)
+        # print(len(fail_reports))
         # print(metrics)
         if placement in [PlacementType.SLEC_LOCAL_CP, PlacementType.SLEC_LOCAL_DP]:
             new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
@@ -93,6 +93,9 @@ class ManualFailSim(Simulator):
         elif placement in [PlacementType.SLEC_NET_CP, PlacementType.SLEC_NET_DP]:
             new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
                         k_net, p_net, k_local, p_local, placement, num_net_fail_to_report, repair_scheme)
+        elif placement in [PlacementType.MLEC_C_C, PlacementType.MLEC_C_D, PlacementType.MLEC_D_C, PlacementType.MLEC_D_D]:
+            new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f{}f_rs{}.log'.format(
+                        k_net, p_net, k_local, p_local, placement, num_local_fail_to_report, num_net_fail_to_report, repair_scheme)
         with open(new_fail_reports_filename, 'w') as fout:
             json.dump(fail_reports, fout)
 

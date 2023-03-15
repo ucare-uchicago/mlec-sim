@@ -39,6 +39,7 @@ class Simulate:
         self.prev_event = None
         self.prev_fail_reports = prev_fail_reports
         self.curr_time = 0
+        self.failure_generator = None
 
 
     #------------------------------------------
@@ -138,6 +139,7 @@ class Simulate:
 
         self.sys.metrics.iter_count += 1
         self.mytimer: Mytimer = mytimer
+        self.failure_generator = failureGenerator
         simulation_start_time = time.time()
 
         np.random.seed(int.from_bytes(os.urandom(4), byteorder='little'))

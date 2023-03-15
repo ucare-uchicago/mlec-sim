@@ -97,6 +97,7 @@ class Policy:
         return None
 
     def get_next_event(self, simulate) -> Optional[Tuple[float, str, int]]:
+        # logging.info("repair queue: {}".format(simulate.repair_queue))
         if simulate.failure_queue or simulate.repair_queue:
             if len(simulate.repair_queue) == 0:
                 next_event = heappop(simulate.failure_queue)

@@ -49,6 +49,8 @@ for index, row in sorted_df.iterrows():
     burst['racks'].append(rack)
     # print(interval)
   else:
+    if (len(burst['nodes']) >= 10):
+      print(row)
     if first_row:
       burst['nodes'].append(node)
       burst['racks'].append(rack)
