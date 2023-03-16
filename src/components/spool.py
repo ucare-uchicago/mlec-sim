@@ -34,6 +34,7 @@ class Spool:
         self.percent = {} 
         self.repair_time = {}
         self.repair_data = repair_data
+        self.is_in_repair: bool = False
         #-------------------------------
         self.estimate_repair_time = 0.0
         self.repair_start_time = 0.0
