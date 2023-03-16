@@ -94,7 +94,7 @@ for index, row in occuranceDataLoss.iterrows():
 plt.xlabel('Number of racks affected', fontsize=title_font_size)
 plt.ylabel('Number of drives affected', fontsize=title_font_size)
 # plt.title('Frequency of failure bursts sorted by racks and drives affected')
-plt.title('({}+{})/({}+{}) MLEC {}\n'.format(k_n, p_n, k_l, p_l, placement), fontsize=title_font_size)
+plt.title('({}+{})/({}+{}) MLEC {}'.format(k_n, p_n, k_l, p_l, placement), fontsize=title_font_size)
 # plt.title(r'$\mathdefault{(18+2)/(18+2)}$ MLEC C/C\n', fontsize=24)
 
 plt.xticks([0,10,20,30,40,50,60],fontsize=tick_font_size)
@@ -166,14 +166,14 @@ if placement == 'D/C':
     plt.text(37.5, 22.5, 'Finding #2', **annotation_font, color=anotation_color)
     plt.arrow(44,26,-18,22,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
     plt.text(15, 6, 'Finding #6', **annotation_font, color=anotation_color)
-    plt.arrow(22,11,-19,30,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+    plt.arrow(22,11,-18,43,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
 
 
 if placement == 'D/D':
-    plt.text(37.5, 22.5, 'Finding #4', **annotation_font, color=anotation_color)
-    plt.arrow(44,27,-40,32,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
-    plt.text(15, 6, 'Finding #7', **annotation_font, color=anotation_color)
-    plt.arrow(22,11,-19,20,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+    plt.text(14, 8, 'Finding #4', **annotation_font, color=anotation_color)
+    plt.arrow(21.5,13,-18,46,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
+    plt.text(35, 26, 'Finding #7', **annotation_font, color=anotation_color)
+    plt.arrow(43,31,-22,22,head_width=1, head_length=2, linewidth=3, color=anotation_color,length_includes_head=True, joinstyle='miter')
 
 
 mycolors=list(zip(th, hc))
@@ -188,8 +188,6 @@ c_map_ax.axes.get_yaxis().set_visible(True)
 mpl.colorbar.ColorbarBase(c_map_ax, cmap=cm, orientation = 'horizontal')
 
 figure.set_size_inches(6.5, 8)
-figure.set_dpi(500)
+figure.set_dpi(100)
 
-plt.show()
-
-plt.savefig(sys.argv[1] + '.60.png',  bbox_inches='tight')
+plt.savefig(sys.argv[1] + '.eps',  bbox_inches='tight')
