@@ -204,6 +204,12 @@ class SLEC_NET_CP_RS0(Policy):
                 spool.failed_disks_in_repair[diskId] = 1
                 self.rackgroups[spool.rackgroupId].affected_spools_in_repair[spoolId] = 1
         
+        for affected_rackgroupId in self.affected_rackgroups:
+            affected_rackgroup = self.rackgroups[affected_rackgroupId]
+            for spoolId in affected_rackgroup.affected_spools_in_repair:
+                spool = self.spools[spoolId]
+                spool.repair_rate = min(self.sys.diskIO, self.sys.interrack_speed/len(affected_rackgroup.affected_spools_in_repair))
+        
         for rackgroupId in self.affected_rackgroups:
             for spoolId in self.rackgroups[rackgroupId].affected_spools:
                 spool = self.spools[spoolId]
