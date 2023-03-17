@@ -14,7 +14,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Parse simulator configurations.')
     parser.add_argument('-sim_mode', type=int, help="simulation mode. Default is 0", default=0)
-    parser.add_argument('-afr', type=int, help="disk annual failure rate.", default=5)
+    parser.add_argument('-afr', type=float, help="disk annual failure rate.", default=5)
     parser.add_argument('-io_speed', type=int, help="disk repair rate (MB/s).", default=30)
     parser.add_argument('-intrarack_speed', type=float, help="Intra-rack speed (Gb/s).", default=100)
     parser.add_argument('-interrack_speed', type=float, help="Inter-rack speed (Gb/s).", default=10)
