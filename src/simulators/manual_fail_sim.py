@@ -95,7 +95,7 @@ class ManualFailSim(Simulator):
                         k_net, p_net, k_local, p_local, placement, num_net_fail_to_report, repair_scheme)
         elif placement in [PlacementType.MLEC_C_C, PlacementType.MLEC_C_D, PlacementType.MLEC_D_C, PlacementType.MLEC_D_D]:
             new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f{}f_rs{}.log'.format(
-                        k_net, p_net, k_local, p_local, placement, num_local_fail_to_report, num_net_fail_to_report, repair_scheme)
+                        k_net, p_net, k_local, p_local, placement, num_net_fail_to_report, num_local_fail_to_report, repair_scheme)
         with open(new_fail_reports_filename, 'w') as fout:
             json.dump(fail_reports, fout)
 

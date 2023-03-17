@@ -10,4 +10,5 @@ class Mpool:
         self.failed_spools_undetected = {}
         self.failed_spools_in_repair = {}
         self.repair_rate: float = 0.0
+        self.affected_spools = {}
         

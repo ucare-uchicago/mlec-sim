@@ -27,6 +27,7 @@ class Policy:
         self.mytimer = state.mytimer
         
         self.curr_time: float = state.curr_time
+        self.sys_failed = False
     
     # Default disk state update behavior
     #  Should override if there are layout specific changes (for example net_raid)

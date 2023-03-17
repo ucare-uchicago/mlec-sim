@@ -147,6 +147,11 @@ class Simulate:
         # np.random.seed(1)
         
         self.reset(failureGenerator, mytimer)
+        if self.state.policy.sys_failed:
+            # logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+            self.clean_failures()
+            return 1
+
         reset_done_time = time.time()
         self.mytimer.resettime += (reset_done_time - simulation_start_time)
 
