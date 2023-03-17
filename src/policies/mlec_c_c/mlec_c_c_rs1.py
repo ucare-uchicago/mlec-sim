@@ -300,7 +300,8 @@ class MLEC_C_C_RS1(Policy):
                         'repair_time': json.dumps(affectedSpool.repair_time),
                         'failed_disks': json.dumps({int(k): v for k, v in affectedSpool.failed_disks.items()}),
                         'failed_disks_undetected': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_undetected.items()}),
-                        'failed_disks_in_repair': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_in_repair.items()})
+                        'failed_disks_in_repair': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_in_repair.items()}),
+                        'failed_disks_network_repair': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_network_repair.items()})
                         })
                 else:
                     spool_failed = False
@@ -393,6 +394,9 @@ class MLEC_C_C_RS1(Policy):
                 repair_time = json.loads(spool_info['repair_time'])
                 for key, value in repair_time.items():
                     spool.repair_time[int(key)] = float(value)
+                failed_disks_network_repair = json.loads(spool_info['failed_disks_network_repair'])
+                for key, value in failed_disks_network_repair.items():
+                    spool.failed_disks_network_repair[int(key)] = int(value)
             else:
                 spool_failed = spool_info['spool_failed']
                 if spool_failed:
