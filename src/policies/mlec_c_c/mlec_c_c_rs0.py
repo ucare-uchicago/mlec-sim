@@ -335,6 +335,7 @@ class MLEC_C_C_RS0(Policy):
             rackgroup.affected_mpools_in_repair.clear()
 
     def manual_inject_failures(self, fail_report, simulate):
+        # logging.info("{}".format(fail_report))
         for spool_info in fail_report['spool_infos']:
             spoolId = int(spool_info['spoolId'])
             spool = self.sys.spools[spoolId]
@@ -363,9 +364,9 @@ class MLEC_C_C_RS0(Policy):
             for key, value in failed_disks_undetected.items():
                 spool.failed_disks_undetected[int(key)] = int(value)
             
-            failed_disks_undetected = json.loads(spool_info['failed_disks_undetected'])
-            for key, value in failed_disks_undetected.items():
-                spool.failed_disks_undetected[int(key)] = int(value)
+            failed_disks_in_repair = json.loads(spool_info['failed_disks_in_repair'])
+            for key, value in failed_disks_in_repair.items():
+                spool.failed_disks_in_repair[int(key)] = int(value)
             
             self.affected_spools[spoolId] = 1
 
@@ -406,12 +407,20 @@ class MLEC_C_C_RS0(Policy):
 
         for item in fail_report['repair_queue']:
             (e_time, e_type, e_diskId) = ast.literal_eval(item)
-            heappush(self.simulation.repair_queue, (float(e_time), e_type, int(diskId)))
+            heappush(self.simulation.repair_queue, (float(e_time), e_type, int(e_diskId)))
         for item in fail_report['detect_queue']:
             (e_time, e_type, e_diskId) = ast.literal_eval(item)
-            heappush(self.simulation.failure_queue, (float(e_time), e_type, int(diskId)))
+            heappush(self.simulation.failure_queue, (float(e_time), e_type, int(e_diskId)))
             # if e_type == Disk.EVENT_DETECT:
             #     print('yes!')
+        
+        # logging.info('detect queue: {}'.format(self.simulation.failure_queue))
+        # logging.info('repair queue: {}'.format(self.simulation.repair_queue))
+        # logging.info("affected pools: {}".format(self.affected_spools))
+        # for spoolId in self.affected_spools:
+        #     spool = self.spools[spoolId]
+        #     logging.info("spool {} failed disks {}  failed_disks_in_repair {}".format(
+        #                     spoolId, spool.failed_disks, spool.failed_disks_in_repair))
         
             
         
