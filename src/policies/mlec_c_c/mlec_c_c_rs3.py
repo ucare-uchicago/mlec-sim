@@ -151,8 +151,17 @@ class MLEC_C_C_RS3(Policy):
             spool = self.spools[disk.spoolId]
             if spool.state == Spool.STATE_FAILED:
                 spool.is_in_repair = True
+
+                min_disk_remaining_data = self.sys.diskSize
+                spool_repair_diskId = diskId
                 for failedDiskId in spool.failed_disks_in_repair:
-                    spool.failed_disks_network_repair[failedDiskId] = 1
+                    failed_disk = self.disks[failedDiskId]
+                    if failed_disk.curr_repair_data_remaining <= min_disk_remaining_data:
+                        spool_repair_diskId = failedDiskId
+                        min_disk_remaining_data = failed_disk.curr_repair_data_remaining
+                spool.failed_disks_network_repair[spool_repair_diskId] = 1
+                spool.repair_data = min_disk_remaining_data
+
                 mpool = self.mpools[spool.mpoolId]
                 mpool.failed_spools_undetected.pop(spool.spoolId, None)
                 mpool.failed_spools_in_repair[spool.spoolId] = 1
@@ -163,61 +172,60 @@ class MLEC_C_C_RS3(Policy):
         if event_type == Spool.EVENT_REPAIR:
             spoolId = diskId
             spool = self.spools[spoolId]
-            # logging.info("Diskgroup %s is repaired", diskId)
-            repaired_count = 0
-            for i, failedDiskId in enumerate(spool.failed_disks_network_repair):
+            # logging.info('spool {}  failed_disks_network_repair: {}'.format(spoolId, spool.failed_disks_network_repair))
+            assert (len(spool.failed_disks_network_repair) == 1), "spool.failed_disks_network_repair should only have one disk in repair!"
+            for failedDiskId in spool.failed_disks_network_repair:
                 failed_disk = self.disks[failedDiskId]
                 failed_disk.curr_repair_data_remaining -= spool.repair_data
-                if failed_disk.curr_repair_data_remaining == 0:
-                    repaired_count += 1
-                    # print("repaired_count: {}".format(repaired_count))
-                    self.disks[failedDiskId].state = Disk.STATE_NORMAL
-                    self.disks[failedDiskId].failure_detection_time = 0
-                    self.disks[failedDiskId].no_need_to_detect = False
-                    spool.failed_disks.pop(failedDiskId, None)
-                    spool.failed_disks_in_repair.pop(failedDiskId, None)
-                    disk_fail_time = self.simulation.failure_generator.gen_new_failures(1)[0] + self.curr_time
-                    if disk_fail_time < self.simulation.mission_time:
-                        heappush(self.simulation.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, failedDiskId))
-                else:
-                    repair_time = float(failed_disk.curr_repair_data_remaining) / (self.sys.diskIO)
-                    failed_disk.repair_time[0] = repair_time / 3600 / 24
-                    failed_disk.repair_start_time = self.curr_time
-                    failed_disk.estimate_repair_time = self.curr_time + failed_disk.repair_time[0]
+                assert (failed_disk.curr_repair_data_remaining == 0), "failed_disk.curr_repair_data_remaining should be 0 now!"
+                # print("repaired_count: {}".format(repaired_count))
+                self.disks[failedDiskId].state = Disk.STATE_NORMAL
+                self.disks[failedDiskId].failure_detection_time = 0
+                self.disks[failedDiskId].no_need_to_detect = False
+                spool.failed_disks.pop(failedDiskId, None)
+                spool.failed_disks_in_repair.pop(failedDiskId, None)
+                disk_fail_time = self.simulation.failure_generator.gen_new_failures(1)[0] + self.curr_time
+                if disk_fail_time < self.simulation.mission_time:
+                    heappush(self.simulation.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, failedDiskId))
             spool.failed_disks_network_repair.clear()
+
+            for failedDiskId in spool.failed_disks_in_repair:
+                failed_disk = self.disks[failedDiskId]
+                repair_time = float(failed_disk.curr_repair_data_remaining) / (self.sys.diskIO)
+                failed_disk.repair_time[0] = repair_time / 3600 / 24
+                failed_disk.repair_start_time = self.curr_time
+                failed_disk.estimate_repair_time = self.curr_time + failed_disk.repair_time[0]
             
-            # we only repair p_l+1 disks via network parity.
+            
+            # we only repair 1 disk via network parity.
             # if during the repair, some other disks in the spool fail, we repair them locally after the network repair finishes.
-            detect_count = 0
             for failedDiskId in spool.failed_disks_undetected:
                 failed_disk = self.disks[failedDiskId]
                 failed_disk.no_need_to_detect = False
                 if failed_disk.failure_detection_time <= self.curr_time:
                     heappush(self.simulation.failure_queue, (self.curr_time, Disk.EVENT_DETECT, failedDiskId))
-                    detect_count += 1
-                    # print("detect_count: {}".format(detect_count))
-                    if detect_count >= repaired_count:
-                        break
-
-            spool.state = Spool.STATE_NORMAL
+                    break
+            
             spool.is_in_repair = False
-
             mpool = self.mpools[spool.mpoolId]
-            if len(spool.failed_disks) == 0:
-                self.affected_spools.pop(spool.spoolId, None)
-                mpool.affected_spools.pop(spool.spoolId, None)
-
-            mpool.failed_spools.pop(spool.spoolId, None)
             mpool.failed_spools_in_repair.pop(spool.spoolId, None)
             if len(mpool.failed_spools_in_repair) == 0:
                 rackgroup = self.rackgroups[mpool.rackgroupId]
                 rackgroup.affected_mpools_in_repair.pop(mpool.mpoolId, None)
 
-            if len(mpool.failed_spools) == 0:
-                rackgroup = self.rackgroups[mpool.rackgroupId]
-                rackgroup.affected_mpools.pop(mpool.mpoolId, None)
-                if len(rackgroup.affected_mpools) == 0:
-                    self.affected_rackgroups.pop(rackgroup.rackgroupId)
+            if len(spool.failed_disks) <= self.sys.m:
+                spool.state = Spool.STATE_NORMAL
+                if len(spool.failed_disks) == 0:
+                    self.affected_spools.pop(spool.spoolId, None)
+                    mpool.affected_spools.pop(spool.spoolId, None)
+
+                mpool.failed_spools.pop(spool.spoolId, None)
+
+                if len(mpool.failed_spools) == 0:
+                    rackgroup = self.rackgroups[mpool.rackgroupId]
+                    rackgroup.affected_mpools.pop(mpool.mpoolId, None)
+                    if len(rackgroup.affected_mpools) == 0:
+                        self.affected_rackgroups.pop(rackgroup.rackgroupId)
             return spoolId
         return None
 
@@ -289,7 +297,7 @@ class MLEC_C_C_RS3(Policy):
         repaired_time = self.curr_time - spool.repair_start_time
         if repaired_time == 0:            
             repaired_percent = 0
-            spool.curr_repair_data_remaining = len(spool.failed_disks_network_repair) * spool.repair_data
+            spool.curr_repair_data_remaining = spool.repair_data
         else:
             repaired_percent = repaired_time / spool.repair_time[0]
             spool.curr_repair_data_remaining = spool.curr_repair_data_remaining * (1 - repaired_percent)

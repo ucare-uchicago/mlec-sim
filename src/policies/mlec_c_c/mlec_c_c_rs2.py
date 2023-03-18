@@ -151,8 +151,14 @@ class MLEC_C_C_RS2(Policy):
             spool = self.spools[disk.spoolId]
             if spool.state == Spool.STATE_FAILED:
                 spool.is_in_repair = True
+
+                min_disk_remaining_data = self.sys.diskSize
                 for failedDiskId in spool.failed_disks_in_repair:
                     spool.failed_disks_network_repair[failedDiskId] = 1
+                    failed_disk = self.disks[failedDiskId]
+                    min_disk_remaining_data = min(min_disk_remaining_data, failed_disk.curr_repair_data_remaining)
+                spool.repair_data = min_disk_remaining_data
+
                 mpool = self.mpools[spool.mpoolId]
                 mpool.failed_spools_undetected.pop(spool.spoolId, None)
                 mpool.failed_spools_in_repair[spool.spoolId] = 1
@@ -199,25 +205,26 @@ class MLEC_C_C_RS2(Policy):
                     if detect_count >= repaired_count:
                         break
 
-            spool.state = Spool.STATE_NORMAL
             spool.is_in_repair = False
-
             mpool = self.mpools[spool.mpoolId]
-            if len(spool.failed_disks) == 0:
-                self.affected_spools.pop(spool.spoolId, None)
-                mpool.affected_spools.pop(spool.spoolId, None)
-
-            mpool.failed_spools.pop(spool.spoolId, None)
             mpool.failed_spools_in_repair.pop(spool.spoolId, None)
             if len(mpool.failed_spools_in_repair) == 0:
                 rackgroup = self.rackgroups[mpool.rackgroupId]
                 rackgroup.affected_mpools_in_repair.pop(mpool.mpoolId, None)
 
-            if len(mpool.failed_spools) == 0:
-                rackgroup = self.rackgroups[mpool.rackgroupId]
-                rackgroup.affected_mpools.pop(mpool.mpoolId, None)
-                if len(rackgroup.affected_mpools) == 0:
-                    self.affected_rackgroups.pop(rackgroup.rackgroupId)
+            if len(spool.failed_disks) <= self.sys.m:
+                spool.state = Spool.STATE_NORMAL
+                if len(spool.failed_disks) == 0:
+                    self.affected_spools.pop(spool.spoolId, None)
+                    mpool.affected_spools.pop(spool.spoolId, None)
+
+                mpool.failed_spools.pop(spool.spoolId, None)
+
+                if len(mpool.failed_spools) == 0:
+                    rackgroup = self.rackgroups[mpool.rackgroupId]
+                    rackgroup.affected_mpools.pop(mpool.mpoolId, None)
+                    if len(rackgroup.affected_mpools) == 0:
+                        self.affected_rackgroups.pop(rackgroup.rackgroupId)
             return spoolId
         return None
 
