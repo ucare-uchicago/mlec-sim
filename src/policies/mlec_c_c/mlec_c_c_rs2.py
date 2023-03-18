@@ -333,6 +333,7 @@ class MLEC_C_C_RS2(Policy):
                         'repair_start_time': affectedSpool.repair_start_time,
                         'failure_detection_time': affectedSpool.failure_detection_time,
                         'is_in_repair': affectedSpool.is_in_repair,
+                        'repair_data': affectedSpool.repair_data,
                         'repair_time': json.dumps(affectedSpool.repair_time),
                         'failed_disks': json.dumps({int(k): v for k, v in affectedSpool.failed_disks.items()}),
                         'failed_disks_undetected': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_undetected.items()}),
@@ -348,6 +349,7 @@ class MLEC_C_C_RS2(Policy):
                         'spoolId': int(affectedSpoolId),
                         'spool_failed': spool_failed,
                         'is_in_repair': affectedSpool.is_in_repair,
+                        'repair_data': affectedSpool.repair_data,
                         'failed_disks': json.dumps({int(k): v for k, v in affectedSpool.failed_disks.items()}),
                         'failed_disks_undetected': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_undetected.items()}),
                         'failed_disks_in_repair': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_in_repair.items()})
@@ -420,6 +422,7 @@ class MLEC_C_C_RS2(Policy):
             spool = self.sys.spools[spoolId]
 
             spool.is_in_repair = spool_info['is_in_repair']
+            spool.repair_data = spool_info['repair_data']
 
             if spool.is_in_repair:
                 spool.state = Spool.STATE_FAILED
