@@ -61,10 +61,11 @@ class MLEC_C_C_RS1(Policy):
 
         if event_type == Disk.EVENT_FAIL:
             # If the spool is already failing, we do nothing because it's in reconstruction anyway
+            disk.failure_detection_time = self.curr_time + self.sys.detection_time
             if spool.state == Spool.STATE_FAILED:
                 # logging.info("Diskgroup already in failed state, ignoring")
                 return
-            disk.failure_detection_time = self.curr_time + self.sys.detection_time
+            
             mpool = self.mpools[spool.mpoolId]
             if len(mpool.failed_spools) >= self.sys.num_net_fail_to_report and len(spool.failed_disks) >= self.sys.num_local_fail_to_report:
                 self.loss_trigger_diskId = diskId
@@ -156,11 +157,18 @@ class MLEC_C_C_RS1(Policy):
             
             # we only repair p_l+1 disks via network parity.
             # if during the repair, some other disks in the spool fail, we repair them locally after the network repair finishes.
-            for failedDiskId in spool.failed_disks_in_repair:
-                spool.failed_disks_in_repair.pop(failedDiskId, None)
-                spool.failed_disks_undetected[failedDiskId] = 1
-                self.disks[failedDiskId].no_need_to_detect = False
-                heappush(self.simulation.failure_queue, (self.curr_time, Disk.EVENT_DETECT, failedDiskId))
+            assert len(spool.failed_disks_in_repair) == 0, "spool.failed_disks_in_repair should be empty!"
+            detect_count = 0
+            for failedDiskId in spool.failed_disks_undetected:
+                failed_disk = self.disks[failedDiskId]
+                failed_disk.no_need_to_detect = False
+                if failed_disk.failure_detection_time <= self.curr_time:
+                    spool.failed_disks_undetected[failedDiskId] = 1
+                    heappush(self.simulation.failure_queue, (self.curr_time, Disk.EVENT_DETECT, failedDiskId))
+                    detect_count += 1
+                    # print(detect_count)
+                    if detect_count > self.sys.m:
+                        break
 
             spool.state = Spool.STATE_NORMAL
             spool.is_in_repair = False
