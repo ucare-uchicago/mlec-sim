@@ -163,7 +163,6 @@ class MLEC_C_C_RS1(Policy):
                 failed_disk = self.disks[failedDiskId]
                 failed_disk.no_need_to_detect = False
                 if failed_disk.failure_detection_time <= self.curr_time:
-                    spool.failed_disks_undetected[failedDiskId] = 1
                     heappush(self.simulation.failure_queue, (self.curr_time, Disk.EVENT_DETECT, failedDiskId))
                     detect_count += 1
                     # print(detect_count)
