@@ -13,7 +13,7 @@ from policies.policy import Policy
 from .pdl import mlec_c_c_pdl
 from .repair import mlec_c_c_repair
 
-class MLEC_C_C_RS2(Policy):
+class MLEC_C_C_RS3(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
