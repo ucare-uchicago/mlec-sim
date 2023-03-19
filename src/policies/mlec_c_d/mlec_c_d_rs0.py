@@ -6,6 +6,8 @@ import json
 import ast
 import math
 from pprint import pformat
+import numpy as np
+import traceback
 
 from components.disk import Disk
 from components.spool import Spool
@@ -154,6 +156,8 @@ class MLEC_C_D_RS0(Policy):
     def pause_disk_repair_time(self, diskId, priority):
         disk = self.state.disks[diskId]
         repaired_time = self.state.curr_time - disk.repair_start_time
+        if not np.isfinite(disk.repair_time[priority]) or disk.repair_time[priority] == 0:
+            print(disk.repair_time[priority])
         repaired_percent = repaired_time / disk.repair_time[priority]
         disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
     
@@ -362,7 +366,9 @@ class MLEC_C_D_RS0(Policy):
                         'repair_time': json.dumps(affectedSpool.repair_time),
                         'failed_disks': json.dumps({int(k): v for k, v in affectedSpool.failed_disks.items()}),
                         'failed_disks_undetected': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_undetected.items()}),
-                        'failed_disks_in_repair': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_in_repair.items()})
+                        'disk_priority_queue': json.dumps({int(k): {int(kk): vv for kk, vv in v.items()} for k, v in affectedSpool.disk_priority_queue.items()}),
+                        'disk_max_priority': int(affectedSpool.disk_max_priority),
+                        'disk_repair_max_priority': int(affectedSpool.disk_repair_max_priority)
                         })
                 else:
                     spool_failed = False
@@ -375,7 +381,9 @@ class MLEC_C_D_RS0(Policy):
                         'is_in_repair': affectedSpool.is_in_repair,
                         'failed_disks': json.dumps({int(k): v for k, v in affectedSpool.failed_disks.items()}),
                         'failed_disks_undetected': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_undetected.items()}),
-                        'failed_disks_in_repair': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_in_repair.items()})
+                        'disk_priority_queue': json.dumps({int(k): {int(kk): vv for kk, vv in v.items()} for k, v in affectedSpool.disk_priority_queue.items()}),
+                        'disk_max_priority': int(affectedSpool.disk_max_priority),
+                        'disk_repair_max_priority': int(affectedSpool.disk_repair_max_priority)
                         })
             
             for affectedSpoolId in self.affected_spools:
@@ -386,11 +394,13 @@ class MLEC_C_D_RS0(Policy):
                             {
                             'curr_repair_data_remaining': failedDisk.curr_repair_data_remaining,
                             'diskId': int(failedDiskId),
+                            'priority': int(failedDisk.priority),
                             'estimate_repair_time': failedDisk.estimate_repair_time,
                             'repair_start_time': failedDisk.repair_start_time,
                             'failure_detection_time': failedDisk.failure_detection_time,
                             'repair_time': json.dumps(failedDisk.repair_time),
-                            'no_need_to_detect': failedDisk.no_need_to_detect
+                            'no_need_to_detect': failedDisk.no_need_to_detect,
+                            'priority_percents': json.dumps(failedDisk.priority_percents)
                             })
             # print(self.simulation.repair_queue)
             for (e_time, e_type, e_diskId) in list(self.simulation.repair_queue):
@@ -473,9 +483,12 @@ class MLEC_C_D_RS0(Policy):
             for key, value in failed_disks_undetected.items():
                 spool.failed_disks_undetected[int(key)] = int(value)
             
-            failed_disks_in_repair = json.loads(spool_info['failed_disks_in_repair'])
-            for key, value in failed_disks_in_repair.items():
-                spool.failed_disks_in_repair[int(key)] = int(value)
+            disk_priority_queue = json.loads(spool_info['disk_priority_queue'])
+            for prio, prio_disks in disk_priority_queue.items():
+                spool.disk_priority_queue[int(prio)] = {int(k): 1 for k in prio_disks}
+            
+            spool.disk_max_priority = int(spool_info['disk_max_priority'])
+            spool.disk_repair_max_priority = int(spool_info['disk_repair_max_priority'])
             
             self.affected_spools[spoolId] = 1
             self.mpools[spool.mpoolId].affected_spools[spoolId] = 1
@@ -504,9 +517,15 @@ class MLEC_C_D_RS0(Policy):
             disk.failure_detection_time = float(disk_info['failure_detection_time'])
             disk.no_need_to_detect = disk_info['no_need_to_detect']
 
+            disk.priority = int(disk_info['priority'])
+
             repair_time = json.loads(disk_info['repair_time'])
             for key, value in repair_time.items():
                 disk.repair_time[int(key)] = float(value)
+            
+            priority_percents = json.loads(disk_info['priority_percents'])
+            for key, value in priority_percents.items():
+                disk.priority_percents[int(key)] = float(value)
         
         for rackgroupId in self.affected_rackgroups:
             rackgroup = self.rackgroups[rackgroupId]
@@ -526,7 +545,7 @@ class MLEC_C_D_RS0(Policy):
                 for affectedSpoolId in mpool.affected_spools:
                     if affectedSpoolId not in mpool.failed_spools:
                         affected_spool = self.spools[affectedSpoolId]
-                        if len(affected_spool.failed_disks) >= self.sys.num_local_fail_to_report:
+                        if affected_spool.disk_max_priority >= self.sys.num_local_fail_to_report:
                             self.sys_failed = True
         
         if self.sys_failed:
