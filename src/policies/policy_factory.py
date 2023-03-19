@@ -19,7 +19,7 @@ from policies.mlec_c_c.mlec_c_c_rs2 import MLEC_C_C_RS2
 from policies.mlec_c_c.mlec_c_c_rs3 import MLEC_C_C_RS3
 from policies.mlec_c_d.mlec_c_d_rs0 import MLEC_C_D_RS0
 from policies.mlec_c_d.mlec_c_d_rs1 import MLEC_C_D_RS1
-
+from policies.mlec_c_d.mlec_c_d_rs2 import MLEC_C_D_RS2
 
 from constants.PlacementType import PlacementType
 
@@ -76,3 +76,5 @@ def get_policy(placement: PlacementType, state):
             return MLEC_C_D_RS0(state)
         elif state.sys.repair_scheme == 1:
             return MLEC_C_D_RS1(state)
+        elif state.sys.repair_scheme == 2:
+            return MLEC_C_D_RS2(state)
