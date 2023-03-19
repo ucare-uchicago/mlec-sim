@@ -156,8 +156,6 @@ class MLEC_C_D_RS0(Policy):
     def pause_disk_repair_time(self, diskId, priority):
         disk = self.state.disks[diskId]
         repaired_time = self.state.curr_time - disk.repair_start_time
-        if not np.isfinite(disk.repair_time[priority]) or disk.repair_time[priority] == 0:
-            print(disk.repair_time[priority])
         repaired_percent = repaired_time / disk.repair_time[priority]
         disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
     
@@ -400,7 +398,8 @@ class MLEC_C_D_RS0(Policy):
                             'failure_detection_time': failedDisk.failure_detection_time,
                             'repair_time': json.dumps(failedDisk.repair_time),
                             'no_need_to_detect': failedDisk.no_need_to_detect,
-                            'priority_percents': json.dumps(failedDisk.priority_percents)
+                            'priority_percents': json.dumps(failedDisk.priority_percents),
+                            'curr_prio_repair_started': failedDisk.curr_prio_repair_started
                             })
             # print(self.simulation.repair_queue)
             for (e_time, e_type, e_diskId) in list(self.simulation.repair_queue):
@@ -516,6 +515,8 @@ class MLEC_C_D_RS0(Policy):
             disk.repair_start_time = float(disk_info['repair_start_time'])
             disk.failure_detection_time = float(disk_info['failure_detection_time'])
             disk.no_need_to_detect = disk_info['no_need_to_detect']
+            
+            disk.curr_prio_repair_started = disk_info['curr_prio_repair_started']
 
             disk.priority = int(disk_info['priority'])
 

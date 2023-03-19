@@ -41,6 +41,7 @@ class Simulate:
         self.curr_time = 0
         self.failure_generator = None
 
+        self.log = []
 
     #------------------------------------------
     # initiate failure queue and repair queue
@@ -78,6 +79,7 @@ class Simulate:
                 fail_report = self.prev_fail_reports[fail_report_index]
 
                 # logging.info('fail_report: {}'.format(pformat(fail_report)))
+                # self.log.append('fail_report: {}'.format(pformat(fail_report)))
                 self.curr_time = float(fail_report['curr_time'])
                 self.state.policy.manual_inject_failures(fail_report, self)
                 for disk_info in fail_report['disk_infos']:
@@ -136,6 +138,7 @@ class Simulate:
     #----------------------------------------------------------------
     def run_simulation(self, failureGenerator, mytimer):
         # logging.info("---------")
+        # self.log.append("---------")
 
         self.sys.metrics.iter_count += 1
         self.mytimer: Mytimer = mytimer
@@ -180,6 +183,7 @@ class Simulate:
             self.mytimer.getEventTime += (get_event_done_time - event_start)
 
             # logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
+            # self.log.append("----record----  {} {} {}".format(event_time, event_type, diskId))
             
             #--------------------------------------
             # update all disks state/priority
@@ -237,6 +241,7 @@ class Simulate:
                 if self.state.policy.check_pdl():
                     prob = 1
                     # logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+                    # self.log.append("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     break
 
             check_loss_done_time = time.time()
@@ -255,5 +260,8 @@ class Simulate:
 
     def update_repair_events(self, event_type, diskId):
         self.state.policy.update_repair_events(event_type, diskId, self.repair_queue)
-        
+    
+    def print_log(self):
+        for log in self.log:
+            print(log)
 
