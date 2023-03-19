@@ -220,6 +220,7 @@ class MLEC_C_D_RS0(Policy):
                 self.disks[failedDiskId].priority = 0
                 self.disks[failedDiskId].repair_time.clear()
                 self.disks[failedDiskId].priority_percents.clear()
+                self.disks[failedDiskId].curr_prio_repair_started = False
                 disk_fail_time = new_failure_intervals[i] + self.curr_time
                 if disk_fail_time < self.simulation.mission_time:
                     heappush(self.simulation.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, failedDiskId))
