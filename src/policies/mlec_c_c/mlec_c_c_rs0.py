@@ -400,10 +400,11 @@ class MLEC_C_C_RS0(Policy):
             mpool = self.mpools[spool.mpoolId]
             
             rackgroup = self.rackgroups[mpool.rackgroupId]
-            rackgroup.affected_mpools[mpool.mpoolId] = 1
-            self.affected_rackgroups[rackgroup.rackgroupId] = 1
+            
 
             if spool.state == Spool.STATE_FAILED:
+                rackgroup.affected_mpools[mpool.mpoolId] = 1
+                self.affected_rackgroups[rackgroup.rackgroupId] = 1
                 mpool.failed_spools[spool.spoolId] = 1
                 if spool.is_in_repair:
                     mpool.failed_spools_in_repair[spool.spoolId] = 1
@@ -449,24 +450,7 @@ class MLEC_C_C_RS0(Policy):
         if self.sys_failed:
             self.sys.fail_reports.append(fail_report)
             return
-
-        # the disk that triggered the system failure in prev stage
-        diskId = int(fail_report['trigger_disk'])
-        disk = self.disks[diskId]
-        # disk.state = Disk.STATE_FAILED
-        # spool = self.spools[disk.spoolId]
-            
-        # # we need to check if this spool fails
-        # if len(spool.failed_disks) > self.sys.m:
-        #     spool.state = Spool.STATE_FAILED
-        #     mpool = self.mpools[spool.mpoolId]
-        #     mpool.failed_spools[spool.spoolId] = 1
-        #     mpool.failed_spools_undetected[spool.spoolId] = 1
-        #     rackgroup = self.rackgroups[mpool.rackgroupId]
-        #     rackgroup.affected_mpools[mpool.mpoolId] = 1
-        #     self.affected_rackgroups[rackgroup.rackgroupId] = 1
-        #     spool.failure_detection_time = disk.failure_detection_time
-        heappush(self.simulation.failure_queue, (disk.failure_detection_time, Disk.EVENT_DETECT, diskId))
+        
 
         for item in fail_report['repair_queue']:
             (e_time, e_type, e_diskId) = ast.literal_eval(item)
@@ -477,6 +461,12 @@ class MLEC_C_C_RS0(Policy):
             # if e_type == Disk.EVENT_DETECT:
             #     print('yes!')
         
+        mlec_c_c_repair(self, self.simulation.repair_queue)
+        # the disk that triggered the system failure in prev stage
+        diskId = int(fail_report['trigger_disk'])
+        disk = self.disks[diskId]
+        heappush(self.simulation.failure_queue, (disk.failure_detection_time, Disk.EVENT_DETECT, diskId))
+
         # logging.info('detect queue: {}'.format(self.simulation.failure_queue))
         # logging.info('repair queue: {}'.format(self.simulation.repair_queue))
         # logging.info("affected pools: {}".format(self.affected_spools))
