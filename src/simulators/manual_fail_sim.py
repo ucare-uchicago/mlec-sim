@@ -98,10 +98,10 @@ class ManualFailSim(Simulator):
                         k_net, p_net, k_local, p_local, placement, num_net_fail_to_report, num_local_fail_to_report, repair_scheme)
             
         with open(new_fail_reports_filename, 'w') as fout:
-            if len(fail_reports) < 20000:
+            if len(fail_reports) <= 10000:
                 json.dump(fail_reports, fout)
             else:
-                json.dump(fail_reports[0:20000], fout)
+                json.dump(fail_reports[0:10000], fout)
 
         total_iters *= mission/YEAR
 
