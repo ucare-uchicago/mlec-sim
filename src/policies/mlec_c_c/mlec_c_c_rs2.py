@@ -149,7 +149,7 @@ class MLEC_C_C_RS2(Policy):
         if event_type == Disk.EVENT_DETECT:
             disk = self.disks[diskId]
             spool = self.spools[disk.spoolId]
-            if spool.state == Spool.STATE_FAILED:
+            if len(spool.failed_disks_in_repair) > self.sys.m::
                 spool.is_in_repair = True
 
                 min_disk_remaining_data = self.sys.diskSize
