@@ -96,6 +96,7 @@ class MLEC_C_D_RS1(Policy):
             # logging.info("detect disk priority: {}".format(disk.priority))
             if spool.state == Spool.STATE_FAILED:
                 spool.disk_priority_queue[disk.priority][diskId] = 1
+                spool.disk_repair_max_priority = max(spool.disk_repair_max_priority, disk.priority)
             else:
                 if spool.disk_repair_max_priority > 0:
                     for dId in spool.disk_priority_queue[spool.disk_repair_max_priority]:
@@ -199,7 +200,7 @@ class MLEC_C_D_RS1(Policy):
         if event_type == Disk.EVENT_DETECT:
             disk = self.disks[diskId]
             spool = self.spools[disk.spoolId]
-            if spool.state == Spool.STATE_FAILED:
+            if spool.disk_repair_max_priority > self.sys.m:
                 spool.is_in_repair = True
                 for q in spool.disk_priority_queue.values():
                     for failedDiskId in q:
