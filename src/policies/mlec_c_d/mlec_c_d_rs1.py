@@ -245,16 +245,19 @@ class MLEC_C_D_RS1(Policy):
             for failedDiskId in sorted_undetected_disks:
                 failed_disk = self.disks[failedDiskId]
                 failed_disk.no_need_to_detect = False
+                
+                fail_num = failed_disk.priority
+                good_num = self.sys.spool_size - fail_num
+                failed_disk.good_num = good_num
+                failed_disk.fail_num = fail_num
+                self.compute_priority_percents(failed_disk)
                 if failed_disk.failure_detection_time <= self.curr_time:
-                    fail_num = failed_disk.priority
-                    good_num = self.sys.spool_size - fail_num
-                    failed_disk.good_num = good_num
-                    failed_disk.fail_num = fail_num
-                    self.compute_priority_percents(failed_disk)
                     heappush(self.simulation.failure_queue, (self.curr_time, Disk.EVENT_DETECT, failedDiskId))
-                    detect_count += 1
-                    if detect_count > self.sys.m:
-                        break
+                else:
+                    heappush(self.simulation.failure_queue, (self.failure_detection_time, Disk.EVENT_DETECT, failedDiskId))
+                detect_count += 1
+                if detect_count > self.sys.m:
+                    break
 
             spool.is_in_repair = False
 
