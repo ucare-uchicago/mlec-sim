@@ -128,7 +128,7 @@ class MLEC_C_C_RS1(Policy):
         if event_type == Disk.EVENT_DETECT:
             disk = self.disks[diskId]
             spool = self.spools[disk.spoolId]
-            if len(spool.failed_disks_in_repair) > self.sys.m::
+            if len(spool.failed_disks_in_repair) > self.sys.m:
                 spool.is_in_repair = True
                 for failedDiskId in spool.failed_disks_in_repair:
                     spool.failed_disks_network_repair[failedDiskId] = 1
