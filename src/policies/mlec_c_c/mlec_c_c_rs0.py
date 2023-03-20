@@ -246,7 +246,9 @@ class MLEC_C_C_RS0(Policy):
             spool.curr_repair_data_remaining = spool.curr_repair_data_remaining * (1 - repaired_percent)
     
         repair_time = float(spool.curr_repair_data_remaining)/(mpool.repair_rate)
-            
+
+        # logging.info("curr_repair_data_remaining {}  repair rate {}".format(spool.curr_repair_data_remaining, mpool.repair_rate))
+
         spool.repair_time[0] = repair_time / 3600 / 24
         spool.repair_start_time = self.curr_time
         spool.estimate_repair_time = self.curr_time + spool.repair_time[0]
