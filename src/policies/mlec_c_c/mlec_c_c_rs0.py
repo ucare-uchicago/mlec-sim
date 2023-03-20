@@ -127,7 +127,7 @@ class MLEC_C_C_RS0(Policy):
         if event_type == Disk.EVENT_DETECT:
             disk = self.disks[diskId]
             spool = self.spools[disk.spoolId]
-            if spool.state == Spool.STATE_FAILED:
+            if len(spool.failed_disks_in_repair) > self.sys.m:
                 spool.is_in_repair = True
                 mpool = self.mpools[spool.mpoolId]
                 mpool.failed_spools_undetected.pop(spool.spoolId, None)
