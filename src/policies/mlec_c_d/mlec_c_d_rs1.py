@@ -254,7 +254,7 @@ class MLEC_C_D_RS1(Policy):
                 if failed_disk.failure_detection_time <= self.curr_time:
                     heappush(self.simulation.failure_queue, (self.curr_time, Disk.EVENT_DETECT, failedDiskId))
                 else:
-                    heappush(self.simulation.failure_queue, (self.failure_detection_time, Disk.EVENT_DETECT, failedDiskId))
+                    heappush(self.simulation.failure_queue, (failed_disk.failure_detection_time, Disk.EVENT_DETECT, failedDiskId))
                 detect_count += 1
                 if detect_count > self.sys.m:
                     break

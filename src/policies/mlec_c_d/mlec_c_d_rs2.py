@@ -285,7 +285,7 @@ class MLEC_C_D_RS2(Policy):
                 if failed_disk.failure_detection_time <= self.curr_time:
                     heappush(self.simulation.failure_queue, (self.curr_time, Disk.EVENT_DETECT, failedDiskId))
                 else:
-                    heappush(self.simulation.failure_queue, (self.failure_detection_time, Disk.EVENT_DETECT, failedDiskId))
+                    heappush(self.simulation.failure_queue, (failed_disk.failure_detection_time, Disk.EVENT_DETECT, failedDiskId))
 
             spool.is_in_repair = False
 
