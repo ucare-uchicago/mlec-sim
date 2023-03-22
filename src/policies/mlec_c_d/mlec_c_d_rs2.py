@@ -162,8 +162,17 @@ class MLEC_C_D_RS2(Policy):
     def pause_disk_repair_time(self, diskId, priority):
         disk = self.state.disks[diskId]
         repaired_time = self.state.curr_time - disk.repair_start_time
-        repaired_percent = repaired_time / disk.repair_time[priority]
-        disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
+        if disk.repair_time[priority] == 0:
+            repaired_percent = 0
+            disk.curr_repair_data_remaining = 0
+        
+        elif np.isnan(disk.repair_time[priority]):
+            # print("disk {} priority {}  repairtime {}  remain data {}".format(
+            #                 diskId, disk.priority, disk.repair_time[priority], disk.curr_repair_data_remaining))
+            print('---')
+        else:
+            repaired_percent = repaired_time / disk.repair_time[priority]
+            disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
     
     def resume_repair_time(self, diskId, priority, spool):
         disk = self.disks[diskId]
