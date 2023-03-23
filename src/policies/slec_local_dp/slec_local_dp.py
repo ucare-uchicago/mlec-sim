@@ -89,6 +89,11 @@ class SLEC_LOCAL_DP(Policy):
             #----------------------------------------------
             if spool.disk_max_priority >= self.sys.num_local_fail_to_report:
                 self.sys_failed = True
+                sys_survive_prob = 0
+                if self.sys.num_local_fail_to_report > self.sys.m:
+                    sys_survive_prob = (1-disk.priority_percents[disk.priority])**self.sys.num_chunks_per_disk
+                    if sys_survive_prob > 0.1:
+                        print("sys_survive_prob is as large as {}.. Please report to Meng!".format(sys_survive_prob))
                 if self.sys.collect_fail_reports:
                     fail_report = {'curr_time': self.curr_time, 'disk_infos': []}
                     for failedDiskId in self.failed_disks:
