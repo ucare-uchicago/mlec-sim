@@ -2,6 +2,7 @@ import logging
 
 from components.disk import Disk
 from policies.policy import Policy
+from pprint import pformat
 
 from helpers import netdp_prio
 from .pdl import slec_net_dp_pdl
@@ -113,43 +114,59 @@ class SLEC_NET_DP(Policy):
 
             if self.max_priority >= self.sys.num_net_fail_to_report:
                 # if a disk has infinite chunks, then there must be some stripe that have max_priority
-                if self.sys.infinite_chunks:
-                    self.sys_failed = True
+                self.sys_failed = True
 
-                    if self.sys.collect_fail_reports:
-                        fail_report = {'curr_time': self.curr_time, 'disk_infos': []}
-                        for failedDiskId in self.failed_disks:
-                            failedDisk = self.disks[failedDiskId]
-                            
-                            fail_report['disk_infos'].append(
-                                {
-                                'curr_repair_data_remaining': failedDisk.curr_repair_data_remaining,
-                                'diskId': int(failedDiskId),
-                                'priority': int(failedDisk.priority),
-                                'estimate_repair_time': failedDisk.estimate_repair_time,
-                                'repair_start_time': failedDisk.repair_start_time,
-                                'failure_detection_time': failedDisk.failure_detection_time,
-                                'repair_time': json.dumps(failedDisk.repair_time),
-                                'priority_percents': json.dumps(failedDisk.priority_percents)
-                                })
-                        # logging.info('new fail report: {}'.format(fail_report))
-                        self.sys.fail_reports.append(fail_report)
+                if self.sys.collect_fail_reports:
+                    fail_report = {'curr_time': self.curr_time, 'disk_infos': [], 
+                                    'failed_disks_undetected': json.dumps([int(x) for x in self.failed_disks_undetected]),
+                                    'rack_infos': [],
+                                    }
+                    for failedDiskId in self.failed_disks:
+                        failedDisk = self.disks[failedDiskId]
+                        
+                        fail_report['disk_infos'].append(
+                            {
+                            'curr_repair_data_remaining': failedDisk.curr_repair_data_remaining,
+                            'diskId': int(failedDiskId),
+                            'priority': int(failedDisk.priority),
+                            'estimate_repair_time': failedDisk.estimate_repair_time,
+                            'repair_start_time': failedDisk.repair_start_time,
+                            'failure_detection_time': failedDisk.failure_detection_time,
+                            'repair_time': json.dumps(failedDisk.repair_time),
+                            'priority_percents': json.dumps(failedDisk.priority_percents)
+                            })
+                    
+                    for inrepairRackId in self.affected_racks:
+                        inrepairRack = self.racks[inrepairRackId]
 
-                    return
+                        fail_report['rack_infos'].append(
+                            {
+                            'rackId': int(inrepairRackId),
+                            'failed_disks_undetected': json.dumps([int(x) for x in inrepairRack.failed_disks_undetected])
+                            })
+                    # logging.info('new fail report: {}'.format(fail_report))
+                    self.sys.fail_reports.append(fail_report)
+
+                survival_prob = 0
+                if not self.sys.infinite_chunks:
+                    survival_prob = (1-disk.priority_percents[self.sys.top_m+1])**self.sys.num_chunks_per_disk
+                    print(1-disk.priority_percents[self.sys.top_m+1])
+
+                return
                 # otherwise it's possible that the system is lucky and have no max_priority stripe
                 # we need to compute the probability for the system to be lucky
-                else:
-                    stripe_survival_prob = 1-netdp_prio.compute_priority_percent(self.state, self.affected_racks, rackId, self.max_priority)
-                    all_disk_stripe_survival_prob = stripe_survival_prob ** self.sys.num_chunks_per_disk
-                    sample = random.choices([0,1], [all_disk_stripe_survival_prob, 1-all_disk_stripe_survival_prob])
-                    # print("stripe_survival_prob: {} all_disk_stripe_survival_prob: {} self.sys.num_chunks_per_disk: {}  sample:{}".format(
-                    #     stripe_survival_prob, all_disk_stripe_survival_prob, self.sys.num_chunks_per_disk, sample
-                    # ))
-                    if sample[0] == 1:
-                        self.sys_failed = True
-                        return
-                    else:
-                        self.max_priority -= 1
+                # else:
+                #     stripe_survival_prob = 1-netdp_prio.compute_priority_percent(self.state, self.affected_racks, rackId, self.max_priority)
+                #     all_disk_stripe_survival_prob = stripe_survival_prob ** self.sys.num_chunks_per_disk
+                #     sample = random.choices([0,1], [all_disk_stripe_survival_prob, 1-all_disk_stripe_survival_prob])
+                #     # print("stripe_survival_prob: {} all_disk_stripe_survival_prob: {} self.sys.num_chunks_per_disk: {}  sample:{}".format(
+                #     #     stripe_survival_prob, all_disk_stripe_survival_prob, self.sys.num_chunks_per_disk, sample
+                #     # ))
+                #     if sample[0] == 1:
+                #         self.sys_failed = True
+                #         return
+                #     else:
+                #         self.max_priority -= 1
 
 
 
@@ -185,10 +202,6 @@ class SLEC_NET_DP(Policy):
                 num_failed_disks_per_rack = [0] * self.sys.num_racks
                 for inrepairRackId in self.racks_in_repair:
                     num_failed_disks_per_rack[inrepairRackId] = self.racks[inrepairRackId].num_disks_in_repair
-                if disk.priority == 0:
-                    num_failed_disks_per_rack[rackId] -= 1
-                if num_failed_disks_per_rack[rackId] == 0:
-                    num_racks_in_repair -= 1
 
                 num_undetected_disks_per_rack = [0] * self.sys.num_racks
 
@@ -203,7 +216,7 @@ class SLEC_NET_DP(Policy):
                         if num_failed_disks_per_rack[undetectedDisk.rackId] == 1:
                             self.max_priority += 1
                     undetectedDisk.priority = self.max_priority
-                
+            
             if self.repair_max_priority > 0:
                 for dId in self.priority_queue[self.repair_max_priority]:
                     self.resume_repair_time(dId, self.disks[dId].priority, rackId)
@@ -274,6 +287,7 @@ class SLEC_NET_DP(Policy):
             
     
     def manual_inject_failures(self, fail_report, simulate):
+        # print(pformat(fail_report))
         for disk_info in fail_report['disk_infos']:
             diskId = int(disk_info['diskId'])
             disk = self.sys.disks[diskId]
@@ -299,13 +313,19 @@ class SLEC_NET_DP(Policy):
 
             self.max_priority = max(disk.priority, self.max_priority)
             
-            if disk.failure_detection_time >= simulate.curr_time:
-                disk.curr_prio_repair_started = False
-                self.failed_disks_undetected.append(diskId)
-            else:
+            if disk.failure_detection_time < simulate.curr_time:
                 disk.curr_prio_repair_started = True
                 self.priority_queue[disk.priority][diskId] = 1
                 self.repair_max_priority = max(disk.priority, self.repair_max_priority)
+                self.racks[rackId].num_disks_in_repair += 1
+                self.racks_in_repair[rackId] = 1
+        
+        for rack_info in fail_report['rack_infos']:
+            rackId = int(rack_info['rackId'])
+            rack = self.racks[rackId]
+            rack.failed_disks_undetected = [int(x) for x in json.loads(rack_info['failed_disks_undetected'])]
+        
+        self.failed_disks_undetected = [int(x) for x in json.loads(fail_report['failed_disks_undetected'])]
 
         if self.repair_max_priority > 0:
             for diskId in self.priority_queue[self.repair_max_priority]:
