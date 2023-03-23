@@ -21,8 +21,9 @@ class SLEC_NET_DP(Policy):
         self.max_priority = 0
         self.repair_max_priority = 0
         self.total_interrack_bandwidth = state.sys.interrack_speed * state.sys.num_racks
-        self.failed_disks_undetected = {}
+        self.failed_disks_undetected = []
         self.sys_failed = False
+        self.racks_in_repair = {}
 
     def update_disk_state(self, event_type: str, diskId: int) -> None:
         disk = self.state.disks[diskId]
@@ -33,15 +34,20 @@ class SLEC_NET_DP(Policy):
             self.racks[rackId].failed_disks[diskId] = 1
             self.affected_racks[rackId] = 1
             self.failed_disks[diskId] = 1
-            self.failed_disks_undetected[diskId] = 1
+            self.failed_disks_undetected.append(diskId)
+            self.racks[rackId].failed_disks_undetected.append(diskId)
 
         if event_type == Disk.EVENT_REPAIR:
             disk.state = Disk.STATE_NORMAL
+            rack = self.racks[rackId]
             # This is removing the disk from the failed disk array
-            self.racks[rackId].failed_disks.pop(diskId, None)
+            rack.failed_disks.pop(diskId, None)
             if len(self.racks[rackId].failed_disks) == 0:
                 self.affected_racks.pop(rackId, None)
             self.failed_disks.pop(diskId, None)
+            self.racks[rackId].num_disks_in_repair -= 1
+            if rack.num_disks_in_repair == 0:
+                self.racks_in_repair.pop(rackId, None)
 
     
     def update_disk_priority(self, event_type, diskId: int):        
@@ -49,13 +55,19 @@ class SLEC_NET_DP(Policy):
         rackId = disk.rackId
 
         if event_type == Disk.EVENT_DETECT:
+            rack = self.racks[rackId]
             if self.repair_max_priority > 0:
                 for dId in self.priority_queue[self.repair_max_priority]:
                     self.pause_repair_time(dId, self.repair_max_priority)
             
             self.repair_max_priority = max(self.repair_max_priority, disk.priority)
             self.priority_queue[disk.priority][diskId] = 1
-            self.failed_disks_undetected.pop(diskId, None)
+            assert self.failed_disks_undetected[0] == diskId, "the detected disk should be the first element in the list!"
+            self.failed_disks_undetected.pop(0)
+            rack.failed_disks_undetected.pop(0)
+            rack.num_disks_in_repair += 1
+            if rack.num_disks_in_repair == 1:
+                self.racks_in_repair[rackId] = 1
 
             disk.repair_start_time = self.state.curr_time
             disk.curr_prio_repair_started = False
@@ -67,6 +79,7 @@ class SLEC_NET_DP(Policy):
 
 
         if event_type == Disk.EVENT_FAIL:
+            rack = self.racks[rackId]
             if self.repair_max_priority > 0:
                 for dId in self.priority_queue[self.repair_max_priority]:
                     self.pause_repair_time(dId, self.repair_max_priority)
@@ -77,8 +90,12 @@ class SLEC_NET_DP(Policy):
             #     it means previous 2-chunk-failure have been repaired. But the new disk failure will lead to new 2-chunk-failure stripes.
             #     so we still need to increment max_priority
             # Otherwise, we don't increase max-priority.
-            if (len(self.state.racks[rackId].failed_disks) == 1) or self.max_priority < len(self.affected_racks):
-                self.max_priority += 1
+            if self.repair_max_priority < len(self.racks_in_repair):
+                if len(rack.failed_disks_undetected) == 1:
+                    self.max_priority += 1
+            else:
+                if len(rack.failed_disks) == 1:
+                    self.max_priority += 1
             
             disk.priority = self.max_priority
 
@@ -158,21 +175,35 @@ class SLEC_NET_DP(Policy):
             disk.repair_start_time = self.state.curr_time
             disk.curr_prio_repair_started = False
             
+            rack = self.racks[rackId]
             # update max priority when its queue is empty
             if len(self.priority_queue[self.repair_max_priority]) == 0:
                 self.repair_max_priority -= 1
                 self.max_priority = self.repair_max_priority
-                if len(self.failed_disks_undetected) == self.failed_disks:
-                    for dId in self.failed_disks_undetected:
-                        failedDisk = self.disks[dId]
-                        failedDisk.priority = min(len(self.failed_disks_undetected), failedDisk.priority)
-                        self.max_priority = max(self.max_priority, failedDisk.priority)
-                else:
-                    for dId in self.failed_disks_undetected:
-                        failedDisk = self.disks[dId]
-                        failedDisk.priority = min(len(self.failed_disks_undetected)+1, failedDisk.priority)
-                        self.max_priority = max(self.max_priority, failedDisk.priority)
 
+                num_racks_in_repair = len(self.racks_in_repair)
+                num_failed_disks_per_rack = [0] * self.sys.num_racks
+                for inrepairRackId in self.racks_in_repair:
+                    num_failed_disks_per_rack[inrepairRackId] = self.racks[inrepairRackId].num_disks_in_repair
+                if disk.priority == 0:
+                    num_failed_disks_per_rack[rackId] -= 1
+                if num_failed_disks_per_rack[rackId] == 0:
+                    num_racks_in_repair -= 1
+
+                num_undetected_disks_per_rack = [0] * self.sys.num_racks
+
+                for undetectedDiskId in self.failed_disks_undetected:
+                    undetectedDisk = self.disks[undetectedDiskId]
+                    num_undetected_disks_per_rack[undetectedDisk.rackId] += 1
+                    num_failed_disks_per_rack[undetectedDisk.rackId] += 1
+                    if self.repair_max_priority < num_racks_in_repair:
+                        if num_undetected_disks_per_rack[undetectedDisk.rackId] == 1:
+                            self.max_priority += 1
+                    else:
+                        if num_failed_disks_per_rack[undetectedDisk.rackId] == 1:
+                            self.max_priority += 1
+                    undetectedDisk.priority = self.max_priority
+                
             if self.repair_max_priority > 0:
                 for dId in self.priority_queue[self.repair_max_priority]:
                     self.resume_repair_time(dId, self.disks[dId].priority, rackId)
@@ -236,7 +267,11 @@ class SLEC_NET_DP(Policy):
             disk.priority_percents.clear()
             self.curr_prio_repair_started = False
         for rackId in self.affected_racks:
-            self.racks[rackId].failed_disks.clear()
+            rack = self.racks[rackId]
+            rack.failed_disks.clear()
+            rack.failed_disks_undetected.clear()
+            rack.num_disks_in_repair = 0
+            
     
     def manual_inject_failures(self, fail_report, simulate):
         for disk_info in fail_report['disk_infos']:
@@ -266,7 +301,7 @@ class SLEC_NET_DP(Policy):
             
             if disk.failure_detection_time >= simulate.curr_time:
                 disk.curr_prio_repair_started = False
-                self.failed_disks_undetected[diskId] = 1
+                self.failed_disks_undetected.append(diskId)
             else:
                 disk.curr_prio_repair_started = True
                 self.priority_queue[disk.priority][diskId] = 1

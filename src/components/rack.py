@@ -33,3 +33,5 @@ class Rack:
         self.curr_repair_data_remaining: float = 0
         
         self.failed_disks = {}
+        self.failed_disks_undetected = []
+        self.num_disks_in_repair = 0
