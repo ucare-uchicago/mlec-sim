@@ -590,6 +590,7 @@ class MLEC_C_C_RS1(Policy):
         for idx in failure_idxs:
             failedDiskId = spool.diskIds[0] + idx
             if failedDiskId not in spool.failed_disks:
-                heappush(self.simulation.failure_queue, (diskfailures[idx], Disk.EVENT_FAIL, failedDiskId))
+                disk_failure_time = diskfailures[idx] + self.curr_time
+                heappush(self.simulation.failure_queue, (disk_failure_time, Disk.EVENT_FAIL, failedDiskId))
 
         return diskId
