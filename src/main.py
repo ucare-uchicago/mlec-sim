@@ -44,6 +44,8 @@ if __name__ == "__main__":
                                 default=None)
     parser.add_argument('-detection_time', type=int, help="In minutes. The time to detect a failure and trigger the repair. ", 
                                 default=0)
+    parser.add_argument('--manual_spool_fail', action='store_true', help='Manually inject spool failures')
+
     args = parser.parse_args()
 
     sim_mode = args.sim_mode
@@ -76,7 +78,7 @@ if __name__ == "__main__":
         drives_per_rack=k_local+p_local
     
     placement = parse_placement(args.placement)
-    if placement in ['RAID', 'DP']:
+    if placement in [placement.SLEC_LOCAL_CP, placement.SLEC_LOCAL_DP]:
         k_net = 1
         p_net = 0
         
@@ -97,6 +99,7 @@ if __name__ == "__main__":
     num_net_fail_to_report = args.num_net_fail_to_report
     prev_fail_reports_filename = args.prev_fail_reports_filename
     detection_time = args.detection_time
+    manual_spool_fail = args.manual_spool_fail
 
     if sim_mode == 0:
         result = NormalSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
@@ -110,7 +113,8 @@ if __name__ == "__main__":
                    cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,
                    total_drives=total_drives, drives_per_rack=drives_per_rack, placement=placement, distribution=dist, concur=concur, epoch=epoch, iters=iters,
                    infinite_chunks=infinite_chunks, chunksize=chunksize, spool_size=spool_size, repair_scheme=repair_scheme, detection_time=detection_time,
-                   num_local_fail_to_report=num_local_fail_to_report, num_net_fail_to_report=num_net_fail_to_report, prev_fail_reports_filename=prev_fail_reports_filename)
+                   num_local_fail_to_report=num_local_fail_to_report, num_net_fail_to_report=num_net_fail_to_report, prev_fail_reports_filename=prev_fail_reports_filename,
+                   manual_spool_fail=manual_spool_fail)
     # elif sim_mode == 2:
     #     result = ManualFailTwoRackSim().simulate(afr=afr, io_speed=io_speed, intrarack_speed=intrarack_speed, interrack_speed=interrack_speed,
     #                cap=cap, adapt=adapt, k_local=k_local, p_local=p_local, k_net=k_net, p_net=p_net,

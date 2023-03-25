@@ -42,7 +42,7 @@ class SLEC_LOCAL_CP_RS0(Policy):
             if len(spool.failed_disks) >= self.sys.num_local_fail_to_report:
                 self.sys_failed = True
                 if self.sys.collect_fail_reports:
-                    fail_report = {'curr_time': self.curr_time, 'disk_infos': []}
+                    fail_report = {'curr_time': self.curr_time, 'disk_infos': [], 'trigger_disk': int(diskId)}
                     for failedDiskId in self.failed_disks:
                         failedDisk = self.disks[failedDiskId]
                         fail_report['disk_infos'].append(
@@ -52,7 +52,8 @@ class SLEC_LOCAL_CP_RS0(Policy):
                             'repair_time': {
                                 0: failedDisk.repair_time[0]
                                 },
-                            'repair_start_time': failedDisk.repair_start_time
+                            'repair_start_time': failedDisk.repair_start_time,
+                            'curr_repair_data_remaining': failedDisk.curr_repair_data_remaining
                             })
                     # logging.info('new fail report: {}'.format(fail_report))
                     self.sys.fail_reports.append(fail_report)

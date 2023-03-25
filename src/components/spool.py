@@ -11,6 +11,7 @@ class Spool:
     EVENT_FAIL = "<slec pool failure>"
     EVENT_REPAIR = "<slec pool repair>"
     EVENT_DELAYED_FAIL = "<slec pool delayed fail>"
+    EVENT_MANUAL_FAIL = "<slec pool manual failure>"
 
     #----------------------------------
     # Initialize the rack

@@ -19,11 +19,11 @@ class ManualFailSim(Simulator):
     def simulate(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
                  total_drives, drives_per_rack, placement, distribution, concur, epoch, iters,
                  infinite_chunks=True, chunksize=128, spool_size=-1, repair_scheme=0, detection_time=0,
-                 num_local_fail_to_report=0, num_net_fail_to_report=0, prev_fail_reports_filename=None):
+                 num_local_fail_to_report=0, num_net_fail_to_report=0, prev_fail_reports_filename=None, manual_spool_fail=False):
         return self.manual_fail_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
                                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters,
                                infinite_chunks, chunksize, spool_size, repair_scheme, detection_time,
-                               num_local_fail_to_report, num_net_fail_to_report, prev_fail_reports_filename)    
+                               num_local_fail_to_report, num_net_fail_to_report, prev_fail_reports_filename, manual_spool_fail)    
 
     # -----------------------------
     # simulation based on manual failure injection
@@ -31,8 +31,8 @@ class ManualFailSim(Simulator):
     def manual_fail_sim(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
                     total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, infinite_chunks=True, chunksize=128,
                     spool_size=-1, repair_scheme=0, detection_time=0,
-                    num_local_fail_to_report=0, num_net_fail_to_report=0, prev_fail_reports_filename=None):
-        logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
+                    num_local_fail_to_report=0, num_net_fail_to_report=0, prev_fail_reports_filename=None, manual_spool_fail=False):
+        # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
         # logging.basicConfig(level=logging.INFO)
 
         mission = YEAR
@@ -74,7 +74,8 @@ class ManualFailSim(Simulator):
         while failed_iters < 1:
             logging.info(">>>>>>>>>>>>>>>>>>> simulation started >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
             start  = time.time()
-            res = self.run(afr, iters=iters, epochs=epoch, concur=concur, mission=mission, prev_fail_reports_filename=prev_fail_reports_filename, **sys_kwargs)
+            res = self.run(afr, iters=iters, epochs=epoch, concur=concur, mission=mission, prev_fail_reports_filename=prev_fail_reports_filename, 
+                           manual_spool_fail=manual_spool_fail, **sys_kwargs)
             failed_iters += res[0]
             total_iters += res[1]
             metrics += res[2]

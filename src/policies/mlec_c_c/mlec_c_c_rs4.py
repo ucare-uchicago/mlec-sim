@@ -5,6 +5,7 @@ from heapq import heappush
 import json
 import ast
 from pprint import pformat
+import random
 
 from components.disk import Disk
 from components.spool import Spool
@@ -27,7 +28,9 @@ class MLEC_C_C_RS4(Policy):
         self.affected_rackgroups = {}
         self.sys_failed = False
         self.loss_trigger_diskId = -1
-        
+        self.manual_spoolId = -1
+        self.manual_spool_fail = False
+        self.manual_spool_fail_sample = None
 
     def update_disk_state(self, event_type, diskId):
         disk = self.disks[diskId]
@@ -110,6 +113,7 @@ class MLEC_C_C_RS4(Policy):
                 rackgroup = self.rackgroups[mpool.rackgroupId]
                 rackgroup.affected_mpools[mpool.mpoolId] = 1
                 self.affected_rackgroups[rackgroup.rackgroupId] = 1
+                # logging.info("rack group {} affected mpools {}".format(mpool.rackgroupId, rackgroup.affected_mpools))
                 return spool.spoolId
     
 
@@ -204,7 +208,7 @@ class MLEC_C_C_RS4(Policy):
         repaired_time = self.curr_time - spool.repair_start_time
         if repaired_time == 0:            
             repaired_percent = 0
-            spool.curr_repair_data_remaining = self.sys.spool_size * self.sys.diskSize/5
+            spool.curr_repair_data_remaining = self.sys.spool_size * self.sys.diskSize
         else:
             repaired_percent = repaired_time / spool.repair_time[0]
             spool.curr_repair_data_remaining = spool.curr_repair_data_remaining * (1 - repaired_percent)
@@ -309,6 +313,8 @@ class MLEC_C_C_RS4(Policy):
 
     def manual_inject_failures(self, fail_report, simulate):
         # logging.info("{}".format(pformat(fail_report)))
+        # for spoolId in self.spools:
+        #     logging.info("spoolid: {}  state: {}".format(spoolId, self.spools[spoolId].state))
         for spool_info in fail_report['spool_infos']:
             spoolId = int(spool_info['spoolId'])
             spool = self.sys.spools[spoolId]
@@ -375,13 +381,40 @@ class MLEC_C_C_RS4(Policy):
             self.sys.fail_reports.append(fail_report)
             return
         
+        frozen_disks = []
 
-        for item in fail_report['repair_queue']:
-            (e_time, e_type, e_diskId) = ast.literal_eval(item)
-            heappush(self.simulation.repair_queue, (float(e_time), e_type, int(e_diskId)))
-            #     print('yes!')
+        if self.manual_spool_fail:
+            diskId = fail_report['trigger_disk']
+            disk = self.disks[diskId]
+            spool = self.spools[disk.spoolId]
+            mpool = self.mpools[spool.mpoolId]
+            manual_spoolId = random.sample(mpool.spoolIds, 1)[0]
+            while manual_spoolId in mpool.failed_spools:
+                manual_spoolId = random.sample(mpool.spoolIds, 1)[0]
+            self.manual_spoolId = manual_spoolId
+            manual_spool = self.spools[manual_spoolId]
+            for failedDiskId in manual_spool.failed_disks:
+                failedDisk = self.disks[failedDiskId]
+                failedDisk.state = Disk.STATE_NORMAL
+                if len(manual_spool.failed_disks) == 0:
+                    self.affected_spools.pop(failedDisk.spoolId, None)
+                    self.mpools[manual_spool.mpoolId].affected_spools.pop(failedDisk.spoolId, None)
+            manual_spool.failed_disks.clear()
+            
+            heappush(self.simulation.failure_queue, (float(self.manual_spool_fail_sample['curr_time']), Spool.EVENT_MANUAL_FAIL, manual_spoolId))
+            for frozen_diskId in manual_spool.diskIds:
+                frozen_disks.append(frozen_diskId)
+        
+        
+        for spoolId in self.affected_spools:
+            spool = self.spools[spoolId]
+            for frozen_diskId in spool.failed_disks:
+                frozen_disks.append(frozen_diskId)
+        
         
         self.update_repair_events(Disk.EVENT_FAIL, int(fail_report['trigger_disk']), self.simulation.repair_queue)
+
+        return frozen_disks
 
         # logging.info('detect queue: {}'.format(self.simulation.failure_queue))
         # logging.info('repair queue: {}'.format(self.simulation.repair_queue))
@@ -392,5 +425,39 @@ class MLEC_C_C_RS4(Policy):
         #                     spoolId, spool.failed_disks, spool.failed_disks_in_repair))
         
             
-        
+    def generate_manual_spool_fail_id(self):
+        self.manual_spoolId = random.sample(self.spools.keys(), 1)[0]
+        return self.spools[self.manual_spoolId].diskIds
 
+    def manual_inject_spool_failure(self):
+        spool = self.spools[self.manual_spoolId]
+        # logging.info("spool state{} mpool affected spools{}".format(spool.state, self.mpools[spool.mpoolId].affected_spools))
+
+        # print(self.manual_spool_fail_sample)
+        for disk_info in self.manual_spool_fail_sample['disk_infos']:
+            diskId = int(disk_info['diskId']) + spool.diskIds[0]
+            disk = self.sys.disks[diskId]
+            disk.state = Disk.STATE_FAILED
+            disk.curr_repair_data_remaining = float(disk_info['curr_repair_data_remaining'])
+            disk.estimate_repair_time = float(disk_info['estimate_repair_time'])
+            disk.repair_start_time = float(disk_info['repair_start_time'])
+
+            repair_time = disk_info['repair_time']
+            for key, value in repair_time.items():
+                disk.repair_time[int(key)] = float(value)
+
+            spool.failed_disks[diskId] = 1
+            self.affected_spools[disk.spoolId] = 1
+            self.mpools[spool.mpoolId].affected_spools[disk.spoolId] = 1
+
+        diskId = int(self.manual_spool_fail_sample['trigger_disk'])+ spool.diskIds[0]
+
+        self.update_diskgroup_state(Disk.EVENT_FAIL, diskId)
+
+        # logging.info("spoolId: {} spool state{} mpool affected spools{}".format(spool.spoolId, spool.state, self.mpools[spool.mpoolId].affected_spools))
+        self.update_diskgroup_priority(Disk.EVENT_FAIL, spool.spoolId, diskId)
+        
+        # for spoolId in self.spools:
+        #     logging.info("spoolid: {}  state: {}".format(spoolId, self.spools[spoolId].state))
+
+        return diskId

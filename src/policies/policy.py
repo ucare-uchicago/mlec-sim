@@ -94,6 +94,12 @@ class Policy:
             disk.repair_time = {}
             self.curr_prio_repair_started = False
     
+    def generate_manual_spool_fail_id(self) -> None:
+        return
+
+    def manual_inject_spool_failure(self) -> int:
+        return 0
+
     def manual_inject_failures(self, fail_report, simulate) -> None:
         return None
 

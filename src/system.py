@@ -123,6 +123,8 @@ class System:
         self.collect_fail_reports = collect_fail_reports
         self.fail_reports = []
         self.detection_time = float(detection_time)/60/24   # convert it from in min to in days
+        self.manual_spool_fail = False
+        self.spool_samples = []
         # ---
         config_system_layout(self.place_type, self)
 

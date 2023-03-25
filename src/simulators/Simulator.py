@@ -15,6 +15,7 @@ from simulate import Simulate
 from metrics import Metrics
 from constants.time import YEAR
 from constants.SimulationResult import SimulationResult
+from constants.PlacementType import PlacementType
 
 from system import System
 from failure_generator import FailureGenerator
@@ -28,7 +29,7 @@ class Simulator:
                 num_local_fail_to_report, num_net_fail_to_report, prev_fail_reports_filename) -> SimulationResult:
         raise NotImplementedError("simulate() not implemented")
 
-    def iter(self, afr, iters, mission, prev_fail_reports_filename=None, **sys_kwargs):
+    def iter(self, afr, iters, mission, prev_fail_reports_filename=None, manual_spool_fail=False, **sys_kwargs):
         try:
             res = 0
             start = time.time()
@@ -44,8 +45,31 @@ class Simulator:
 
             prev_fail_reports = None
             if prev_fail_reports_filename:
+                if sys.place_type in [PlacementType.SLEC_LOCAL_CP, PlacementType.SLEC_LOCAL_DP]:
+                    prev_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
+                                sys.top_k, sys.top_m, sys.k, sys.m, sys.place_type, 
+                                sys.num_local_fail_to_report-1, sys.repair_scheme)
+                elif sys.place_type in [PlacementType.SLEC_NET_CP, PlacementType.SLEC_NET_DP]:
+                    prev_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
+                                sys.top_k, sys.top_m, sys.k, sys.m, sys.place_type, 
+                                sys.num_net_fail_to_report-1, sys.repair_scheme)
+                elif sys.place_type in [PlacementType.MLEC_C_C, PlacementType.MLEC_C_D, PlacementType.MLEC_D_C, PlacementType.MLEC_D_D]:
+                    prev_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f{}f_rs{}.log'.format(
+                                sys.top_k, sys.top_m, sys.k, sys.m, sys.place_type, sys.num_net_fail_to_report-1,
+                                0, sys.repair_scheme)
                 with open(prev_fail_reports_filename, 'r') as f:
                     prev_fail_reports = json.load(f)
+            if manual_spool_fail:
+                sys.manual_spool_fail = True
+                if sys.place_type in [PlacementType.MLEC_C_C, PlacementType.MLEC_D_C]:
+                    local_place = PlacementType.SLEC_LOCAL_CP
+                else:
+                    local_place = PlacementType.SLEC_LOCAL_DP
+                spool_samples_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
+                        1, 0, sys.k, sys.m, local_place, sys.m+1, 0)
+                with open(spool_samples_filename, 'r') as f:
+                    sys.spool_samples = json.load(f)
+
             for iter in range(0, iters):
                 # logging.info("")
                 iter_start = time.time()
@@ -67,7 +91,7 @@ class Simulator:
     # This is a parallel/multi-iter wrapper around iter() function
     # We run X threads in parallel to run the simulation. X = concur.
     # ----------------------------
-    def run(self, afr, iters, epochs, concur=10, mission=YEAR, prev_fail_reports_filename=None, **sys_kwargs):
+    def run(self, afr, iters, epochs, concur=10, mission=YEAR, prev_fail_reports_filename=None, manual_spool_fail=False, **sys_kwargs):
         # So tick(state) is for a single system, and we want to simulate multiple systems
         executor = ProcessPoolExecutor(concur)
         
@@ -77,7 +101,7 @@ class Simulator:
         fail_reports = []
 
         for epoch in range(0, epochs):
-            futures.append(executor.submit(self.iter, afr, iters, mission, prev_fail_reports_filename, **sys_kwargs))
+            futures.append(executor.submit(self.iter, afr, iters, mission, prev_fail_reports_filename, manual_spool_fail, **sys_kwargs))
         ress = wait_futures(futures)
         
         executor.shutdown()

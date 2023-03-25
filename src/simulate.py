@@ -2,6 +2,7 @@ from state import State
 from system import System
 from components.disk import Disk
 from components.rack import Rack
+from components.spool import Spool
 from constants.PlacementType import PlacementType
 from constants.Components import Components
 from mytimer import Mytimer
@@ -74,6 +75,8 @@ class Simulate:
         else:
             start_genfailure_time = time.time()
             initialFailures = failureGenerator.gen_new_failures(self.sys.num_disks)
+            
+
             if self.prev_fail_reports != None:
                 fail_report_index = random.randrange(len(self.prev_fail_reports))
                 fail_report = self.prev_fail_reports[fail_report_index]
@@ -81,9 +84,32 @@ class Simulate:
                 # logging.info('fail_report: {}'.format(pformat(fail_report)))
                 # self.log.append('fail_report: {}'.format(pformat(fail_report)))
                 self.curr_time = float(fail_report['curr_time'])
-                self.state.policy.manual_inject_failures(fail_report, self)
-                for disk_info in fail_report['disk_infos']:
-                    initialFailures[disk_info['diskId']] = YEAR*10000
+                if self.sys.manual_spool_fail:
+                    spool_sample_index = random.randrange(len(self.sys.spool_samples))
+                    spool_sample = self.sys.spool_samples[spool_sample_index]
+                    if float(spool_sample['curr_time']) > self.curr_time:
+                        self.state.policy.manual_spool_fail = True
+                        self.state.policy.manual_spool_fail_sample = spool_sample
+
+                if self.sys.place_type in [PlacementType.MLEC_C_C, PlacementType.MLEC_C_D, PlacementType.MLEC_D_C, PlacementType.MLEC_D_D]:
+                    frozen_disks = self.state.policy.manual_inject_failures(fail_report, self)
+                    for frozen_diskId in frozen_disks:
+                        initialFailures[frozen_diskId] = YEAR*10000
+                else:
+                    self.state.policy.manual_inject_failures(fail_report, self)
+                    for disk_info in fail_report['disk_infos']:
+                        initialFailures[disk_info['diskId']] = YEAR*10000
+            else:
+                if self.sys.manual_spool_fail:
+                    spool_sample_index = random.randrange(len(self.sys.spool_samples))
+                    spool_sample = self.sys.spool_samples[spool_sample_index]
+                    if float(spool_sample['curr_time']) > self.curr_time:
+                        self.state.policy.manual_spool_fail = True
+                        self.state.policy.manual_spool_fail_sample = spool_sample
+                        frozen_disks = self.state.policy.generate_manual_spool_fail_id()
+                        for frozen_diskId in frozen_disks:
+                            initialFailures[frozen_diskId] = YEAR*10000
+                        heappush(self.failure_queue, (float(spool_sample['curr_time']), Spool.EVENT_MANUAL_FAIL, 0))
                 
             finish_genfailure_time = time.time()
             mytimer.resetGenFailTime += finish_genfailure_time - start_state_reset_time
@@ -100,6 +126,8 @@ class Simulate:
             for diskId in failure_idxs:
                 heappush(self.failure_queue, (initialFailures[diskId], Disk.EVENT_FAIL, diskId))
                 self.sys.metrics.failure_count += 1
+            
+            
         
         #-----------------------------------------------------
         # generate disks failures events from failure traces
@@ -137,7 +165,7 @@ class Simulate:
     # run simulation based on statistical model or production traces
     #----------------------------------------------------------------
     def run_simulation(self, failureGenerator, mytimer):
-        # logging.info("---------")
+        logging.info("---------")
         # self.log.append("---------")
 
         self.sys.metrics.iter_count += 1
@@ -182,7 +210,7 @@ class Simulate:
             get_event_done_time = time.time()
             self.mytimer.getEventTime += (get_event_done_time - event_start)
 
-            # logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
+            logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
             # self.log.append("----record----  {} {} {}".format(event_time, event_type, diskId))
             
             #--------------------------------------
@@ -192,6 +220,18 @@ class Simulate:
             self.state.update_curr_time(self.curr_time)
             update_clock_done_time = time.time()
             self.mytimer.updateClockTime += (update_clock_done_time - get_event_done_time)
+
+            if event_type == Spool.EVENT_MANUAL_FAIL:
+                diskId = self.state.policy.manual_inject_spool_failure()
+                if self.state.policy.check_pdl():
+                    prob = 1
+                    # logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+                    # self.log.append("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+                    break
+
+                self.update_repair_events(Disk.EVENT_FAIL, diskId)
+                events += 1
+                continue
 
             self.state.policy.update_disk_state(event_type, diskId)
             update_state_done_time = time.time()
@@ -240,7 +280,7 @@ class Simulate:
                 #curr_failures = self.state.get_failed_disks()
                 if self.state.policy.check_pdl():
                     prob = 1
-                    # logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+                    logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     # self.log.append("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     break
 
