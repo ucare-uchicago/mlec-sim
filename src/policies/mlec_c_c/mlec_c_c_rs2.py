@@ -163,7 +163,9 @@ class MLEC_C_C_RS2(Policy):
                     spool.failed_disks_network_repair[failedDiskId] = 1
                     failed_disk = self.disks[failedDiskId]
                     min_disk_remaining_data = min(min_disk_remaining_data, failed_disk.curr_repair_data_remaining)
+                    logging.info("disk {} repair data {}".format(failedDiskId, failed_disk.curr_repair_data_remaining))
                 spool.repair_data = min_disk_remaining_data
+                logging.info("spool {} repair data {}".format(spool.spoolId, spool.repair_data))
 
                 mpool = self.mpools[spool.mpoolId]
                 mpool.failed_spools_undetected.pop(spool.spoolId, None)
@@ -429,7 +431,7 @@ class MLEC_C_C_RS2(Policy):
             rackgroup.affected_mpools_in_repair.clear()
 
     def manual_inject_failures(self, fail_report, simulate):
-        # logging.info("{}".format(pformat(fail_report)))
+        logging.info("{}".format(pformat(fail_report)))
         for spool_info in fail_report['spool_infos']:
             spoolId = int(spool_info['spoolId'])
             spool = self.sys.spools[spoolId]
@@ -595,7 +597,7 @@ class MLEC_C_C_RS2(Policy):
             disk.curr_repair_data_remaining = float(disk_info['curr_repair_data_remaining'])
             disk.estimate_repair_time = float(disk_info['estimate_repair_time'])
             disk.repair_start_time = float(disk_info['repair_start_time'])
-            disk.failure_detection_time = disk.repair_start_time + self.sys.detection_time
+            disk.failure_detection_time = disk.repair_start_time
             if disk.failure_detection_time < self.curr_time:
                 disk.failure_detection_time = 0
                 spool.failed_disks_in_repair[diskId] = 1

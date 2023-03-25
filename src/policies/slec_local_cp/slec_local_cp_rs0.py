@@ -53,7 +53,7 @@ class SLEC_LOCAL_CP_RS0(Policy):
                                 0: failedDisk.repair_time[0]
                                 },
                             'repair_start_time': failedDisk.repair_start_time,
-                            'curr_repair_data_remaining': failedDisk.curr_repair_data_remaining
+                            'curr_repair_data_remaining': self.sys.diskSize
                             })
                     # logging.info('new fail report: {}'.format(fail_report))
                     self.sys.fail_reports.append(fail_report)
@@ -69,9 +69,9 @@ class SLEC_LOCAL_CP_RS0(Policy):
     def update_disk_repair_time(self, disk):
         repair_time = float(self.sys.diskSize)/float(self.sys.diskIO)
 
-        disk.repair_time[0] = repair_time / 3600 / 24 + self.sys.detection_time
-        disk.repair_start_time = self.curr_time
-        disk.estimate_repair_time = self.curr_time + disk.repair_time[0]
+        disk.repair_time[0] = repair_time / 3600 / 24 
+        disk.repair_start_time = self.curr_time + self.sys.detection_time
+        disk.estimate_repair_time = disk.repair_start_time + disk.repair_time[0]
         # logging.info("repair time: {}".format(disk.repair_time[0]))
         
     

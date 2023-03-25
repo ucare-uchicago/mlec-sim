@@ -536,7 +536,7 @@ class MLEC_C_C_RS0(Policy):
             disk.curr_repair_data_remaining = float(disk_info['curr_repair_data_remaining'])
             disk.estimate_repair_time = float(disk_info['estimate_repair_time'])
             disk.repair_start_time = float(disk_info['repair_start_time'])
-            disk.failure_detection_time = disk.repair_start_time + self.sys.detection_time
+            disk.failure_detection_time = disk.repair_start_time
             if disk.failure_detection_time < self.curr_time:
                 disk.failure_detection_time = 0
                 spool.failed_disks_in_repair[diskId] = 1
