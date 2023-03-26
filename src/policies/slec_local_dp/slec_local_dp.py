@@ -95,7 +95,7 @@ class SLEC_LOCAL_DP(Policy):
                     if sys_survive_prob > 0.1:
                         print("sys_survive_prob is as large as {}.. Please report to Meng!".format(sys_survive_prob))
                 if self.sys.collect_fail_reports:
-                    fail_report = {'curr_time': self.curr_time, 'disk_infos': []}
+                    fail_report = {'curr_time': self.curr_time, 'disk_infos': [], 'trigger_disk': int(diskId)}
                     for failedDiskId in self.failed_disks:
                         failedDisk = self.disks[failedDiskId]
                         
@@ -108,7 +108,8 @@ class SLEC_LOCAL_DP(Policy):
                             'repair_start_time': failedDisk.repair_start_time,
                             'failure_detection_time': failedDisk.failure_detection_time,
                             'repair_time': json.dumps(failedDisk.repair_time),
-                            'priority_percents': json.dumps(failedDisk.priority_percents)
+                            'priority_percents': json.dumps(failedDisk.priority_percents),
+                            'curr_prio_repair_started': failedDisk.curr_prio_repair_started
                             })
                     # logging.info('new fail report: {}'.format(fail_report))
                     self.sys.fail_reports.append(fail_report)
