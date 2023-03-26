@@ -430,7 +430,7 @@ class MLEC_C_C_RS3(Policy):
             rackgroup.affected_mpools_in_repair.clear()
 
     def manual_inject_failures(self, fail_report, simulate):
-        logging.info("{}".format(pformat(fail_report)))
+        # logging.info("{}".format(pformat(fail_report)))
         for spool_info in fail_report['spool_infos']:
             spoolId = int(spool_info['spoolId'])
             spool = self.sys.spools[spoolId]
@@ -589,7 +589,7 @@ class MLEC_C_C_RS3(Policy):
     def manual_inject_spool_failure(self):
         spool = self.spools[self.manual_spoolId]
         # logging.info("spool state{} mpool affected spools{}".format(spool.state, self.mpools[spool.mpoolId].affected_spools))
-        logging.info("{}".format(pformat(self.manual_spool_fail_sample)))
+        # logging.info("{}".format(pformat(self.manual_spool_fail_sample)))
 
         for disk_info in self.manual_spool_fail_sample['disk_infos']:
             diskId = int(disk_info['diskId']) + spool.diskIds[0]
@@ -615,6 +615,11 @@ class MLEC_C_C_RS3(Policy):
             self.mpools[spool.mpoolId].affected_spools[disk.spoolId] = 1
 
         diskId = int(self.manual_spool_fail_sample['trigger_disk'])+ spool.diskIds[0]
+
+        for undetectedDiskId in spool.failed_disks_undetected:
+            if int(undetectedDiskId) != diskId:
+                undetectedDisk = self.disks[undetectedDiskId]
+                heappush(self.simulation.failure_queue, (undetectedDisk.failure_detection_time, Disk.EVENT_DETECT, undetectedDiskId))
 
         self.update_diskgroup_state(Disk.EVENT_FAIL, diskId)
 

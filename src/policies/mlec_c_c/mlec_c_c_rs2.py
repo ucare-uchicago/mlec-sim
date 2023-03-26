@@ -615,6 +615,11 @@ class MLEC_C_C_RS2(Policy):
 
         diskId = int(self.manual_spool_fail_sample['trigger_disk'])+ spool.diskIds[0]
 
+        for undetectedDiskId in spool.failed_disks_undetected:
+            if int(undetectedDiskId) != diskId:
+                undetectedDisk = self.disks[undetectedDiskId]
+                heappush(self.simulation.failure_queue, (undetectedDisk.failure_detection_time, Disk.EVENT_DETECT, undetectedDiskId))
+
         self.update_diskgroup_state(Disk.EVENT_FAIL, diskId)
 
         # logging.info("spoolId: {} spool state{} mpool affected spools{}".format(spool.spoolId, spool.state, self.mpools[spool.mpoolId].affected_spools))
