@@ -88,7 +88,10 @@ class ManualFailSim(Simulator):
         
         # print(len(fail_reports))
         # print(metrics)
+        sample_limit = 10000
         if placement in [PlacementType.SLEC_LOCAL_CP, PlacementType.SLEC_LOCAL_DP]:
+            if total_drives < 200:
+                sample_limit = 50000
             new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
                         k_net, p_net, k_local, p_local, placement, num_local_fail_to_report, repair_scheme)
         elif placement in [PlacementType.SLEC_NET_CP, PlacementType.SLEC_NET_DP]:
@@ -97,12 +100,14 @@ class ManualFailSim(Simulator):
         elif placement in [PlacementType.MLEC_C_C, PlacementType.MLEC_C_D, PlacementType.MLEC_D_C, PlacementType.MLEC_D_D]:
             new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f{}f_rs{}.log'.format(
                         k_net, p_net, k_local, p_local, placement, num_net_fail_to_report, num_local_fail_to_report, repair_scheme)
-            
+        
+        
+
         with open(new_fail_reports_filename, 'w') as fout:
-            if len(fail_reports) <= 10000:
+            if len(fail_reports) <= sample_limit:
                 json.dump(fail_reports, fout)
             else:
-                json.dump(fail_reports[0:10000], fout)
+                json.dump(fail_reports[0:sample_limit], fout)
 
         total_iters *= mission/YEAR
 
