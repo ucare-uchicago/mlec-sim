@@ -37,6 +37,7 @@ class Spool:
         self.repair_time = {}
         # repair data for each disk to repair in network
         self.repair_data = repair_data
+        self.lost_local_stripes: float = 0.0
         # total data to be repaired in network
         self.total_network_repair_data: float = 0.0
         self.is_in_repair: bool = False

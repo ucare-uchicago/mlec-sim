@@ -49,6 +49,8 @@ class MLEC_D_C_RS2(Policy):
 
         self.fail_again = False
         self.fail_again_diskId = -1
+
+        self.lost_local_stripes = 0
     
     def update_disk_state(self, event_type, diskId):
         disk = self.disks[diskId]
@@ -151,6 +153,13 @@ class MLEC_D_C_RS2(Policy):
                 for failedDiskId in spool.failed_disks_in_repair:
                     self.pause_disk_repair_time(failedDiskId)
 
+                min_disk_remaining_data = self.sys.diskSize
+                for failedDiskId in spool.failed_disks_in_repair:
+                    spool.failed_disks_network_repair[failedDiskId] = 1
+                    failed_disk = self.disks[failedDiskId]
+                    min_disk_remaining_data = min(min_disk_remaining_data, failed_disk.curr_repair_data_remaining)
+                spool.lost_local_stripes = min_disk_remaining_data * self.sys.n
+                self.lost_local_stripes += spool.lost_local_stripes
                 return spool.spoolId
         
         if event_type == Disk.EVENT_DETECT:
@@ -214,6 +223,8 @@ class MLEC_D_C_RS2(Policy):
 
             spool.total_network_repair_data = 0
             spool.repair_data = 0
+            self.lost_local_stripes -= spool.lost_local_stripes
+            spool.lost_local_stripes = 0
             spool.is_in_repair = False
 
             rack = self.racks[rackId]
@@ -362,6 +373,14 @@ class MLEC_D_C_RS2(Policy):
                 self.failed_spools_undetected.append(spool.spoolId)
                 self.racks[rackId].failed_spools_undetected.append(spool.spoolId)
 
+                min_disk_remaining_data = self.sys.diskSize
+                for failedDiskId in spool.failed_disks_in_repair:
+                    spool.failed_disks_network_repair[failedDiskId] = 1
+                    failed_disk = self.disks[failedDiskId]
+                    min_disk_remaining_data = min(min_disk_remaining_data, failed_disk.curr_repair_data_remaining)
+                spool.lost_local_stripes = min_disk_remaining_data * self.sys.n
+                self.lost_local_stripes += spool.lost_local_stripes
+
                 self.update_diskgroup_priority(Disk.EVENT_FAIL, spoolId, self.fail_again_diskId)
                 self.fail_again = False
                 self.fail_again_diskId = -1
@@ -377,7 +396,15 @@ class MLEC_D_C_RS2(Policy):
     def compute_spool_priority_percents(self, spool, rackId):
         for i in range(spool.priority):
             priority = i+1
-            spool.priority_percents[priority] = mlec_d_c_prio.compute_spool_priority_percent(self.state, self.affected_racks, rackId, priority)
+            priority_percent = mlec_d_c_prio.compute_spool_priority_percent(self.state, self.affected_racks, rackId, priority)
+            if priority > 1:
+                average_lost_stripe_per_pool = float(self.lost_local_stripes - spool.lost_local_stripes)/(len(self.failed_spools) - 1)
+                average_lost_stripe_per_pool_percent = average_lost_stripe_per_pool / (self.sys.spool_size * self.sys.diskSize)
+                # print("total lost: {} spool lost: {} priority_percent {}  average_lost_stripe_per_pool_percent {} priority {}".format(
+                #     self.lost_local_stripes, spool.lost_local_stripes, priority_percent, average_lost_stripe_per_pool_percent, priority
+                # ))
+                priority_percent = priority_percent * (average_lost_stripe_per_pool_percent ** (priority - 1))
+            spool.priority_percents[priority] = priority_percent
         # logging.info("priority_percents: {}".format(disk.priority_percents))
     
     def resume_spool_repair_time(self, spoolId, priority, rackId):
@@ -441,6 +468,7 @@ class MLEC_D_C_RS2(Policy):
             spool.repair_time.clear()
             spool.repair_data = 0
             spool.total_network_repair_data = 0
+            spool.lost_local_stripes = 0
             spool.priority_percents.clear()
             spool.priority = 0
             spool.curr_prio_repair_started = False
@@ -475,6 +503,7 @@ class MLEC_D_C_RS2(Policy):
                     'failed_disks_network_repair': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_network_repair.items()}),
                     'total_network_repair_data': affectedSpool.total_network_repair_data,
                     'repair_data': affectedSpool.repair_data,
+                    'lost_local_stripes': affectedSpool.lost_local_stripes,
                     'curr_prio_repair_started': affectedSpool.curr_prio_repair_started,
                     'priority_percents': json.dumps({int(k): v for k, v in affectedSpool.priority_percents.items()}),
                     })
@@ -510,6 +539,7 @@ class MLEC_D_C_RS2(Policy):
             fail_report['racks_in_repair'] = json.dumps({int(k): v for k, v in self.racks_in_repair.items()})
             fail_report['affected_racks'] = json.dumps({int(k): v for k, v in self.affected_racks.items()})
             fail_report['failed_spools'] = json.dumps({int(k): v for k, v in self.failed_spools.items()})
+            fail_report['lost_local_stripes'] = self.lost_local_stripes
 
 
             for (e_time, e_type, e_diskId) in list(self.simulation.failure_queue):
@@ -530,6 +560,7 @@ class MLEC_D_C_RS2(Policy):
 
             spool.total_network_repair_data = float(spool_info['total_network_repair_data'])
             spool.repair_data = float(spool_info['repair_data'])
+            spool.lost_local_stripes = float(spool_info['lost_local_stripes'])
             spool.curr_prio_repair_started = spool_info['curr_prio_repair_started']
             spool.priority = int(spool_info['priority'])
             spool.is_in_repair = spool_info['is_in_repair']
@@ -610,6 +641,8 @@ class MLEC_D_C_RS2(Policy):
             self.affected_racks[int(key)] = float(value)
         for key, value in json.loads(fail_report['failed_spools']).items():
             self.failed_spools[int(key)] = float(value)
+        
+        self.lost_local_stripes = float(fail_report['lost_local_stripes'])
 
 
         # if thhis fail report from prev stage already fails in current stage
@@ -642,6 +675,7 @@ class MLEC_D_C_RS2(Policy):
             manual_spool.curr_prio_repair_started = False
             manual_spool.total_network_repair_data = 0
             manual_spool.repair_data = 0
+            manual_spool.lost_local_stripes = 0
             assert manual_spool.priority == 0, "this manual spool should have priority 0"
             self.affected_spools.pop(manual_spool.spoolId, None)
 
