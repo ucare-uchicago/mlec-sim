@@ -536,13 +536,9 @@ class MLEC_D_C_RS0(Policy):
         reserved_disks = {}
         
         if self.manual_spool_fail:
-            diskId = fail_report['trigger_disk']
-            disk = self.disks[diskId]
-            spool = self.spools[disk.spoolId]
-            mpool = self.mpools[spool.mpoolId]
-            manual_spoolId = random.sample(mpool.spoolIds, 1)[0]
-            while manual_spoolId in mpool.failed_spools:
-                manual_spoolId = random.sample(mpool.spoolIds, 1)[0]
+            manual_spoolId = random.sample(self.spools.keys(), 1)[0]
+            while manual_spoolId in self.failed_spools:
+                manual_spoolId = random.sample(self.spools.keys(), 1)[0]
             self.manual_spoolId = manual_spoolId
             manual_spool = self.spools[manual_spoolId]
             for failedDiskId in manual_spool.failed_disks:
@@ -559,7 +555,6 @@ class MLEC_D_C_RS0(Policy):
             manual_spool.total_network_repair_data = 0
             assert manual_spool.priority == 0, "this manual spool should have priority 0"
             self.affected_spools.pop(manual_spool.spoolId, None)
-            self.mpools[manual_spool.mpoolId].affected_spools.pop(manual_spool.spoolId, None)
 
             heappush(self.simulation.failure_queue, (float(self.manual_spool_fail_sample['curr_time']), Spool.EVENT_MANUAL_FAIL, manual_spoolId))
             for frozen_diskId in manual_spool.diskIds:
@@ -585,3 +580,58 @@ class MLEC_D_C_RS0(Policy):
         heappush(self.simulation.failure_queue, (disk.failure_detection_time, Disk.EVENT_DETECT, diskId))
 
         return frozen_disks
+
+    def generate_manual_spool_fail_id(self):
+        self.manual_spoolId = random.sample(self.spools.keys(), 1)[0]
+        return self.spools[self.manual_spoolId].diskIds
+
+    def manual_inject_spool_failure(self):
+        spool = self.spools[self.manual_spoolId]
+
+        logging.info("{}".format(pformat(self.manual_spool_fail_sample)))
+        for disk_info in self.manual_spool_fail_sample['disk_infos']:
+            diskId = int(disk_info['diskId']) + spool.diskIds[0]
+            disk = self.sys.disks[diskId]
+            disk.state = Disk.STATE_FAILED
+            disk.curr_repair_data_remaining = float(disk_info['curr_repair_data_remaining'])
+            disk.estimate_repair_time = float(disk_info['estimate_repair_time'])
+            disk.repair_start_time = float(disk_info['repair_start_time'])
+            disk.failure_detection_time = disk.repair_start_time
+            if disk.failure_detection_time < self.curr_time:
+                disk.failure_detection_time = 0
+                spool.failed_disks_in_repair[diskId] = 1
+            else:
+                spool.failed_disks_undetected[diskId] = 1
+            disk.no_need_to_detect = False
+
+            repair_time = disk_info['repair_time']
+            for key, value in repair_time.items():
+                disk.repair_time[int(key)] = float(value)
+
+            spool.failed_disks[diskId] = 1
+            self.affected_spools[disk.spoolId] = 1
+
+        diskId = int(self.manual_spool_fail_sample['trigger_disk'])+ spool.diskIds[0]
+
+        for undetectedDiskId in spool.failed_disks_undetected:
+            if int(undetectedDiskId) != diskId:
+                undetectedDisk = self.disks[undetectedDiskId]
+                heappush(self.simulation.failure_queue, (undetectedDisk.failure_detection_time, Disk.EVENT_DETECT, undetectedDiskId))
+
+        self.update_diskgroup_state(Disk.EVENT_FAIL, diskId)
+
+        # logging.info("spoolId: {} spool state{} mpool affected spools{}".format(spool.spoolId, spool.state, self.mpools[spool.mpoolId].affected_spools))
+        self.update_diskgroup_priority(Disk.EVENT_FAIL, spool.spoolId, diskId)
+
+        # for spoolId in self.spools:
+        #     logging.info("spoolid: {}  state: {}".format(spoolId, self.spools[spoolId].state))
+
+        diskfailures = self.simulation.failure_generator.gen_new_failures(self.sys.spool_size)
+        failure_idxs = np.where(diskfailures < self.simulation.mission_time - self.curr_time)[0]
+        for idx in failure_idxs:
+            failedDiskId = spool.diskIds[0] + idx
+            if failedDiskId not in spool.failed_disks:
+                disk_failure_time = diskfailures[idx] + self.curr_time
+                heappush(self.simulation.failure_queue, (disk_failure_time, Disk.EVENT_FAIL, failedDiskId))
+
+        return diskId
