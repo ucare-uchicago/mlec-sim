@@ -65,5 +65,5 @@ class Spool:
         self.priority_percents = {}
         self.curr_prio_repair_started: bool = False
         #
-        self.good_num: int = 0
-        self.fail_num: int = 0
+        # self.good_num: int = 0
+        # self.fail_num: int = 0
