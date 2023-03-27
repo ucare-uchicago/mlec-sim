@@ -19,7 +19,7 @@ from policies.policy import Policy
 from .pdl import mlec_d_c_pdl
 from .repair import mlec_d_c_repair
 
-class MLEC_D_C_RS0(Policy):
+class MLEC_D_C_RS1(Policy):
     #--------------------------------------
     # system state consists of disks state
     #--------------------------------------
@@ -113,6 +113,7 @@ class MLEC_D_C_RS0(Policy):
     # update diskgroup state
     #----------------------------------------------
     def update_diskgroup_state(self, event_type, diskId):
+        # self.simulation.log.append("    self.failed_spools_undetected:{}".format(self.failed_spools_undetected))
         if event_type == Disk.EVENT_FAIL:
             disk = self.disks[diskId]
             spool = self.spools[disk.spoolId]
@@ -127,7 +128,6 @@ class MLEC_D_C_RS0(Policy):
             #                 diskId, disk.spoolId, spool.failed_disks, self.sys.m))
             if len(spool.failed_disks) > self.sys.m:
                 spool.state = Spool.STATE_FAILED
-                spool.total_network_repair_data = self.sys.diskSize * self.sys.spool_size
                 self.racks[rackId].failed_spools[spool.spoolId] = 1
                 self.affected_racks[rackId] = 1
                 self.failed_spools[spool.spoolId] = 1
@@ -140,37 +140,59 @@ class MLEC_D_C_RS0(Policy):
             spool = self.spools[disk.spoolId]
             if len(spool.failed_disks_in_repair) > self.sys.m:
                 spool.is_in_repair = True
+                for failedDiskId in spool.failed_disks_in_repair:
+                    spool.failed_disks_network_repair[failedDiskId] = 1
+                spool.total_network_repair_data = self.sys.diskSize * len(spool.failed_disks_network_repair)
                 return disk.spoolId
         
         if event_type == Spool.EVENT_REPAIR:
             spoolId = diskId
             spool = self.spools[spoolId]
             rackId = spool.rackId
-            new_failure_intervals = self.simulation.failure_generator.gen_new_failures(len(spool.failed_disks))
-            for i, failedDiskId in enumerate(spool.failed_disks):
+            new_failure_intervals = self.simulation.failure_generator.gen_new_failures(len(spool.failed_disks_network_repair))
+            for i, failedDiskId in enumerate(spool.failed_disks_network_repair):
                 self.disks[failedDiskId].state = Disk.STATE_NORMAL
                 self.disks[failedDiskId].failure_detection_time = 0
                 self.disks[failedDiskId].no_need_to_detect = False
+                spool.failed_disks.pop(failedDiskId, None)
+                spool.failed_disks_in_repair.pop(failedDiskId, None)
                 disk_fail_time = new_failure_intervals[i] + self.curr_time
                 if disk_fail_time < self.simulation.mission_time:
                     heappush(self.simulation.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, failedDiskId))
             
+            spool.failed_disks_network_repair.clear()
+
+            assert len(spool.failed_disks_in_repair) == 0, "spool.failed_disks_in_repair should be empty!"
+            detect_count = 0
+            # self.simulation.log.append('spool {}  failed disks {} undetected disks {}'.format(spoolId, spool.failed_disks, spool.failed_disks_undetected))
+            for failedDiskId in spool.failed_disks_undetected:
+                failed_disk = self.disks[failedDiskId]
+                failed_disk.no_need_to_detect = False
+                if failed_disk.failure_detection_time <= self.curr_time:
+                    heappush(self.simulation.failure_queue, (self.curr_time, Disk.EVENT_DETECT, failedDiskId))
+                else:
+                    heappush(self.simulation.failure_queue, (failed_disk.failure_detection_time, Disk.EVENT_DETECT, failedDiskId))
+                detect_count += 1
+                # print(detect_count)
+                if detect_count > self.sys.m:
+                    break
+
             spool.total_network_repair_data = 0
-            spool.failed_disks.clear()
-            spool.failed_disks_in_repair.clear()
-            spool.failed_disks_undetected.clear()
-            spool.state = Spool.STATE_NORMAL
             spool.is_in_repair = False
-            self.affected_spools.pop(spool.spoolId, None)
-            
+
             rack = self.racks[rackId]
-            rack.failed_spools.pop(spoolId, None)
-            if len(self.racks[rackId].failed_spools) == 0:
-                self.affected_racks.pop(rackId, None)
-            self.failed_spools.pop(spoolId, None)
             rack.num_spools_in_repair -= 1
             if rack.num_spools_in_repair == 0:
                 self.racks_in_repair.pop(rackId, None)
+
+            if len(spool.failed_disks) <= self.sys.m:
+                spool.state = Spool.STATE_NORMAL
+                rack.failed_spools.pop(spoolId, None)
+                if len(self.racks[rackId].failed_spools) == 0:
+                    self.affected_racks.pop(rackId, None)
+                self.failed_spools.pop(spoolId, None)
+                if len(spool.failed_disks) == 0:
+                    self.affected_spools.pop(spool.spoolId, None)
             return spoolId
         
         if event_type == Spool.EVENT_FASTREBUILD:
@@ -225,6 +247,9 @@ class MLEC_D_C_RS0(Policy):
             
             self.repair_max_priority = max(self.repair_max_priority, spool.priority)
             self.priority_queue[spool.priority][spoolId] = 1
+            # if self.failed_spools_undetected[0] != spoolId:
+            #     self.simulation.log.append("spoolId {}  but the self.failed_spools_undetected is {}".format(spoolId, self.failed_spools_undetected))
+            #     self.simulation.print_log()
             assert self.failed_spools_undetected[0] == spoolId, "the detected spool should be the first element in the list!"
             self.failed_spools_undetected.pop(0)
             rack.failed_spools_undetected.pop(0)
@@ -326,6 +351,10 @@ class MLEC_D_C_RS0(Policy):
         per_spool_total_repair_bandwidth = total_repair_bandwidth / len(self.priority_queue[priority])
         repair_time = total_repair_data_readwrite / per_spool_total_repair_bandwidth
 
+        # logging.info("spool {} priority {} total_repair_data_readwrite {} per_spool_total_repair_bandwidth {} repair_time {}".format(
+        #     spool.spoolId, priority, total_repair_data_readwrite, per_spool_total_repair_bandwidth, repair_time
+        # ))
+
         return repair_time
 
     def check_pdl(self):
@@ -359,6 +388,7 @@ class MLEC_D_C_RS0(Policy):
             spool.failed_disks.clear()
             spool.failed_disks_undetected.clear()
             spool.failed_disks_in_repair.clear()
+            spool.failed_disks_network_repair.clear()
             spool.repair_time.clear()
             spool.total_network_repair_data = 0
             spool.priority_percents.clear()
@@ -392,6 +422,7 @@ class MLEC_D_C_RS0(Policy):
                     'failed_disks': json.dumps({int(k): v for k, v in affectedSpool.failed_disks.items()}),
                     'failed_disks_undetected': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_undetected.items()}),
                     'failed_disks_in_repair': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_in_repair.items()}),
+                    'failed_disks_network_repair': json.dumps({int(k): v for k, v in affectedSpool.failed_disks_network_repair.items()}),
                     'total_network_repair_data': affectedSpool.total_network_repair_data,
                     'curr_prio_repair_started': affectedSpool.curr_prio_repair_started,
                     'priority_percents': json.dumps({int(k): v for k, v in affectedSpool.priority_percents.items()}),
@@ -440,7 +471,8 @@ class MLEC_D_C_RS0(Policy):
         return
 
     def manual_inject_failures(self, fail_report, simulate):
-        logging.info("{}".format(pformat(fail_report)))
+        # logging.info("{}".format(pformat(fail_report)))
+        # self.simulation.log.append("{}".format(pformat(fail_report)))
         for spool_info in fail_report['spool_infos']:
             spoolId = int(spool_info['spoolId'])
             spool = self.sys.spools[spoolId]
@@ -474,6 +506,10 @@ class MLEC_D_C_RS0(Policy):
             failed_disks_in_repair = json.loads(spool_info['failed_disks_in_repair'])
             for key, value in failed_disks_in_repair.items():
                 spool.failed_disks_in_repair[int(key)] = int(value)
+            
+            failed_disks_network_repair = json.loads(spool_info['failed_disks_network_repair'])
+            for key, value in failed_disks_network_repair.items():
+                spool.failed_disks_network_repair[int(key)] = int(value)
             
             self.affected_spools[spoolId] = 1
             
@@ -588,7 +624,9 @@ class MLEC_D_C_RS0(Policy):
     def manual_inject_spool_failure(self):
         spool = self.spools[self.manual_spoolId]
 
-        logging.info("{}".format(pformat(self.manual_spool_fail_sample)))
+        # logging.info("{}".format(pformat(self.manual_spool_fail_sample)))
+        # self.simulation.log.append("{}".format(pformat(self.manual_spool_fail_sample)))
+
         for disk_info in self.manual_spool_fail_sample['disk_infos']:
             diskId = int(disk_info['diskId']) + spool.diskIds[0]
             disk = self.sys.disks[diskId]
