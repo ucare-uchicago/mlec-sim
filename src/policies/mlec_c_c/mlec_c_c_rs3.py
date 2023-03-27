@@ -210,7 +210,9 @@ class MLEC_C_C_RS3(Policy):
                 failed_disk.no_need_to_detect = False
                 if failed_disk.failure_detection_time <= self.curr_time:
                     heappush(self.simulation.failure_queue, (self.curr_time, Disk.EVENT_DETECT, failedDiskId))
-                    break
+                else:
+                    heappush(self.simulation.failure_queue, (failed_disk.failure_detection_time, Disk.EVENT_DETECT, failedDiskId))
+                break
             
             spool.is_in_repair = False
             mpool = self.mpools[spool.mpoolId]
