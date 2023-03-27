@@ -46,6 +46,9 @@ class MLEC_D_C_RS1(Policy):
         self.manual_spoolId = -1
         self.manual_spool_fail = False
         self.manual_spool_fail_sample = None
+
+        self.fail_again = False
+        self.fail_again_diskId = -1
     
     def update_disk_state(self, event_type, diskId):
         disk = self.disks[diskId]
@@ -169,12 +172,15 @@ class MLEC_D_C_RS1(Policy):
                 failed_disk = self.disks[failedDiskId]
                 failed_disk.no_need_to_detect = False
                 if failed_disk.failure_detection_time <= self.curr_time:
+                    failed_disk.failure_detection_time = self.curr_time
                     heappush(self.simulation.failure_queue, (self.curr_time, Disk.EVENT_DETECT, failedDiskId))
                 else:
                     heappush(self.simulation.failure_queue, (failed_disk.failure_detection_time, Disk.EVENT_DETECT, failedDiskId))
                 detect_count += 1
                 # print(detect_count)
                 if detect_count > self.sys.m:
+                    self.fail_again = True
+                    self.fail_again_diskId = failedDiskId
                     break
 
             spool.total_network_repair_data = 0
@@ -185,14 +191,14 @@ class MLEC_D_C_RS1(Policy):
             if rack.num_spools_in_repair == 0:
                 self.racks_in_repair.pop(rackId, None)
 
-            if len(spool.failed_disks) <= self.sys.m:
-                spool.state = Spool.STATE_NORMAL
-                rack.failed_spools.pop(spoolId, None)
-                if len(self.racks[rackId].failed_spools) == 0:
-                    self.affected_racks.pop(rackId, None)
-                self.failed_spools.pop(spoolId, None)
-                if len(spool.failed_disks) == 0:
-                    self.affected_spools.pop(spool.spoolId, None)
+            # set it to normal temporarily. Will check later.
+            spool.state = Spool.STATE_NORMAL
+            rack.failed_spools.pop(spoolId, None)
+            if len(self.racks[rackId].failed_spools) == 0:
+                self.affected_racks.pop(rackId, None)
+            self.failed_spools.pop(spoolId, None)
+            if len(spool.failed_disks) == 0:
+                self.affected_spools.pop(spool.spoolId, None)
             return spoolId
         
         if event_type == Spool.EVENT_FASTREBUILD:
@@ -204,7 +210,8 @@ class MLEC_D_C_RS1(Policy):
         spool = self.spools[spoolId]
         rackId = spool.rackId
         if event_type == Disk.EVENT_FAIL:
-            spool.failure_detection_time = self.curr_time + self.sys.detection_time
+            disk = self.disks[diskId]
+            spool.failure_detection_time = disk.failure_detection_time
             rack = self.racks[rackId]
             if self.repair_max_priority > 0:
                 for spId in self.priority_queue[self.repair_max_priority]:
@@ -226,8 +233,6 @@ class MLEC_D_C_RS1(Policy):
             spool.priority = self.max_priority
 
             self.compute_spool_priority_percents(spool, rackId)
-
-            spool.failure_detection_time = self.curr_time + self.sys.detection_time
 
             if self.repair_max_priority > 0:
                 for spId in self.priority_queue[self.repair_max_priority]:
@@ -316,6 +321,20 @@ class MLEC_D_C_RS1(Policy):
             if self.repair_max_priority > 0:
                 for spId in self.priority_queue[self.repair_max_priority]:
                     self.resume_spool_repair_time(spId, self.spools[spId].priority, rackId)
+
+            if self.fail_again:
+                # logging.info("self.max_priority {} self.repair_max_priority {}   spool {} priority {}".format(
+                #                 self.max_priority, self.repair_max_priority, spoolId, spool.priority))
+                spool.state = Spool.STATE_FAILED
+                self.racks[rackId].failed_spools[spool.spoolId] = 1
+                self.affected_racks[rackId] = 1
+                self.failed_spools[spool.spoolId] = 1
+                self.failed_spools_undetected.append(spool.spoolId)
+                self.racks[rackId].failed_spools_undetected.append(spool.spoolId)
+
+                self.update_diskgroup_priority(Disk.EVENT_FAIL, spoolId, self.fail_again_diskId)
+                self.fail_again = False
+                self.fail_again_diskId = -1
 
 
     
