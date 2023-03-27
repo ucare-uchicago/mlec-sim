@@ -6,10 +6,11 @@ class Spool:
     STATE_FAILED = "< slec pool state failed >"
 
     #----------------------------------
-    # The 2 possible events
+    # The possible events
     #----------------------------------
     EVENT_FAIL = "<slec pool failure>"
     EVENT_REPAIR = "<slec pool repair>"
+    EVENT_FASTREBUILD = "<slec pool fast rebuild>"
     EVENT_DELAYED_FAIL = "<slec pool delayed fail>"
     EVENT_MANUAL_FAIL = "<slec pool manual failure>"
 
@@ -34,7 +35,10 @@ class Spool:
         #-------------------------------
         self.percent = {} 
         self.repair_time = {}
+        # repair data for each disk to repair in network
         self.repair_data = repair_data
+        # total data to be repaired in network
+        self.total_network_repair_data: float = 0.0
         self.is_in_repair: bool = False
         #-------------------------------
         self.estimate_repair_time = 0.0
@@ -57,3 +61,9 @@ class Spool:
         self.failed_disks_in_repair = {}
         self.disk_repair_max_priority = 0
         self.failed_disks_network_repair = {}
+        # --
+        self.priority_percents = {}
+        self.curr_prio_repair_started: bool = False
+        #
+        self.good_num: int = 0
+        self.fail_num: int = 0

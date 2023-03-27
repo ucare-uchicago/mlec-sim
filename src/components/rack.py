@@ -35,3 +35,7 @@ class Rack:
         self.failed_disks = {}
         self.failed_disks_undetected = []
         self.num_disks_in_repair = 0
+
+        self.failed_spools = {}
+        self.failed_spools_undetected = []
+        self.num_spools_in_repair = 0
