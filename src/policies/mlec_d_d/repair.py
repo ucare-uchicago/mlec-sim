@@ -16,7 +16,13 @@ def mlec_d_d_repair(mlec_d_d, repair_queue):
     
     for spoolId in mlec_d_d.affected_spools:
         spool = mlec_d_d.spools[spoolId]
-        if len(spool.failed_disks) <= mlec_d_d.sys.m:
-            for diskId in spool.failed_disks_in_repair:
-                heappush(repair_queue, (mlec_d_d.disks[diskId].estimate_repair_time, Disk.EVENT_REPAIR, diskId))
+        if spool.disk_max_priority <= mlec_d_d.sys.m:
+            if spool.disk_repair_max_priority > 0:
+                for diskId in spool.disk_priority_queue[spool.disk_repair_max_priority]:
+                    disk = mlec_d_d.disks[diskId]
+                    if disk.priority > 1:
+                        heappush(repair_queue, (disk.estimate_repair_time, Disk.EVENT_FASTREBUILD, diskId))
+
+                    if disk.priority == 1:
+                        heappush(repair_queue, (disk.estimate_repair_time, Disk.EVENT_REPAIR, diskId))
     return
