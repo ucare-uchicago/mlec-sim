@@ -155,7 +155,6 @@ class MLEC_D_C_RS2(Policy):
 
                 min_disk_remaining_data = self.sys.diskSize
                 for failedDiskId in spool.failed_disks_in_repair:
-                    spool.failed_disks_network_repair[failedDiskId] = 1
                     failed_disk = self.disks[failedDiskId]
                     min_disk_remaining_data = min(min_disk_remaining_data, failed_disk.curr_repair_data_remaining)
                 spool.lost_local_stripes = min_disk_remaining_data * self.sys.n
@@ -375,7 +374,6 @@ class MLEC_D_C_RS2(Policy):
 
                 min_disk_remaining_data = self.sys.diskSize
                 for failedDiskId in spool.failed_disks_in_repair:
-                    spool.failed_disks_network_repair[failedDiskId] = 1
                     failed_disk = self.disks[failedDiskId]
                     min_disk_remaining_data = min(min_disk_remaining_data, failed_disk.curr_repair_data_remaining)
                 spool.lost_local_stripes = min_disk_remaining_data * self.sys.n
