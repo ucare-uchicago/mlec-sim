@@ -714,7 +714,7 @@ class MLEC_D_D_RS0(Policy):
 
             disk.priority = int(disk_info['priority'])
 
-            repair_time = disk_info['repair_time']
+            repair_time = json.loads(disk_info['repair_time'])
             for key, value in repair_time.items():
                 disk.repair_time[int(key)] = float(value)
             
