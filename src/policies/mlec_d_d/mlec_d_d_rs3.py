@@ -226,48 +226,14 @@ class MLEC_D_D_RS3(Policy):
             if spool.disk_repair_max_priority > self.sys.m:
                 spool.is_in_repair = True
                 spool.repair_data = disk.repair_data * disk.priority_percents[disk.priority]
-                spool.total_network_repair_data = spool.repair_data * (self.sys.m+1)
+                spool.total_network_repair_data = spool.repair_data
                 return disk.spoolId
         
         if event_type == Spool.EVENT_REPAIR:
             spoolId = diskId
             spool = self.spools[spoolId]
             rackId = spool.rackId
-            num_failed_disks_in_repair = len(spool.failed_disks) - len(spool.failed_disks_undetected)
-            other_disk_repaired_data = spool.repair_data * self.sys.m / (num_failed_disks_in_repair)
-            for priority in range(1, self.sys.m+1):
-                for failedDiskId in list(spool.disk_priority_queue[priority].keys()):
-                    failedDisk = self.disks[failedDiskId]
-                    failedDisk.curr_repair_data_remaining -= other_disk_repaired_data
-
-                    if failedDisk.curr_repair_data_remaining <= 0:
-                        if failedDisk.priority in failedDisk.repair_time:
-                            del failedDisk.repair_time[failedDisk.priority]
-                        del failedDisk.priority_percents[failedDisk.priority]
-                        spool.disk_priority_queue[failedDisk.priority].pop(failedDiskId)
-                        failedDisk.priority -= 1
-                        if failedDisk.priority == 0:
-                            self.disks[failedDiskId].state = Disk.STATE_NORMAL
-                            self.disks[failedDiskId].failure_detection_time = 0
-                            self.disks[failedDiskId].no_need_to_detect = False
-                            self.disks[failedDiskId].priority = 0
-                            self.disks[failedDiskId].repair_time.clear()
-                            self.disks[failedDiskId].priority_percents.clear()
-                            self.disks[failedDiskId].curr_prio_repair_started = False
-                            spool.failed_disks.pop(failedDiskId, None)
-                            disk_fail_time = self.simulation.failure_generator.gen_new_failures(1)[0] + self.curr_time
-                            if disk_fail_time < self.simulation.mission_time:
-                                heappush(self.simulation.failure_queue, (disk_fail_time, Disk.EVENT_FAIL, failedDiskId))
-                        else:
-                            spool.disk_priority_queue[failedDisk.priority][failedDiskId] = 1
-                            failedDisk.repair_start_time = self.curr_time
-                            failedDisk.curr_prio_repair_started = False
-                            self.resume_disk_repair_time (failedDiskId, failedDisk.priority, spool)
-                    else:
-                        failedDisk.repair_start_time = self.curr_time
-                        failedDisk.curr_prio_repair_started = False
-                        self.resume_disk_repair_time (failedDiskId, failedDisk.priority, spool)
-                       
+            
             for failedDiskId in list(spool.disk_priority_queue[self.sys.m+1].keys()):
                 failedDisk = self.disks[failedDiskId]
                 # logging.info(failedDisk.priority_percents)
