@@ -93,7 +93,8 @@ class SLEC_NET_DP(Policy):
             # Otherwise, we don't increase max-priority.
             if self.repair_max_priority < len(self.racks_in_repair):
                 if len(rack.failed_disks_undetected) == 1:
-                    self.max_priority += 1
+                    if self.max_priority < len(self.affected_racks):
+                        self.max_priority += 1
             else:
                 if len(rack.failed_disks) == 1:
                     self.max_priority += 1
@@ -211,7 +212,8 @@ class SLEC_NET_DP(Policy):
                     num_failed_disks_per_rack[undetectedDisk.rackId] += 1
                     if self.repair_max_priority < num_racks_in_repair:
                         if num_undetected_disks_per_rack[undetectedDisk.rackId] == 1:
-                            self.max_priority += 1
+                            if self.max_priority < len(self.affected_racks):
+                                self.max_priority += 1
                     else:
                         if num_failed_disks_per_rack[undetectedDisk.rackId] == 1:
                             self.max_priority += 1
