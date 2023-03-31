@@ -17,7 +17,7 @@ class SLEC_NET_DP(Policy):
         super().__init__(state)
         self.affected_racks = {}
         self.priority_queue = {}
-        for i in range(self.sys.top_m + 1):
+        for i in range(self.sys.top_m + 1 + 20):
             self.priority_queue[i + 1] = {}
         self.max_priority = 0
         self.repair_max_priority = 0
