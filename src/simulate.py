@@ -165,7 +165,7 @@ class Simulate:
     # run simulation based on statistical model or production traces
     #----------------------------------------------------------------
     def run_simulation(self, failureGenerator, mytimer):
-        logging.info("---------")
+        # logging.info("---------")
         # self.log.append("---------")
 
         self.sys.metrics.iter_count += 1
@@ -210,7 +210,7 @@ class Simulate:
             get_event_done_time = time.time()
             self.mytimer.getEventTime += (get_event_done_time - event_start)
 
-            logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
+            # logging.info("----record----  {} {} {}".format(event_time, event_type, diskId))
             # self.log.append("----record----  {} {} {}".format(event_time, event_type, diskId))
             
             #--------------------------------------
@@ -225,7 +225,7 @@ class Simulate:
                 diskId = self.state.policy.manual_inject_spool_failure()
                 if self.state.policy.check_pdl():
                     prob = 1
-                    logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+                    # logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     # self.log.append("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     break
 
@@ -280,7 +280,7 @@ class Simulate:
                 #curr_failures = self.state.get_failed_disks()
                 if self.state.policy.check_pdl():
                     prob = 1
-                    logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
+                    # logging.info("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     # self.log.append("  >>>>>>>>>>>>>>>>>>> data loss >>>>>>>>>>>>>>>>>>>>>>>>>>>>  ")
                     break
 
