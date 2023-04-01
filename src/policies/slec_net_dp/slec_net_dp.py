@@ -11,6 +11,8 @@ import random
 from heapq import heappush
 import json
 
+import numpy as np
+
 class SLEC_NET_DP(Policy):
     
     def __init__(self, state):
@@ -236,8 +238,13 @@ class SLEC_NET_DP(Policy):
     def pause_repair_time(self, diskId, priority):
         disk = self.state.disks[diskId]
         repaired_time = self.state.curr_time - disk.repair_start_time
-        repaired_percent = repaired_time / disk.repair_time[priority]
-        disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
+        # it's possible that multiple disks get repaired at the same time
+        if disk.repair_time[priority] == 0:
+            repaired_percent = 0
+            disk.curr_repair_data_remaining = 0
+        else:
+            repaired_percent = repaired_time / disk.repair_time[priority]
+            disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
     
     def resume_repair_time(self, diskId, priority, rackId):
         disk = self.state.disks[diskId]
