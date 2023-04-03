@@ -13,7 +13,7 @@ priority = p+1
 chunksize = 128/1024   # 128KB to MB
 diskcap = 20*1024*1024 # 20TB to MB
 
-filename = prev_fail_reports_filename = '../fail_reports_{}+{}-1+0_SLEC_NET_DP_{}f_rs0.log'.format(
+filename = '../fail_reports_{}+{}-1+0_SLEC_NET_DP_{}f_rs0.log'.format(
                                 k, p, priority)
 with open(filename, 'r') as f:
     reports = json.load(f)
