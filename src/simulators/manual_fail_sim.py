@@ -94,7 +94,7 @@ class ManualFailSim(Simulator):
                 sample_limit = 50000
             new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
                         k_net, p_net, k_local, p_local, placement, num_local_fail_to_report, repair_scheme)
-        elif placement in [PlacementType.SLEC_NET_CP, PlacementType.SLEC_NET_DP]:
+        elif placement in [PlacementType.SLEC_NET_CP, PlacementType.SLEC_NET_DP, PlacementType.LRC_DP]:
             new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
                         k_net, p_net, k_local, p_local, placement, num_net_fail_to_report, repair_scheme)
         elif placement in [PlacementType.MLEC_C_C, PlacementType.MLEC_C_D, PlacementType.MLEC_D_C, PlacementType.MLEC_D_D]:

@@ -49,7 +49,7 @@ class Simulator:
                     prev_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
                                 sys.top_k, sys.top_m, sys.k, sys.m, sys.place_type, 
                                 sys.num_local_fail_to_report-1, sys.repair_scheme)
-                elif sys.place_type in [PlacementType.SLEC_NET_CP, PlacementType.SLEC_NET_DP]:
+                elif sys.place_type in [PlacementType.SLEC_NET_CP, PlacementType.SLEC_NET_DP, PlacementType.LRC_DP]:
                     prev_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
                                 sys.top_k, sys.top_m, sys.k, sys.m, sys.place_type, 
                                 sys.num_net_fail_to_report-1, sys.repair_scheme)
