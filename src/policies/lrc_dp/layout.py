@@ -9,6 +9,11 @@ def lrc_dp_layout(sys: System):
     for diskId in sys.disks:
         sys.disks[diskId].diskId = diskId
         sys.disks[diskId].rackId = diskId // sys.num_disks_per_rack
+    sys.num_local_groups = sys.top_k // sys.k
+    assert sys.top_k % sys.k == 0, "We assume local k is divisible by top k. More general LRC will be supported in the future."
+    sys.total_chunks = sys.top_k+sys.top_m+sys.num_local_groups
+    sys.avg_repair_read_cost = (sys.k*(sys.top_k+sys.num_local_groups) + sys.top_k*sys.top_m) / sys.total_chunks
+    # print("total chunks {}  avg read cost {}".format(sys.total_chunks, sys.avg_repair_read_cost))
 
 
 def net_dp_layout_chunk(num_racks, num_disks_per_rack, num_chunks_per_disk, n_n):

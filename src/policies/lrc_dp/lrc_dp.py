@@ -4,7 +4,7 @@ from components.disk import Disk
 from policies.policy import Policy
 from pprint import pformat
 
-from helpers import netdp_prio
+from helpers import lrc_dp_prio
 from .pdl import lrc_dp_pdl
 from .repair import lrc_dp_repair
 import random
@@ -231,7 +231,7 @@ class LRC_DP(Policy):
     def compute_priority_percents(self, disk, rackId):
         for i in range(disk.priority):
             priority = i+1
-            disk.priority_percents[priority] = netdp_prio.compute_priority_percent(self.state, self.affected_racks, rackId, priority)
+            disk.priority_percents[priority] = lrc_dp_prio.compute_priority_percent(self.state, self.affected_racks, rackId, priority)
         # logging.info("priority_percents: {}".format(disk.priority_percents))
         
 
@@ -262,7 +262,10 @@ class LRC_DP(Policy):
         total_disk_IO = (self.sys.num_disks - len(self.failed_disks)) * self.sys.diskIO
         total_repair_bandwidth = min(total_disk_IO, self.total_interrack_bandwidth)
 
-        total_repair_data_readwrite = float(disk.curr_repair_data_remaining) * (self.sys.top_k + 1) 
+        if priority == 1:
+            total_repair_data_readwrite = float(disk.curr_repair_data_remaining) * (self.sys.avg_repair_read_cost + 1)
+        else:
+            total_repair_data_readwrite = float(disk.curr_repair_data_remaining) * (self.sys.top_k + 1) 
         # we repair multiple disks concurrently. So rebuild bandwidth is shared
         per_disk_total_repair_bandwidth = total_repair_bandwidth / len(self.priority_queue[priority])
         repair_time = total_repair_data_readwrite / per_disk_total_repair_bandwidth
