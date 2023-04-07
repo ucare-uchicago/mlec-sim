@@ -112,7 +112,7 @@ def burst_theory_net_raid(k_net, p_net, k_local, p_local,
                 k_net, p_net, num_rackgroups, drives_per_rack, num_failed_disks, num_affected_racks))
     survival_cases = netraid.survival_count(k_net, p_net, num_rackgroups, drives_per_rack, num_failed_disks, num_affected_racks)
 
-    print(netraid.survival_count_dic)
+    # print(netraid.survival_count_dic)
     print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
     
     # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
@@ -135,6 +135,7 @@ def burst_theory_net_dp(k_net, p_net, k_local, p_local,
     n_net = k_net + p_net
     num_failed_chunks = p_net + 1
     total_cases = total.total_cases_fixed_racks(num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
+    print(total_cases)
     
     # all the possible cases for distrbuting a random stripe
     total_stripe_cases = total_cases * math.comb(num_racks, n_net) * (drives_per_rack ** n_net)
@@ -402,12 +403,12 @@ if __name__ == "__main__":
         drives_per_diskgroup = drives_per_rack
     
     placement = args.placement
-    if placement in ['RAID', 'DP']:
+    if placement in ['SLEC_LOCAL_CP', 'SLEC_LOCAL_DP']:
         k_net = 1
         p_net = 0
         
     
-    if placement in ['SLEC_NET_CP']:
+    if placement in ['SLEC_NET_CP', 'SLEC_NET_DP']:
         k_local = 1
         p_local = 0
 
@@ -424,10 +425,10 @@ if __name__ == "__main__":
     #     for num_affected_racks in range(3,4):
 
     # for num_failed_disks in range(1, 61):
-    #     max_racks = min(60, num_failed_disks)
-    #     for num_affected_racks in range(1,max_racks+1):
-    for num_failed_disks in range(10, 15):
-        for num_affected_racks in range(10,11):
+        # max_racks = min(60, num_failed_disks)
+        # for num_affected_racks in range(1,max_racks+1):
+    for num_failed_disks in range(4, 5):
+        for num_affected_racks in range(4,5):
             burst_theory(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk, use_stripe)
 
