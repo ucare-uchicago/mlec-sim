@@ -1,0 +1,12 @@
+simulation time: 5.119734525680542
+failed_iters: 25600  total_iters: 25600
+Nines	sigma	failed	total	
+-0.0 0.003 25600 25600 
+simulation time: 8.201343059539795
+failed_iters: 24941  total_iters: 25600
+Nines	sigma	failed	total	
+0.011 0.003 24941 25600 
+simulation time: 66.92681765556335
+failed_iters: 14679  total_iters: 256000
+Nines	sigma	failed	total	
+1.242 0.004 14679 256000 

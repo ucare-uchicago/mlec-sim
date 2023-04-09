@@ -1,0 +1,24 @@
+simulation time: 5.230205059051514
+failed_iters: 25600  total_iters: 25600
+Nines	sigma	failed	total	
+-0.0 0.003 25600 25600 
+simulation time: 7.842257022857666
+failed_iters: 25405  total_iters: 25600
+Nines	sigma	failed	total	
+0.003 0.003 25405 25600 
+simulation time: 80.84346985816956
+failed_iters: 19730  total_iters: 256000
+Nines	sigma	failed	total	
+1.113 0.003 19730 256000 
+simulation time: 360.93298745155334
+failed_iters: 27249  total_iters: 2560000
+Nines	sigma	failed	total	
+1.973 0.003 27249 2560000 
+simulation time: 324.99537920951843
+failed_iters: 19164  total_iters: 2560000
+Nines	sigma	failed	total	
+2.126 0.003 19164 2560000 
+simulation time: 430.1617991924286
+failed_iters: 15287  total_iters: 2560000
+Nines	sigma	failed	total	
+2.224 0.004 15287 2560000 

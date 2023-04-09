@@ -5,4 +5,4 @@ __pycache__
 .vscode/
 log/
 logs/
-*test.sh
+test.sh
