@@ -1,0 +1,41 @@
+(28,4,8) lrc
+simulation time: 5.669165134429932
+failed_iters: 25600  total_iters: 25600
+Nines	sigma	failed	total	
+-0.0 0.003 25600 25600 
+simulation time: 8.722222566604614
+failed_iters: 25478  total_iters: 25600
+Nines	sigma	failed	total	
+0.002 0.003 25478 25600 
+simulation time: 113.38883399963379
+failed_iters: 22306  total_iters: 256000
+Nines	sigma	failed	total	
+1.06 0.003 22306 256000 
+simulation time: 118.51769876480103
+failed_iters: 5489  total_iters: 512000
+Nines	sigma	failed	total	
+1.97 0.006 5489 512000 
+simulation time: 144.2092456817627
+failed_iters: 3992  total_iters: 512000
+Nines	sigma	failed	total	
+2.108 0.007 3992 512000 
+simulation time: 239.43711638450623
+failed_iters: 6377  total_iters: 1024000
+Nines	sigma	failed	total	
+2.206 0.005 6377 1024000 
+simulation time: 214.7243950366974
+failed_iters: 5210  total_iters: 1024000
+Nines	sigma	failed	total	
+2.293 0.006 5210 1024000 
+simulation time: 492.73102736473083
+failed_iters: 10964  total_iters: 2560000
+Nines	sigma	failed	total	
+2.368 0.004 10964 2560000 
+simulation time: 553.6322569847107
+failed_iters: 9511  total_iters: 2560000
+Nines	sigma	failed	total	
+2.43 0.004 9511 2560000 
+simulation time: 636.1577546596527
+failed_iters: 8345  total_iters: 2560000
+Nines	sigma	failed	total	
+2.487 0.005 8345 2560000 

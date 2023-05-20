@@ -1,0 +1,53 @@
+(42,7,11) lrc
+simulation time: 6.909877777099609
+failed_iters: 25600  total_iters: 25600
+Nines	sigma	failed	total	
+-0.0 0.003 25600 25600 
+simulation time: 7.800613880157471
+failed_iters: 25544  total_iters: 25600
+Nines	sigma	failed	total	
+0.001 0.003 25544 25600 
+simulation time: 102.98186564445496
+failed_iters: 26009  total_iters: 256000
+Nines	sigma	failed	total	
+0.993 0.003 26009 256000 
+simulation time: 118.53630471229553
+failed_iters: 5825  total_iters: 512000
+Nines	sigma	failed	total	
+1.944 0.006 5825 512000 
+simulation time: 115.11856007575989
+failed_iters: 4023  total_iters: 512000
+Nines	sigma	failed	total	
+2.105 0.007 4023 512000 
+simulation time: 256.7990348339081
+failed_iters: 6460  total_iters: 1024000
+Nines	sigma	failed	total	
+2.2 0.005 6460 1024000 
+simulation time: 208.5411195755005
+failed_iters: 5281  total_iters: 1024000
+Nines	sigma	failed	total	
+2.288 0.006 5281 1024000 
+simulation time: 443.5197434425354
+failed_iters: 11074  total_iters: 2560000
+Nines	sigma	failed	total	
+2.364 0.004 11074 2560000 
+simulation time: 536.8240418434143
+failed_iters: 9330  total_iters: 2560000
+Nines	sigma	failed	total	
+2.438 0.004 9330 2560000 
+simulation time: 550.0403473377228
+failed_iters: 8401  total_iters: 2560000
+Nines	sigma	failed	total	
+2.484 0.005 8401 2560000 
+simulation time: 545.688220500946
+failed_iters: 7595  total_iters: 2560000
+Nines	sigma	failed	total	
+2.528 0.005 7595 2560000 
+simulation time: 574.3903167247772
+failed_iters: 6699  total_iters: 2560000
+Nines	sigma	failed	total	
+2.582 0.005 6699 2560000 
+simulation time: 602.7216646671295
+failed_iters: 6151  total_iters: 2560000
+Nines	sigma	failed	total	
+2.619 0.006 6151 2560000 

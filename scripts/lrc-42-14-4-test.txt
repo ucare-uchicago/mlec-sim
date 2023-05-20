@@ -1,0 +1,25 @@
+(42,14,4) lrc
+simulation time: 5.869184732437134
+failed_iters: 25600  total_iters: 25600
+Nines	sigma	failed	total	
+-0.0 0.003 25600 25600 
+simulation time: 8.866432666778564
+failed_iters: 24538  total_iters: 25600
+Nines	sigma	failed	total	
+0.018 0.003 24538 25600 
+simulation time: 79.84429717063904
+failed_iters: 13660  total_iters: 256000
+Nines	sigma	failed	total	
+1.273 0.004 13660 256000 
+simulation time: 96.429123878479
+failed_iters: 5693  total_iters: 512000
+Nines	sigma	failed	total	
+1.954 0.006 5693 512000 
+simulation time: 99.25018000602722
+failed_iters: 4086  total_iters: 512000
+Nines	sigma	failed	total	
+2.098 0.007 4086 512000 
+simulation time: 201.65061497688293
+failed_iters: 6394  total_iters: 1024000
+Nines	sigma	failed	total	
+2.205 0.005 6394 1024000 

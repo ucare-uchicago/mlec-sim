@@ -1,0 +1,90 @@
+“local_dp 17+3”
+simulation time: 33.2115421295166
+failed_iters: 93975  total_iters: 25600000
+Nines	sigma	failed	total	
+2.435 0.001 93975 25600000 
+simulation time: 66.88157987594604
+failed_iters: 13850  total_iters: 25600000
+Nines	sigma	failed	total	
+3.267 0.004 13850 25600000 
+simulation time: 467.76348519325256
+failed_iters: 32350  total_iters: 256000000
+Nines	sigma	failed	total	
+3.898 0.002 32350 256000000 
+“mlec_c_d rs3”
+simulation time: 12.253674983978271
+failed_iters: 25600  total_iters: 25600
+Nines	sigma	failed	total	
+-0.0 0.003 25600 25600 
+“local_dp 17+3”
+simulation time: 33.44875502586365
+failed_iters: 93593  total_iters: 25600000
+Nines	sigma	failed	total	
+2.437 0.001 93593 25600000 
+simulation time: 63.076849937438965
+failed_iters: 13788  total_iters: 25600000
+Nines	sigma	failed	total	
+3.269 0.004 13788 25600000 
+simulation time: 465.3685564994812
+failed_iters: 32613  total_iters: 256000000
+Nines	sigma	failed	total	
+3.895 0.002 32613 256000000 
+“mlec_c_d rs3”
+simulation time: 524.5191650390625
+failed_iters: 158  total_iters: 2560000
+Nines	sigma	failed	total	
+4.21 0.035 158 2560000 
+“local_dp 17+3”
+simulation time: 31.12234616279602
+failed_iters: 94100  total_iters: 25600000
+Nines	sigma	failed	total	
+2.435 0.001 94100 25600000 
+simulation time: 65.18312525749207
+failed_iters: 13627  total_iters: 25600000
+Nines	sigma	failed	total	
+3.274 0.004 13627 25600000 
+simulation time: 471.5312523841858
+failed_iters: 32563  total_iters: 256000000
+Nines	sigma	failed	total	
+3.896 0.002 32563 256000000 
+“mlec_c_d rs3”
+simulation time: 484.2772521972656
+failed_iters: 89  total_iters: 2560000
+Nines	sigma	failed	total	
+4.459 0.046 89 2560000 
+“local_dp 17+3”
+simulation time: 33.91967511177063
+failed_iters: 94152  total_iters: 25600000
+Nines	sigma	failed	total	
+2.434 0.001 94152 25600000 
+simulation time: 62.97931718826294
+failed_iters: 14057  total_iters: 25600000
+Nines	sigma	failed	total	
+3.26 0.004 14057 25600000 
+simulation time: 476.876971244812
+failed_iters: 32626  total_iters: 256000000
+Nines	sigma	failed	total	
+3.895 0.002 32626 256000000 
+“mlec_c_d rs3”
+simulation time: 509.8009624481201
+failed_iters: 50  total_iters: 2560000
+Nines	sigma	failed	total	
+4.709 0.061 50 2560000 
+“local_dp 17+3”
+simulation time: 35.02232265472412
+failed_iters: 94002  total_iters: 25600000
+Nines	sigma	failed	total	
+2.435 0.001 94002 25600000 
+simulation time: 66.47255110740662
+failed_iters: 13803  total_iters: 25600000
+Nines	sigma	failed	total	
+3.268 0.004 13803 25600000 
+simulation time: 468.5244495868683
+failed_iters: 32658  total_iters: 256000000
+Nines	sigma	failed	total	
+3.894 0.002 32658 256000000 
+“mlec_c_d rs3”
+simulation time: 1839.0849783420563
+failed_iters: 117  total_iters: 10240000
+Nines	sigma	failed	total	
+4.942 0.04 117 10240000 
