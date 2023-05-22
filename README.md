@@ -21,6 +21,13 @@ and analyze their performance including durability, rebuild IO, network traffic,
 - `simulation.py`
 
 ## Prerequisites
+- set up github ssh key
+```
+ssh-keygen -t rsa -b 4096
+ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
+cat ~/.ssh/id_rsa.pub
+```
+Copy and paste into: https://github.com/settings/keys
 - Install `conda`: https://www.anaconda.com
 - Using conda to install the following components
    - `numpy`
