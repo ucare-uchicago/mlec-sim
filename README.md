@@ -29,12 +29,10 @@ cat ~/.ssh/id_rsa.pub
 ```
 Copy and paste into: https://github.com/settings/keys
 - Install `conda`: https://www.anaconda.com
-- Using conda to install the following components
-   - `numpy`
-   - `matplotlib`
-   - `math`
-   - `mpmath`
-   - `pandas`
+- Using conda to install the required components
+```
+conda install numpy matplotlib math mpmath pandas
+```
 
 ## Usage
 ```
