@@ -17,17 +17,18 @@ class NormalSim(Simulator):
     
     def simulate(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
                  total_drives, drives_per_rack, placement, distribution, concur, epoch, iters,
-                 infinite_chunks=True, chunksize=128, spool_size=-1, repair_scheme=0):
+                 infinite_chunks=True, chunksize=128, spool_size=-1, repair_scheme=0, detection_time=0):
         return self.normal_sim(afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
                                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters,
-                               infinite_chunks, chunksize, spool_size, repair_scheme)    
+                               infinite_chunks, chunksize, spool_size, repair_scheme, detection_time)
 
     # -----------------------------
     # normal Monte Carlo simulation
     # -----------------------------
     def normal_sim(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
                     total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, infinite_chunks=True, chunksize=128,
-                    spool_size=-1, repair_scheme=0, num_local_fail_to_report=0, num_net_fail_to_report=0, prev_fail_reports_filename=None):
+                    spool_size=-1, repair_scheme=0, detection_time=0, 
+                    num_local_fail_to_report=0, num_net_fail_to_report=0, prev_fail_reports_filename=None):
         # logging.basicConfig(level=logging.INFO, filename="run_"+placement+".log")
 
         mission = YEAR
@@ -51,7 +52,8 @@ class NormalSim(Simulator):
             "chunksize": chunksize,
             "spool_size": spool_size,
             "repair_scheme": repair_scheme,
-            "collect_fail_reports": True
+            "collect_fail_reports": True,
+            "detection_time": detection_time,
             }
 
         failed_iters = 0
