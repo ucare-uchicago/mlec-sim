@@ -32,7 +32,22 @@ ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
 cat ~/.ssh/id_rsa.pub
 ```
 Copy and paste into: https://github.com/settings/keys
-- Install `conda`: https://www.anaconda.com
+- Install `conda`:
+```
+wget https://repo.anaconda.com/archive/Anaconda3-2023.03-1-Linux-x86_64.sh
+bash Anaconda3-2023.03-1-Linux-x86_64.sh
+```
+
+When prompted, enter "yes".
+
+After it's installed, close the terminal. And then open a new terminal. You should see your terminal outputs:
+
+```
+(base) cc@ubuntu:~$
+```
+
+
+
 - Using conda to install the required components
 ```
 conda install numpy matplotlib math mpmath pandas
