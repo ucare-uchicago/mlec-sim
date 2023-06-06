@@ -24,6 +24,10 @@ and analyze their performance including durability, rebuild IO, network traffic,
 - set up github ssh key
 ```
 ssh-keygen -t rsa -b 4096
+```
+
+Then
+```
 ssh-keyscan -t rsa github.com >> ~/.ssh/known_hosts
 cat ~/.ssh/id_rsa.pub
 ```
