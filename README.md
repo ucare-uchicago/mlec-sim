@@ -53,6 +53,12 @@ After it's installed, close the terminal. And then open a new terminal. You shou
 conda install numpy matplotlib math mpmath pandas
 ```
 
+- Download this repo to the node that you have reserved:
+```
+git clone git@github.com:ucare-uchicago/mlec-sim.git
+```
+
+
 ## Usage
 ```
 usage: main.py [-h] [-sim_mode SIM_MODE] [-afr AFR] [-io_speed IO_SPEED] [-cap CAP] [-adapt ADAPT] [-k_local N_LOCAL] [-p_local K_LOCAL]
