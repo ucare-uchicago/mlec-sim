@@ -50,7 +50,7 @@ After it's installed, close the terminal. And then open a new terminal. You shou
 
 - Using conda to install the required components
 ```
-conda install numpy matplotlib math mpmath pandas
+conda install numpy matplotlib mpmath pandas
 ```
 
 - Download this repo to the node that you have reserved:
