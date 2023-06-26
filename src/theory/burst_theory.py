@@ -370,7 +370,7 @@ if __name__ == "__main__":
 
     with open("s-burst-theory-{}.log".format(placement), "w") as output:
         # write csv header
-        output.write("config total_drives failed_disks affected_racks dl_prob")
+        output.write("config total_drives failed_disks affected_racks dl_prob\n")
 
     for num_failed_disks in range(1, 61):
         max_racks = min(60, num_failed_disks)
