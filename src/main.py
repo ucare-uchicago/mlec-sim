@@ -145,8 +145,9 @@ if __name__ == "__main__":
         # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
         nines = "NA" if result.failed_iter == 0 else str(round(-math.log10(result.failed_iter/result.total_iter),3))
         sigma = "NA" if result.failed_iter == 0 else str(round(1/(math.log(10) * (result.failed_iter**0.5)),3))
-        print("Nines\tsigma\tfailed\ttotal\t")
-        print("{} {} {} {} ".format(nines, sigma, result.failed_iter, result.total_iter))
+        if result.failed_iter == result.total_iter:
+            nines = 0.0
+        print("nines: {}\nsigma: {}\nfailed: {}\ntotal: {}".format(nines, sigma, result.failed_iter, result.total_iter))
         
         output = open("s-result-{}.log".format(placement), "a")
         output.write("(kn:{}+pn:{})(kl:{}+pl:{}) td:{} afr:{} cap:{} io:{} ibw:{} cbw:{} nn:{} sd:{} f:{} t:{} ad:{}\n".format(
