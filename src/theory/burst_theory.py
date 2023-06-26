@@ -12,11 +12,10 @@ from policies import *
 
 from decimal import *
 
-getcontext().prec = 50
+getcontext().prec = 100
 
 def burst_theory(k_net, p_net, k_local, p_local, 
-                total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk,
-                use_stripe=False):
+                total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk):
     if placement == 'SLEC_LOCAL_CP':
         return burst_theory_raid(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
@@ -46,11 +45,7 @@ def burst_theory(k_net, p_net, k_local, p_local,
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks)
     
     if placement == 'MLEC_D_C':
-        if use_stripe:
-            return burst_theory_mlec_dp_cp_stripe(k_net, p_net, k_local, p_local, 
-                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk)
-        else:
-            return burst_theory_mlec_dp_cp(k_net, p_net, k_local, p_local, 
+        return burst_theory_mlec_dp_cp(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks)
     
     if placement == 'MLEC_D_D':
@@ -247,7 +242,7 @@ def burst_theory_lrc_dp(k_net, p_net, k_local, p_local,
 
 
 ##############################
-# mlec declustered
+# mlec c/d
 ##############################
 def burst_theory_mlec_cp_dp(k_net, p_net, k_local, p_local, 
                 total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks):
@@ -273,51 +268,6 @@ def burst_theory_mlec_cp_dp(k_net, p_net, k_local, p_local,
 
 
 
-
-##############################
-# mlec_dp_cp considering stripe level
-##############################
-def burst_theory_mlec_dp_cp_stripe(k_net, p_net, k_local, p_local, 
-                total_drives, drives_per_rack, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk):
-    num_racks = total_drives // drives_per_rack
-    n_net = k_net + p_net
-    n_local = k_local + p_local
-    num_failed_chunks = p_net + 1
-    
-    # all the possible cases for distrbuting a random stripe
-    total_stripe_cases = mlec_dp_cp.stripe_total_cases_correlated(n_net, p_net, n_local, p_local, num_racks, 
-                                                                  drives_per_rack, num_failed_disks, num_affected_racks)
-    print("k_net {} p_net {} drives_per_rack {} num_failed_disks {} num_affected_racks {}".format(
-                k_net, p_net, drives_per_rack, num_failed_disks, num_affected_racks))
-
-    # all the possible cases for one random stripe to fail under the burst
-    stripe_failure_cases = mlec_dp_cp.stripe_fail_cases_correlated(n_net, p_net, n_local, p_local, p_net+1, 
-                                                                   num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
-
-    print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
-    
-    # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
-    print("\ntotal: \t\t{} \nstripe_failure_cases: \t{}".format(total_stripe_cases, stripe_failure_cases))
-
-    # the probability for a random stripe to survive the burst
-    stripe_fail_prob = Decimal(int(stripe_failure_cases))/Decimal(int(total_stripe_cases))
-    stripe_survive_prob = 1 - stripe_fail_prob
-
-    # count the number of stripes in the cluster
-    num_stripes = total_drives * num_chunks_per_disk // (n_net*n_local)
-
-    # compute the probability of any stripe failure
-    dl_prob = 1 - stripe_survive_prob ** num_stripes
-    print("Using stripe dl prob: \t{}\n".format(dl_prob))
-    with open("s-burst-theory-{}.log".format(placement), "a") as output:
-        output.write("({}+{})({}+{}) {} {} {} {} {}\n".format(
-            k_net, p_net, k_local, p_local, total_drives, num_chunks_per_disk,
-            num_failed_disks, num_affected_racks, dl_prob))
-    return dl_prob
-
-
-
-
 ##############################
 # mlec dp-cp
 ##############################
@@ -335,13 +285,14 @@ def burst_theory_mlec_dp_cp(k_net, p_net, k_local, p_local,
     # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
     print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
 
-    dl_prob = 1 - survival_cases/total_cases
-    print("NOT using stripe dl prob: \t{}\n".format(dl_prob))
+    dl_prob = 1 - Decimal(int(survival_cases))/Decimal(int(total_cases))
+    print("dl prob: \t{}\n".format(dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {}\n".format(
             k_net, p_net, k_local, p_local, total_drives,
             num_failed_disks, num_affected_racks, dl_prob))
     return dl_prob
+
 
 ##############################
 # mlec dp-dp
@@ -360,7 +311,7 @@ def burst_theory_mlec_dp_dp(k_net, p_net, k_local, p_local,
     # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
     print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
 
-    dl_prob = 1 - survival_cases/total_cases
+    dl_prob = 1 - Decimal(int(survival_cases))/Decimal(int(total_cases))
     print("dl prob: \t{}\n".format(dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {}\n".format(
@@ -379,8 +330,7 @@ if __name__ == "__main__":
     parser.add_argument('-drives_per_rack', type=int, help="number of drives per rack", default=-1)
     parser.add_argument('-drives_per_diskgroup', type=int, help="number of drives per disk group", default=-1)
     parser.add_argument('-placement', type=str, help="placement policy. Can be RAID/DP/MLEC/LRC", default='MLEC')
-    parser.add_argument('-num_chunks_per_disk', type=int, help="num chunks per disk. Ideally we assume infinite, but in reality it's a finite number ", default=1000)
-    parser.add_argument("--use_stripe", action="store_true", help="consider in stripe level")
+    parser.add_argument('-num_chunks_per_disk', type=int, help="num chunks per disk. Ideally we assume infinite, but in reality it's a finite number ", default=20*1024*1024*1024/128)
 
     args = parser.parse_args()
 
@@ -412,36 +362,21 @@ if __name__ == "__main__":
         k_local = 1
         p_local = 0
 
-    print("(erasure:{}+{})/({}+{})\ntotal drives:\t{}\ndrives_per_rack:\t{}\nplacement:\t{}".format(
+    print("Computing PDL under correlated failure bursts for erasure:({}+{})/({}+{})\ntotal drives:\t{}\ndrives_per_rack:\t{}\nplacement:\t{}".format(
                 k_net, p_net, k_local, p_local, total_drives, drives_per_rack, placement
     ))
 
     num_chunks_per_disk = args.num_chunks_per_disk
-    use_stripe = args.use_stripe
-    print(use_stripe)
 
-    # for num_failed_disks in range(12, 13):
-    # # #     # for num_affected_racks in range(1, num_failed_disks+1):
-    #     for num_affected_racks in range(3,4):
+    with open("s-burst-theory-{}.log".format(placement), "w") as output:
+        # write csv header
+        output.write("config total_drives failed_disks affected_racks dl_prob")
 
-    # for num_failed_disks in range(1, 61):
-        # max_racks = min(60, num_failed_disks)
-        # for num_affected_racks in range(1,max_racks+1):
-    for num_failed_disks in range(4, 5):
-        for num_affected_racks in range(4,5):
+    for num_failed_disks in range(1, 61):
+        max_racks = min(60, num_failed_disks)
+        for num_affected_racks in range(1,max_racks+1):
             burst_theory(k_net, p_net, k_local, p_local, 
-                total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk, use_stripe)
-
-    # temp = time.time()
-    # for num_failed_disks in range(3, 4):
-    #     for num_affected_racks in range(3,4):
-    #         burst_theory(k_net, p_net, k_local, p_local, 
-    #             total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks)
-    # print("time: {}".format(time.time()-temp))
-
-
-
-
+                total_drives, drives_per_rack, drives_per_diskgroup, placement, num_failed_disks, num_affected_racks, num_chunks_per_disk)
 
     # df = pd.read_csv ('failures/exp/ornl/by_rack/burst_node_rack.csv')
     # print(df)
