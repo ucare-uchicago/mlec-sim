@@ -65,7 +65,7 @@ def burst_theory_raid(k_net, p_net, k_local, p_local,
 
     dl_prob = 1 - survival_cases/total_cases
     # print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
-    print("\ntotal: \t\t{:.4E} \nsurvival: \t{:.4E} \ndl prob: \t{}\n".format(total_cases, survival_cases, dl_prob))
+    # print("\ntotal: \t\t{:.4E} \nsurvival: \t{:.4E} \ndl prob: \t{}\n".format(total_cases, survival_cases, dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {}\n".format(
             k_net, p_net, k_local, p_local, total_drives,
@@ -86,7 +86,7 @@ def burst_theory_dp(k_net, p_net, k_local, p_local,
 
     dl_prob = 1 - survival_cases/total_cases
     # print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
-    print("\ntotal: \t\t{:.4E} \nsurvival: \t{:.4E} \ndl prob: \t{}\n".format(total_cases, survival_cases, dl_prob))
+    # print("\ntotal: \t\t{:.4E} \nsurvival: \t{:.4E} \ndl prob: \t{}\n".format(total_cases, survival_cases, dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {}\n".format(
             k_net, p_net, k_local, p_local, total_drives,
@@ -103,18 +103,18 @@ def burst_theory_net_raid(k_net, p_net, k_local, p_local,
     total_cases = total.total_cases_fixed_racks(num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
     
     num_rackgroups = num_racks // (k_net + p_net)
-    print("k_net {} p_net {} num_rackgroups {} drives_per_rack {} num_failed_disks {} num_affected_racks {}".format(
-                k_net, p_net, num_rackgroups, drives_per_rack, num_failed_disks, num_affected_racks))
+    # print("k_net {} p_net {} num_rackgroups {} drives_per_rack {} num_failed_disks {} num_affected_racks {}".format(
+    #             k_net, p_net, num_rackgroups, drives_per_rack, num_failed_disks, num_affected_racks))
     survival_cases = netraid.survival_count(k_net, p_net, num_rackgroups, drives_per_rack, num_failed_disks, num_affected_racks)
 
     # print(netraid.survival_count_dic)
-    print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
+    # print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
     
     # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
-    print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
+    # print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
 
     dl_prob = 1 - Decimal(survival_cases)/Decimal(total_cases)
-    print("dl prob: \t{}\n".format(dl_prob))
+    # print("dl prob: \t{}\n".format(dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {}\n".format(
             k_net, p_net, k_local, p_local, total_drives,
@@ -130,21 +130,21 @@ def burst_theory_net_dp(k_net, p_net, k_local, p_local,
     n_net = k_net + p_net
     num_failed_chunks = p_net + 1
     total_cases = total.total_cases_fixed_racks(num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
-    print(total_cases)
+    # print(total_cases)
     
     # all the possible cases for distrbuting a random stripe
     total_stripe_cases = total_cases * math.comb(num_racks, n_net) * (drives_per_rack ** n_net)
-    print("k_net {} p_net {} drives_per_rack {} num_failed_disks {} num_affected_racks {}".format(
-                k_net, p_net, drives_per_rack, num_failed_disks, num_affected_racks))
+    # print("k_net {} p_net {} drives_per_rack {} num_failed_disks {} num_affected_racks {}".format(
+    #             k_net, p_net, drives_per_rack, num_failed_disks, num_affected_racks))
 
     # all the possible cases for one random stripe to fail under the burst
     stripe_failure_cases = netdp.stripe_fail_cases_correlated(
                 n_net, num_failed_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
 
-    print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
+    # print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
     
     # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
-    print("\ntotal: \t\t{} \nstripe_failure_cases: \t{}".format(total_stripe_cases, stripe_failure_cases))
+    # print("\ntotal: \t\t{} \nstripe_failure_cases: \t{}".format(total_stripe_cases, stripe_failure_cases))
 
     # the probability for a random stripe to survive the burst
     stripe_fail_prob = Decimal(int(stripe_failure_cases))/Decimal(int(total_stripe_cases))
@@ -155,7 +155,7 @@ def burst_theory_net_dp(k_net, p_net, k_local, p_local,
 
     # compute the probability of any stripe failure
     dl_prob = 1 - stripe_survive_prob ** num_stripes
-    print("dl prob: \t{}\n".format(dl_prob))
+    # print("dl prob: \t{}\n".format(dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {} {}\n".format(
             k_net, p_net, k_local, p_local, total_drives, num_chunks_per_disk,
@@ -174,13 +174,13 @@ def burst_theory_mlec_cp_cp(k_net, p_net, k_local, p_local,
     survival_cases = mlec_cp_cp.survival_count(k_net, p_net, k_local, p_local, total_drives, drives_per_rack, num_failed_disks, num_affected_racks)
 
     # print(mlec.survival_count_dic)
-    print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
+    # print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
     
     # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
-    print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
+    # print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
 
     dl_prob = 1 - Decimal(int(survival_cases))/Decimal(int(total_cases))
-    print("dl prob: \t{}\n".format(dl_prob))
+    # print("dl prob: \t{}\n".format(dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {}\n".format(
             k_net, p_net, k_local, p_local, total_drives,
@@ -200,38 +200,38 @@ def burst_theory_lrc_dp(k_net, p_net, k_local, p_local,
     
     # all the possible cases for distrbuting a random stripe
     total_stripe_cases = total_cases * math.comb(num_racks, n_net) * (drives_per_rack ** n_net)
-    print("k_net {} p_net {} drives_per_rack {} num_failed_disks {} num_affected_racks {}".format(
-                k_net, p_net, drives_per_rack, num_failed_disks, num_affected_racks))
+    # print("k_net {} p_net {} drives_per_rack {} num_failed_disks {} num_affected_racks {}".format(
+    #             k_net, p_net, drives_per_rack, num_failed_disks, num_affected_racks))
 
     # all the possible cases for one random stripe to fail under the burst
-    print("n_net: {} num_danger_chunks: {} num_racks {} drives_per_rack {} num_failed_disks{} num_affected_racks {}".format(
-            n_net, num_danger_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks
-    ))
+    # print("n_net: {} num_danger_chunks: {} num_racks {} drives_per_rack {} num_failed_disks{} num_affected_racks {}".format(
+    #         n_net, num_danger_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks
+    # ))
     stripe_danger_cases = lrcdp.stripe_fixed_fail_chunk_cases_correlated(n_net, num_danger_chunks, num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
     stripe_other_failure_cases = lrcdp.stripe_fail_cases_correlated(n_net, num_danger_chunks+1, num_racks, drives_per_rack, num_failed_disks, num_affected_racks)
 
-    print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
+    # print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
     
     # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
-    print("\n total: \t\t\t\t{} \n stripe_critical_cases: \t{}\n stripe_other_failure_cases: \t{}".format(
-                total_stripe_cases, stripe_danger_cases, stripe_other_failure_cases))
+    # print("\n total: \t\t\t\t{} \n stripe_critical_cases: \t{}\n stripe_other_failure_cases: \t{}".format(
+    #             total_stripe_cases, stripe_danger_cases, stripe_other_failure_cases))
 
     danger_fail_prob = lrcdp.calculate_recoverability(k_net, k_net//k_local, p_net, num_danger_chunks)
-    print("danger_fail_prob: {}".format(danger_fail_prob))
+    # print("danger_fail_prob: {}".format(danger_fail_prob))
 
     # the probability for a random stripe to survive the burst
     stripe_fail_prob = (Decimal(int(stripe_danger_cases)) / Decimal(int(total_stripe_cases)) * Decimal(danger_fail_prob) 
                             + Decimal(int(stripe_other_failure_cases)) / Decimal(int(total_stripe_cases)))
     stripe_survive_prob = 1 - stripe_fail_prob
 
-    print("stripe_survive_prob: {}".format(stripe_survive_prob))
+    # print("stripe_survive_prob: {}".format(stripe_survive_prob))
 
     # count the number of stripes in the cluster
     num_stripes = total_drives * num_chunks_per_disk // n_net
 
     # compute the probability of any stripe failure
     dl_prob = 1 - stripe_survive_prob ** num_stripes
-    print("dl prob: \t{}\n".format(dl_prob))
+    # print("dl prob: \t{}\n".format(dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {} {}\n".format(
             k_net, p_net, k_local, p_local, total_drives, num_chunks_per_disk,
@@ -252,13 +252,13 @@ def burst_theory_mlec_cp_dp(k_net, p_net, k_local, p_local,
     survival_cases = mlec_cp_dp.survival_count(k_net, p_net, k_local, p_local, total_drives, drives_per_rack, drives_per_diskgroup, num_failed_disks, num_affected_racks)
 
     # print(mlec.survival_count_dic)
-    print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
+    # print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
     
     # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
-    print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
+    # print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
 
     dl_prob = 1 - Decimal(int(survival_cases))/Decimal(int(total_cases))
-    print("dl prob: \t{}\n".format(dl_prob))
+    # print("dl prob: \t{}\n".format(dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {}\n".format(
             k_net, p_net, k_local, p_local, total_drives,
@@ -280,13 +280,13 @@ def burst_theory_mlec_dp_cp(k_net, p_net, k_local, p_local,
                                     num_failed_disks, num_affected_racks)
 
     # print(mlec.survival_count_dic)
-    print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
+    # print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
     
     # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
-    print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
+    # print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
 
     dl_prob = 1 - Decimal(int(survival_cases))/Decimal(int(total_cases))
-    print("dl prob: \t{}\n".format(dl_prob))
+    # print("dl prob: \t{}\n".format(dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {}\n".format(
             k_net, p_net, k_local, p_local, total_drives,
@@ -306,13 +306,13 @@ def burst_theory_mlec_dp_dp(k_net, p_net, k_local, p_local,
                     num_racks, drives_per_rack, drives_per_diskgroup, num_failed_disks, num_affected_racks)
 
     # print(mlec.survival_count_dic)
-    print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
+    # print("num_failed_disks: {} num_affected_racks: {}".format(num_failed_disks, num_affected_racks))
     
     # print("total: {:.4E} survival: {:.4E} dl prob: {}".format(total, survival, dl_prob))
-    print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
+    # print("\ntotal: \t\t{} \nsurvival: \t{}".format(total_cases, survival_cases))
 
     dl_prob = 1 - Decimal(int(survival_cases))/Decimal(int(total_cases))
-    print("dl prob: \t{}\n".format(dl_prob))
+    # print("dl prob: \t{}\n".format(dl_prob))
     with open("s-burst-theory-{}.log".format(placement), "a") as output:
         output.write("({}+{})({}+{}) {} {} {} {}\n".format(
             k_net, p_net, k_local, p_local, total_drives,
