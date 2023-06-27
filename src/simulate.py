@@ -66,7 +66,12 @@ class Simulate:
         mytimer.resetStateInitTime += (state_reset_done_time - start_state_reset_time)
 
         
-        if failureGenerator.is_burst:
+        if self.sys.distribution == "catas_local_failure":
+            for diskId in range(self.sys.m+1):
+                heappush(self.failure_queue, (0.1, Disk.EVENT_FAIL, diskId))
+                self.sys.metrics.failure_count += 1
+
+        elif failureGenerator.is_burst:
             failures = failureGenerator.gen_failure_burst(self.sys.num_disks_per_rack, self.sys.num_racks)
             # failures = failureGenerator.gen_failure_burst(50, 50)
             for disk_fail_time, diskId in failures:

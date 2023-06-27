@@ -54,6 +54,7 @@ class NormalSim(Simulator):
             "repair_scheme": repair_scheme,
             "collect_fail_reports": True,
             "detection_time": detection_time,
+            "distribution": distribution,
             }
 
         failed_iters = 0
@@ -75,27 +76,33 @@ class NormalSim(Simulator):
             fail_reports += res[3]
             # print(metrics)
             simulationTime = time.time() - start
-            print("simulation time: {}".format(simulationTime))
-            print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
+            # print("simulation time: {}".format(simulationTime))
+            # print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
             # return None
+            if distribution == "catas_local_failure":
+                break
         
-        # print(fail_reports)
-        # print(metrics)
-        with open('fail_reports.log', 'w') as fout:
-            json.dump(fail_reports, fout)
+        if distribution == "catas_local_failure":
+            print("avg_net_traffic: {}".format(metrics.getAverageNetTraffic()))
+        else:
+            # print(fail_reports)
+            # print(metrics)
+            with open('fail_reports.log', 'w') as fout:
+                json.dump(fail_reports, fout)
 
-        total_iters *= mission/YEAR
+            total_iters *= mission/YEAR
 
-        # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
-        nines = str(round(-math.log10(failed_iters/total_iters),3))
-        sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
-        print("Num of Nine: " + nines)
-        print("error sigma: " + sigma)
+            # nn = str(round(-math.log10(res[0]/res[1]),2) - math.log10(factorial(l1args.parity_shards)))
+            nines = str(round(-math.log10(failed_iters/total_iters),3))
+            sigma = str(round(1/(math.log(10) * (failed_iters**0.5)),3))
+            print("Num of Nine: " + nines)
+            print("error sigma: " + sigma)
 
-        total_down_time = metrics.getAverageAggregateDownTime()
-        total_time = YEAR * total_drives
-        avail_nines = "NA" if total_down_time == 0 else str(round(-math.log10(total_down_time/total_time),3))
-        print("average aggregate down time: {}\navail_nines:{}".format(
-                    total_down_time, avail_nines))
+            # total_down_time = metrics.getAverageAggregateDownTime()
+            # total_time = YEAR * total_drives
+            # avail_nines = "NA" if total_down_time == 0 else str(round(-math.log10(total_down_time/total_time),3))
+            # print("average aggregate down time: {}\navail_nines:{}".format(
+            #             total_down_time, avail_nines))
+            
         
         return SimulationResult(failed_iters, int(total_iters), metrics)
