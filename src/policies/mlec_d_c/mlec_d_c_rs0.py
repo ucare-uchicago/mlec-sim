@@ -312,6 +312,8 @@ class MLEC_D_C_RS0(Policy):
             priority_percent = spool.priority_percents[priority]
             spool.curr_repair_data_remaining = spool.total_network_repair_data * priority_percent
             spool.curr_prio_repair_started = True
+            if self.sys.distribution == "catas_local_failure":
+                self.sys.metrics.total_net_traffic += spool.curr_repair_data_remaining * (self.sys.top_k + 1)
         repair_time = self.calc_spool_repair_time(spool, priority)
         spool.repair_time[priority] = repair_time / 3600 / 24
         spool.repair_start_time = self.state.curr_time

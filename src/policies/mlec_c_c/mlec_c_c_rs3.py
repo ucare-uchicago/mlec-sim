@@ -306,6 +306,8 @@ class MLEC_C_C_RS3(Policy):
         if repaired_time == 0:            
             repaired_percent = 0
             spool.curr_repair_data_remaining = spool.repair_data
+            if self.sys.distribution == "catas_local_failure":
+                self.sys.metrics.total_net_traffic += spool.curr_repair_data_remaining * (self.sys.top_k + 1)
         else:
             repaired_percent = repaired_time / spool.repair_time[0]
             spool.curr_repair_data_remaining = spool.curr_repair_data_remaining * (1 - repaired_percent)
