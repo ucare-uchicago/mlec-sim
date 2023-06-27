@@ -49,6 +49,11 @@ class MLEC_C_D_RS2(Policy):
             if len(spool.failed_disks) == 0:
                 self.affected_spools.pop(disk.spoolId, None)
                 self.mpools[spool.mpoolId].affected_spools.pop(disk.spoolId, None)
+            if self.sys.distribution == "catas_local_failure":
+                if disk.local_repair_after_net:
+                    disk.local_repair_after_net = False
+                    self.sys.metrics.total_local_repair_time += (self.curr_time - disk.net_repair_finish_time)*24*3600
+                    self.sys.metrics.total_local_repair_count += 1
             
         if event_type == Disk.EVENT_FAIL:
             disk.state = Disk.STATE_FAILED
@@ -287,6 +292,10 @@ class MLEC_C_D_RS2(Policy):
                 failedDisk.repair_start_time = self.curr_time
                 failedDisk.curr_prio_repair_started = False
                 self.resume_repair_time (failedDiskId, failedDisk.priority, spool)
+                if self.sys.distribution == "catas_local_failure":
+                    failedDisk.local_repair_after_net = True
+                    failedDisk.net_repair_finish_time = self.curr_time
+                    
             spool.disk_repair_max_priority = self.sys.m
             spool.disk_max_priority = self.sys.m
 
@@ -415,6 +424,8 @@ class MLEC_C_D_RS2(Policy):
             spool.curr_repair_data_remaining = spool.curr_repair_data_remaining * (1 - repaired_percent)
     
         repair_time = float(spool.curr_repair_data_remaining)/(mpool.repair_rate)
+        if self.sys.distribution == "catas_local_failure":
+            self.sys.metrics.total_net_repair_time += repair_time
             
         spool.repair_time[0] = repair_time / 3600 / 24
         spool.repair_start_time = self.curr_time

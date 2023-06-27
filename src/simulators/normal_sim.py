@@ -84,6 +84,9 @@ class NormalSim(Simulator):
         
         if distribution == "catas_local_failure":
             print("avg_net_traffic: {}".format(metrics.getAverageNetTraffic()))
+            print("avg_net_repair_time: {}".format(metrics.getAvgNetRepairTime()))
+            print("avg_local_repair_time: {}".format(metrics.getAvgLocalRepairTime()))
+            print(metrics.total_local_repair_count)
         else:
             # print(fail_reports)
             # print(metrics)

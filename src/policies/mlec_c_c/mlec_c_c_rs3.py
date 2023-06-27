@@ -201,6 +201,9 @@ class MLEC_C_C_RS3(Policy):
                 failed_disk.repair_time[0] = repair_time / 3600 / 24
                 failed_disk.repair_start_time = self.curr_time
                 failed_disk.estimate_repair_time = self.curr_time + failed_disk.repair_time[0]
+                if self.sys.distribution == "catas_local_failure":
+                    self.sys.metrics.total_local_repair_time += repair_time
+                    self.sys.metrics.total_local_repair_count += 1
             
             
             # we only repair 1 disk via network parity.
@@ -313,6 +316,8 @@ class MLEC_C_C_RS3(Policy):
             spool.curr_repair_data_remaining = spool.curr_repair_data_remaining * (1 - repaired_percent)
     
         repair_time = float(spool.curr_repair_data_remaining)/(mpool.repair_rate)
+        if self.sys.distribution == "catas_local_failure":
+            self.sys.metrics.total_net_repair_time += repair_time
             
         spool.repair_time[0] = repair_time / 3600 / 24
         spool.repair_start_time = self.curr_time

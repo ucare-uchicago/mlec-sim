@@ -7,6 +7,8 @@ class Metrics:
         self.failure_count = 0
         self.iter_count = 0
         self.total_rebuild_time = 0.0
+        self.total_local_repair_time = 0.0
+        self.total_local_repair_count = 0
         self.total_net_repair_time = 0.0
         self.total_net_repair_count = 0
         self.total_delayed_disks = 0
@@ -21,6 +23,8 @@ class Metrics:
         res.iter_count = self.iter_count + otherMetrics.iter_count
         res.failure_count = self.failure_count + otherMetrics.failure_count
         res.total_rebuild_time = self.total_rebuild_time + otherMetrics.total_rebuild_time
+        res.total_local_repair_time = self.total_local_repair_time + otherMetrics.total_local_repair_time
+        res.total_local_repair_count = self.total_local_repair_count + otherMetrics.total_local_repair_count
         res.total_net_repair_time = self.total_net_repair_time + otherMetrics.total_net_repair_time
         res.total_net_repair_count = self.total_net_repair_count + otherMetrics.total_net_repair_count
         res.total_delayed_disks = self.total_delayed_disks + otherMetrics.total_delayed_disks
@@ -79,8 +83,14 @@ class Metrics:
     def getAverageNetTraffic(self):
         return self.total_net_traffic / (kilo*kilo) / self.iter_count
     
+    def getAvgLocalRepairTime(self):
+        if self.total_local_repair_count == 0:
+            return 0
+        else:
+            return self.total_local_repair_time / 3600 / self.total_local_repair_count
+
     def getAvgNetRepairTime(self):
-        return self.total_net_repair_time / self.total_net_repair_count
+        return self.total_net_repair_time / 3600 / self.iter_count
     
     def getAverageRebuildTime(self):
         return self.total_rebuild_time / self.iter_count

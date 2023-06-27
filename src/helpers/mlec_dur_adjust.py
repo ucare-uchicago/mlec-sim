@@ -42,4 +42,8 @@ total_net_stripes = num_chunks_per_drive*total_drives/((k_local+p_local)*(k_net+
 
 prob_survival = (1-prob_net_stripe_lost) ** total_net_stripes
 
+nines_adjustment = round(-math.log10(1-prob_survival),3)
+
+print(nines_adjustment)
+
 

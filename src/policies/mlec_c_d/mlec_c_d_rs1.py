@@ -378,6 +378,8 @@ class MLEC_C_D_RS1(Policy):
             spool.curr_repair_data_remaining = spool.curr_repair_data_remaining * (1 - repaired_percent)
     
         repair_time = float(spool.curr_repair_data_remaining)/(mpool.repair_rate)
+        if self.sys.distribution == "catas_local_failure":
+            self.sys.metrics.total_net_repair_time += repair_time
             
         spool.repair_time[0] = repair_time / 3600 / 24
         spool.repair_start_time = self.curr_time

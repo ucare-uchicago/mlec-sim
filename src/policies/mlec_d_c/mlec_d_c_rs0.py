@@ -315,6 +315,9 @@ class MLEC_D_C_RS0(Policy):
             if self.sys.distribution == "catas_local_failure":
                 self.sys.metrics.total_net_traffic += spool.curr_repair_data_remaining * (self.sys.top_k + 1)
         repair_time = self.calc_spool_repair_time(spool, priority)
+        if self.sys.distribution == "catas_local_failure":
+            self.sys.metrics.total_net_repair_time += repair_time
+            
         spool.repair_time[priority] = repair_time / 3600 / 24
         spool.repair_start_time = self.state.curr_time
         spool.estimate_repair_time = self.state.curr_time + spool.repair_time[priority]

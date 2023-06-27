@@ -71,7 +71,10 @@ class Disk:
         #-------------------------------
         # metrics
         # ----
-        self.metric_down_start_time = 0 
+        self.metric_down_start_time = 0
+        # 
+        self.local_repair_after_net: bool = False
+        self.net_repair_finish_time: float = 0.0
 
 
 
