@@ -3,7 +3,7 @@
 A simulator to simulate how different erasure coding approaches behaves against disk failures in storage systems
 and analyze their performance including durability, rebuild IO, network traffic, availability etc.
 
-An artifact for our paper is provided in Chameleon Trovi at https://chameleoncloud.org/experiment/share/6bec6d21-a9d3-42bc-ab2a-72f7bad62acc 
+An artifact for our paper is provided in Chameleon Trovi at https://www.chameleoncloud.org/experiment/share/7a309c34-482b-4eac-b234-bbe4334830f2
 
 ## High level logic
 1. Generate failure times (following a specific distribution e.g. exponential distribution) for all the drives in the system
