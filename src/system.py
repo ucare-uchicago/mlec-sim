@@ -68,7 +68,7 @@ class System:
         if place_type in [PlacementType.MLEC_C_C, PlacementType.MLEC_D_C, PlacementType.SLEC_LOCAL_CP]:
             self.spool_size = self.n
             self.num_spools = self.num_disks // self.spool_size
-        elif place_type in [PlacementType.MLEC_C_D, PlacementType.MLEC_D_D, PlacementType.SLEC_LOCAL_DP]:
+        elif place_type in [PlacementType.MLEC_C_D, PlacementType.MLEC_D_D, PlacementType.SLEC_LOCAL_DP, PlacementType.SLEC_LOCAL_SODP]:
             self.spool_size = spool_size
             self.num_spools = self.num_disks // self.spool_size
         self.spools: List[Spool] = []

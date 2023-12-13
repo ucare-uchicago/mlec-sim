@@ -7,6 +7,7 @@ from .mlec_c_c.layout import mlec_c_c_layout
 from .mlec_c_d.layout import mlec_c_d_layout
 from .mlec_d_c.layout import mlec_d_c_layout
 from .mlec_d_d.layout import mlec_d_d_layout
+from .slec_local_sodp.layout import slec_local_sodp_layout
 
 from policies.slec_local_cp.slec_local_cp_rs0 import SLEC_LOCAL_CP_RS0
 from policies.slec_local_cp.slec_local_cp_rs1 import SLEC_LOCAL_CP_RS1
@@ -32,6 +33,8 @@ from policies.mlec_d_d.mlec_d_d_rs0 import MLEC_D_D_RS0
 from policies.mlec_d_d.mlec_d_d_rs1 import MLEC_D_D_RS1
 from policies.mlec_d_d.mlec_d_d_rs2 import MLEC_D_D_RS2
 from policies.mlec_d_d.mlec_d_d_rs3 import MLEC_D_D_RS3
+from policies.slec_local_sodp.slec_local_sodp import SLEC_LOCAL_SODP
+
 
 from constants.PlacementType import PlacementType
 
@@ -55,6 +58,8 @@ def config_system_layout(placement: PlacementType, system):
         mlec_d_c_layout(system)
     elif placement == PlacementType.MLEC_D_D:
         mlec_d_d_layout(system)
+    elif placement == PlacementType.SLEC_LOCAL_SODP:
+        slec_local_sodp_layout(system)
     else:
         print("???")
         raise NotImplementedError("Cannot recognize the placement type")
@@ -117,3 +122,6 @@ def get_policy(placement: PlacementType, state):
             return MLEC_D_D_RS2(state)
         if state.sys.repair_scheme == 3:
             return MLEC_D_D_RS3(state)
+    
+    elif placement == PlacementType.SLEC_LOCAL_SODP:
+        return SLEC_LOCAL_SODP(state)

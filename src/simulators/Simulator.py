@@ -24,9 +24,11 @@ from util import wait_futures
 
 class Simulator:
     
-    def simulate(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net,
-                total_drives, drives_per_rack, placement, distribution, concur, epoch, iters, spool_size, repair_scheme, detection_time,
-                num_local_fail_to_report, num_net_fail_to_report, prev_fail_reports_filename) -> SimulationResult:
+    def simulate(self, afr, io_speed, intrarack_speed, interrack_speed, cap, adapt, k_local, p_local, k_net, p_net, 
+                 total_drives, drives_per_rack, placement, distribution, concur, epoch, iters,
+                 infinite_chunks=True, chunksize=128, spool_size=-1, repair_scheme=0, detection_time=0,
+                 num_local_fail_to_report=0, num_net_fail_to_report=0, prev_fail_reports_filename=None, 
+                 manual_spool_fail=False) -> SimulationResult:
         raise NotImplementedError("simulate() not implemented")
 
     def iter(self, afr, iters, mission, prev_fail_reports_filename=None, manual_spool_fail=False, **sys_kwargs):

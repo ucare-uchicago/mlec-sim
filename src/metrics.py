@@ -15,6 +15,8 @@ class Metrics:
         self.total_net_bandwidth_replenish_time = 0
         self.disks_aggregate_down_time = 0
         self.count=0
+        self.total_critical_repair_time = 0.0
+        self.total_critical_repair_count = 0
 
     def __add__(self, otherMetrics):
         res = Metrics()
@@ -31,6 +33,8 @@ class Metrics:
         res.total_net_bandwidth_replenish_time = self.total_net_bandwidth_replenish_time + otherMetrics.total_net_bandwidth_replenish_time
         res.disks_aggregate_down_time = self.disks_aggregate_down_time + otherMetrics.disks_aggregate_down_time
         res.count = self.count + otherMetrics.count
+        res.total_critical_repair_time = self.total_critical_repair_time + otherMetrics.total_critical_repair_time
+        res.total_critical_repair_count = self.total_critical_repair_count + otherMetrics.total_critical_repair_count
         return res
 
     def __str__(self):
@@ -97,3 +101,9 @@ class Metrics:
     
     def getAverageAggregateDownTime(self):
         return self.disks_aggregate_down_time / self.iter_count
+    
+    def getAverageCriticalRepairTime(self):
+        if self.total_critical_repair_count == 0:
+            return 0
+        else:
+            return self.total_critical_repair_time / self.total_critical_repair_count

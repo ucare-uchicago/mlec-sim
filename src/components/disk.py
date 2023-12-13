@@ -75,6 +75,12 @@ class Disk:
         # 
         self.local_repair_after_net: bool = False
         self.net_repair_finish_time: float = 0.0
+        #-------------------------------
+        # sodp
+        # ----
+        # Stripes sitting on this disk. The stripe id is globally unique
+        # Flat list of stripes on this disk
+        self.stripes = set()
 
 
 

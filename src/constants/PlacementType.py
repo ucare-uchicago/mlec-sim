@@ -12,6 +12,9 @@ class PlacementType(str, Enum):
     MLEC_C_D = 'MLEC_C_D'
     MLEC_D_C = "MLEC_D_C"
     MLEC_D_D = "MLEC_D_D"
+
+    # This is Greedy SODP (G-SODP). We don't implement O-SDOP because it does NOT work for all k and p
+    SLEC_LOCAL_SODP = 'SLEC_LOCAL_SODP'
     
     
 def parse_placement(str: str) -> PlacementType:
