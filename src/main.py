@@ -78,7 +78,7 @@ if __name__ == "__main__":
         drives_per_rack=k_local+p_local
     
     placement = parse_placement(args.placement)
-    if placement in [placement.SLEC_LOCAL_CP, placement.SLEC_LOCAL_DP]:
+    if placement in [placement.SLEC_LOCAL_CP, placement.SLEC_LOCAL_DP, placement.SLEC_LOCAL_SODP]:
         k_net = 1
         p_net = 0
         

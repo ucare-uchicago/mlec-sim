@@ -89,7 +89,7 @@ class ManualFailSim(Simulator):
         # print(len(fail_reports))
         # print(metrics)
         sample_limit = 10000
-        if placement in [PlacementType.SLEC_LOCAL_CP, PlacementType.SLEC_LOCAL_DP]:
+        if placement in [PlacementType.SLEC_LOCAL_CP, PlacementType.SLEC_LOCAL_DP, PlacementType.SLEC_LOCAL_SODP]:
             if total_drives < 200:
                 sample_limit = 50000
             new_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(

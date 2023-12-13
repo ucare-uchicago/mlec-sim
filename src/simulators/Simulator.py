@@ -47,7 +47,7 @@ class Simulator:
 
             prev_fail_reports = None
             if prev_fail_reports_filename:
-                if sys.place_type in [PlacementType.SLEC_LOCAL_CP, PlacementType.SLEC_LOCAL_DP]:
+                if sys.place_type in [PlacementType.SLEC_LOCAL_CP, PlacementType.SLEC_LOCAL_DP, PlacementType.SLEC_LOCAL_SODP]:
                     prev_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
                                 sys.top_k, sys.top_m, sys.k, sys.m, sys.place_type, 
                                 sys.num_local_fail_to_report-1, sys.repair_scheme)
@@ -65,8 +65,11 @@ class Simulator:
                 sys.manual_spool_fail = True
                 if sys.place_type in [PlacementType.MLEC_C_C, PlacementType.MLEC_D_C]:
                     local_place = PlacementType.SLEC_LOCAL_CP
-                else:
+                elif sys.place_type in [PlacementType.MLEC_C_D, PlacementType.MLEC_D_D]:
                     local_place = PlacementType.SLEC_LOCAL_DP
+                else:
+                    print('unknown placement type')
+                    exit(0)
                 spool_samples_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
                         1, 0, sys.k, sys.m, local_place, sys.m+1, 0)
                 with open(spool_samples_filename, 'r') as f:
