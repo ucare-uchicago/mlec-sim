@@ -55,7 +55,8 @@ class Simulator:
                     prev_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f_rs{}.log'.format(
                                 sys.top_k, sys.top_m, sys.k, sys.m, sys.place_type, 
                                 sys.num_net_fail_to_report-1, sys.repair_scheme)
-                elif sys.place_type in [PlacementType.MLEC_C_C, PlacementType.MLEC_C_D, PlacementType.MLEC_D_C, PlacementType.MLEC_D_D]:
+                elif sys.place_type in [PlacementType.MLEC_C_C, PlacementType.MLEC_C_D, PlacementType.MLEC_D_C, PlacementType.MLEC_D_D,
+                                        PlacementType.MLEC_C_SODP, PlacementType.MLEC_D_SODP]:
                     prev_fail_reports_filename = 'fail_reports_{}+{}-{}+{}_{}_{}f{}f_rs{}.log'.format(
                                 sys.top_k, sys.top_m, sys.k, sys.m, sys.place_type, sys.num_net_fail_to_report-1,
                                 0, sys.repair_scheme)
@@ -67,6 +68,8 @@ class Simulator:
                     local_place = PlacementType.SLEC_LOCAL_CP
                 elif sys.place_type in [PlacementType.MLEC_C_D, PlacementType.MLEC_D_D]:
                     local_place = PlacementType.SLEC_LOCAL_DP
+                elif sys.place_type in [PlacementType.MLEC_C_SODP, PlacementType.MLEC_D_SODP]:
+                    local_place = PlacementType.SLEC_LOCAL_SODP
                 else:
                     print('unknown placement type')
                     exit(0)

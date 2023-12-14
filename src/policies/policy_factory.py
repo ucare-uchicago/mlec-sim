@@ -8,6 +8,8 @@ from .mlec_c_d.layout import mlec_c_d_layout
 from .mlec_d_c.layout import mlec_d_c_layout
 from .mlec_d_d.layout import mlec_d_d_layout
 from .slec_local_sodp.layout import slec_local_sodp_layout
+from .mlec_c_sodp.layout import mlec_c_sodp_layout
+from .mlec_d_sodp.layout import mlec_d_sodp_layout
 
 from policies.slec_local_cp.slec_local_cp_rs0 import SLEC_LOCAL_CP_RS0
 from policies.slec_local_cp.slec_local_cp_rs1 import SLEC_LOCAL_CP_RS1
@@ -37,6 +39,14 @@ from policies.slec_local_sodp.slec_local_sodp import SLEC_LOCAL_SODP
 
 
 from constants.PlacementType import PlacementType
+from policies.mlec_c_sodp.mlec_c_sodp_rs0 import MLEC_C_SODP_RS0
+from policies.mlec_c_sodp.mlec_c_sodp_rs1 import MLEC_C_SODP_RS1
+from policies.mlec_c_sodp.mlec_c_sodp_rs2 import MLEC_C_SODP_RS2
+from policies.mlec_c_sodp.mlec_c_sodp_rs3 import MLEC_C_SODP_RS3
+from policies.mlec_d_sodp.mlec_d_sodp_rs0 import MLEC_D_SODP_RS0
+from policies.mlec_d_sodp.mlec_d_sodp_rs1 import MLEC_D_SODP_RS1
+from policies.mlec_d_sodp.mlec_d_sodp_rs2 import MLEC_D_SODP_RS2
+from policies.mlec_d_sodp.mlec_d_sodp_rs3 import MLEC_D_SODP_RS3
 
 # Because system config happens before State initialization, cannot merge into Policy class
 def config_system_layout(placement: PlacementType, system):
@@ -60,6 +70,10 @@ def config_system_layout(placement: PlacementType, system):
         mlec_d_d_layout(system)
     elif placement == PlacementType.SLEC_LOCAL_SODP:
         slec_local_sodp_layout(system)
+    elif placement == PlacementType.MLEC_C_SODP:
+        mlec_c_sodp_layout(system)
+    elif placement == PlacementType.MLEC_D_SODP:
+        mlec_d_sodp_layout(system)
     else:
         print("???")
         raise NotImplementedError("Cannot recognize the placement type")
@@ -125,3 +139,21 @@ def get_policy(placement: PlacementType, state):
     
     elif placement == PlacementType.SLEC_LOCAL_SODP:
         return SLEC_LOCAL_SODP(state)
+    elif placement == PlacementType.MLEC_C_SODP:
+        if state.sys.repair_scheme == 0:
+            return MLEC_C_SODP_RS0(state)
+        elif state.sys.repair_scheme == 1:
+            return MLEC_C_SODP_RS1(state)
+        elif state.sys.repair_scheme == 2:
+            return MLEC_C_SODP_RS2(state)
+        elif state.sys.repair_scheme == 3:
+            return MLEC_C_SODP_RS3(state)
+    elif placement == PlacementType.MLEC_D_SODP:
+        if state.sys.repair_scheme == 0:
+            return MLEC_D_SODP_RS0(state)
+        if state.sys.repair_scheme == 1:
+            return MLEC_D_SODP_RS1(state)
+        if state.sys.repair_scheme == 2:
+            return MLEC_D_SODP_RS2(state)
+        if state.sys.repair_scheme == 3:
+            return MLEC_D_SODP_RS3(state)

@@ -76,7 +76,7 @@ class NormalSim(Simulator):
             fail_reports += res[3]
             # print(metrics)
             simulationTime = time.time() - start
-            # print("simulation time: {}".format(simulationTime))
+            print("simulation time: {}".format(simulationTime))
             # print("failed_iters: {}  total_iters: {}".format(failed_iters, total_iters))
             # return None
             if distribution == "catas_local_failure":
