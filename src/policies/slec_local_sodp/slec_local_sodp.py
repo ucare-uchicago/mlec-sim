@@ -17,6 +17,9 @@ class SLEC_LOCAL_SODP(Policy):
     #--------------------------------------
     def __init__(self, state):
         super().__init__(state)
+        # key is stripesetId, value is priority
+        self.affected_stripesets = {}
+        
         self.affected_spools = {}
         self.sys_failed = False
 
@@ -38,6 +41,8 @@ class SLEC_LOCAL_SODP(Policy):
             spool.failed_disks.pop(diskId, None)
             if len(spool.failed_disks) == 0:
                 self.affected_spools.pop(disk.spoolId, None)
+                spool.rebuild_width = 0
+                spool.next_repair_disk = -1
 
     #----------------------------------------------
     def update_disk_priority(self, event_type, diskId):
@@ -49,8 +54,8 @@ class SLEC_LOCAL_SODP(Policy):
             # calculate repairTime and update priority for decluster
             #-----------------------------------------------------
             if spool.disk_repair_max_priority > 0:
-                for dId in spool.disk_priority_queue[spool.disk_repair_max_priority]:
-                    self.pause_disk_repair_time(dId, spool.disk_repair_max_priority)
+                dId = spool.next_repair_disk
+                self.pause_disk_repair_time(dId, spool.disk_repair_max_priority)
             
 
             spool.disk_repair_max_priority = max(spool.disk_repair_max_priority, disk.priority)
@@ -62,38 +67,46 @@ class SLEC_LOCAL_SODP(Policy):
             disk.failure_detection_time = 0
             
             if spool.disk_repair_max_priority > 0:
-                for dId in spool.disk_priority_queue[spool.disk_repair_max_priority]:
-                    self.resume_repair_time(dId, spool.disk_repair_max_priority, spool)
+                dId = next(iter(spool.disk_priority_queue[spool.disk_repair_max_priority]))
+                spool.next_repair_disk = dId
+                self.resume_repair_time(dId, spool.disk_repair_max_priority, spool)
 
         if event_type == Disk.EVENT_FAIL:
             if spool.disk_repair_max_priority > 0:
-                for dId in spool.disk_priority_queue[spool.disk_repair_max_priority]:
-                    self.pause_disk_repair_time(dId, spool.disk_repair_max_priority)
+                dId = spool.next_repair_disk
+                self.pause_disk_repair_time(dId, spool.disk_repair_max_priority)
 
-            spool.disk_max_priority += 1
-            disk.priority = spool.disk_max_priority
+            disk_priority = 0
+            # print('disk.stripesets: {}'.format(disk.stripesets))
+            for stripesetId in disk.stripesets:
+                stripeset_prio = self.affected_stripesets.get(stripesetId, 0) + 1                    
+                self.affected_stripesets[stripesetId] = stripeset_prio
+                
+                disk_priority = max(disk_priority, stripeset_prio)
+                # print('stripeset_prio: {} disk_priority: {}'.format(stripeset_prio, disk_priority))
+            disk.priority = disk_priority
+            # print('disk.priority: {} disk_priority: {}'.format(disk.priority, disk_priority))
+
+            spool.disk_max_priority = max(spool.disk_max_priority, disk.priority)
 
             fail_num = len(spool.failed_disks)
             good_num = self.sys.spool_size - fail_num
             disk.good_num = good_num
             disk.fail_num = fail_num
-            self.compute_priority_percents(disk)
+            # self.compute_priority_percents(disk)
 
             disk.failure_detection_time = self.curr_time + self.sys.detection_time
             # logging.info("disk.failure_detection_time: {}".format(disk.failure_detection_time))
 
             if spool.disk_repair_max_priority > 0:
-                for dId in spool.disk_priority_queue[spool.disk_repair_max_priority]:
-                    self.resume_repair_time(dId, spool.disk_repair_max_priority, spool)
+                dId = next(iter(spool.disk_priority_queue[spool.disk_repair_max_priority]))
+                spool.next_repair_disk = dId
+                self.resume_repair_time(dId, spool.disk_repair_max_priority, spool)
             
             #----------------------------------------------
             if spool.disk_max_priority >= self.sys.num_local_fail_to_report:
                 self.sys_failed = True
                 sys_survive_prob = 0
-                if self.sys.num_local_fail_to_report > self.sys.m:
-                    sys_survive_prob = (1-disk.priority_percents[disk.priority])**self.sys.num_chunks_per_disk
-                    if sys_survive_prob > 0.1:
-                        print("sys_survive_prob is as large as {}.. Please report to Meng!".format(sys_survive_prob))
                 if self.sys.collect_fail_reports:
                     fail_report = {'curr_time': self.curr_time, 'disk_infos': [], 'trigger_disk': int(diskId)}
                     for failedDiskId in self.failed_disks:
@@ -119,61 +132,145 @@ class SLEC_LOCAL_SODP(Policy):
         if event_type == Disk.EVENT_FASTREBUILD or event_type == Disk.EVENT_REPAIR:
             curr_priority = disk.priority
             assert curr_priority == spool.disk_repair_max_priority, "repair disk priority is not spool disk repair max priority"
+            # if curr_priority not in disk.repair_time:
+            #     self.simulation.log.append('curr prioirity {} not in disk.repair_time'.format(curr_priority))
+            #     self.simulation.print_log()
             del disk.repair_time[curr_priority]
             del disk.priority_percents[curr_priority]
 
             spool.disk_priority_queue[curr_priority].pop(diskId, None)
-            for dId in spool.disk_priority_queue[curr_priority]:
-                self.pause_disk_repair_time(dId, curr_priority)
+            # self.pause_disk_repair_time(diskId, curr_priority)
             
+
+            updated_stripesets = set()
+            for stripesetId in disk.stripesets:
+                if stripesetId in self.affected_stripesets:
+                    if self.affected_stripesets[stripesetId] == curr_priority:
+                        self.affected_stripesets[stripesetId] -= 1
+                    if self.affected_stripesets[stripesetId] == 0:
+                        del self.affected_stripesets[stripesetId]
+                    updated_stripesets.add(stripesetId)
+            for dId in spool.failed_disks_undetected:
+                failedDisk = self.disks[dId]
+                if updated_stripesets & failedDisk.stripesets:
+                    failedDisk.priority = 0
+                    for stripesetId in failedDisk.stripesets:
+                        stripeset_prio = self.affected_stripesets.get(stripesetId, 0) + 1                    
+                        failedDisk.priority = max(failedDisk.priority, stripeset_prio)
+
             disk.priority -= 1
             if disk.priority > 0:
                 spool.disk_priority_queue[disk.priority][diskId] = 1
+
+            spool.disk_max_priority = 0
+            for dId in spool.failed_disks:
+                failedDisk = self.disks[dId]
+                spool.disk_max_priority = max(spool.disk_max_priority, failedDisk.priority)
+
 
             disk.repair_start_time = self.curr_time
             disk.curr_prio_repair_started = False
 
             if len(spool.disk_priority_queue[spool.disk_repair_max_priority]) == 0:
                 spool.disk_repair_max_priority -= 1
-                spool.disk_max_priority -= 1
-                for dId in spool.failed_disks_undetected:
-                    failedDisk = self.disks[dId]
-                    failedDisk.priority -= 1
-                    # TODO: improve percents computation. Add priority n+1' percents to 1?
-            
+
             if spool.disk_repair_max_priority > 0:
-                for dId in spool.disk_priority_queue[spool.disk_repair_max_priority]:
-                    self.resume_repair_time(dId, spool.disk_repair_max_priority, spool)
+                dId = next(iter(spool.disk_priority_queue[spool.disk_repair_max_priority]))
+                spool.next_repair_disk = dId
+                self.resume_repair_time(dId, spool.disk_repair_max_priority, spool)
 
 
-    def compute_priority_percents(self, disk):
-        good_num = disk.good_num
-        fail_num = disk.fail_num
-        for i in range(disk.priority):
-            priority = i+1
-            priority_sets = math.comb(good_num, self.sys.n-priority)*math.comb(fail_num-1, priority-1)
-            total_sets = math.comb((good_num+fail_num-1), (self.sys.n-1))
-            disk.priority_percents[priority] = float(priority_sets)/total_sets
+    def compute_priority_percents(self, failed_disk):
+        max_priority = failed_disk.priority
         
+        priority_num = {}
+
+        for priority in range(1, max_priority+1):
+            priority_num[priority] = 0
+
+        for stripesetId in failed_disk.stripesets:
+            if stripesetId in self.affected_stripesets:
+                priority = self.affected_stripesets[stripesetId]
+                priority_num[priority] += 1
+        
+        for priority in range(1, max_priority+1):
+            failed_disk.priority_percents[priority] = priority_num[priority] / len(failed_disk.stripesets)
+        
+        # logging.info("    Priority percent is {}".format(failed_disk.priority_percents))
+        return failed_disk.priority_percents[max_priority]
+
     def pause_disk_repair_time(self, diskId, priority):
         disk = self.state.disks[diskId]
         repaired_time = self.state.curr_time - disk.repair_start_time
+        # if priority not in disk.repair_time:
+        #     self.simulation.log.append('disk {}. repair time: {}  priority {} not in'.format(
+        #         diskId, disk.repair_time, priority
+        #     ))
+        #     self.simulation.print_log()
         repaired_percent = repaired_time / disk.repair_time[priority]
         disk.curr_repair_data_remaining = disk.curr_repair_data_remaining * (1 - repaired_percent)
     
+
+    # def update_rebuild_width(self, spool):
+    #     rebuild_width = 0
+    #     read_disks = set()
+    #     for repairDiskId in spool.disk_priority_queue[spool.disk_repair_max_priority]:
+    #         repairDisk = self.disks[repairDiskId]
+    #         for stripesetId in repairDisk.stripesets:
+    #             if self.affected_stripesets.get(stripesetId, 0) == spool.disk_repair_max_priority:
+    #                 for availDiskId in self.sys.stripesets[stripesetId]:
+    #                     availDisk = self.disks[availDiskId]
+    #                     if availDisk.state == Disk.STATE_NORMAL:
+    #                         read_disks.add(availDiskId)
+    #     rebuild_width = len(read_disks) / self.sys.k * (self.sys.k + 1)
+    #     rebuild_width = min(rebuild_width, self.sys.spool_size - len(spool.failed_disks))
+    #     spool.rebuild_width = rebuild_width
+    #     if spool.rebuild_width == 0:
+    #         for dId in spool.failed_disks:
+    #             disk = self.disks[dId]
+    #             self.simulation.log.append('did: {} prioirty: {} stripesets: {}'.format(
+    #                     dId, disk.priority, disk.stripesets))
+    #         self.simulation.log.append('self.affected_stripesets: {}'.format(self.affected_stripesets))
+    #         self.simulation.log.append('spool.disk_repair_max_priority: {}  rebuild_width: {}'.format(
+    #                 spool.disk_repair_max_priority, rebuild_width))
+    #         self.simulation.print_log()
+    #     assert spool.rebuild_width > 0
+    #     logging.info('rebuild_width: {}'.format(rebuild_width))
+
     def resume_repair_time(self, diskId, priority, spool):
         disk = self.disks[diskId]
         if not disk.curr_prio_repair_started:
+            self.compute_priority_percents(disk)
             priority_percent = disk.priority_percents[priority]
             disk.curr_repair_data_remaining = disk.repair_data * priority_percent
             disk.curr_prio_repair_started = True
-        good_num = self.sys.spool_size - len(spool.failed_disks)
-        repair_time = disk.curr_repair_data_remaining * (self.sys.k+1) / (self.sys.diskIO * good_num / len(spool.disk_priority_queue[priority]))
+        
+        avail_disks = set()
+        for stripesetId in disk.stripesets:
+            if stripesetId in self.affected_stripesets:
+                if self.affected_stripesets[stripesetId] == priority:
+                    for availDiskId in self.sys.stripesets[stripesetId]:
+                        if self.disks[availDiskId].state == Disk.STATE_NORMAL:
+                            avail_disks.add(availDiskId)
+        rebuild_width = len(avail_disks) / self.sys.k * (self.sys.k + 1)
+        rebuild_width = min(rebuild_width, self.sys.spool_size - len(spool.failed_disks))
+
+        if rebuild_width == 0 or disk.curr_repair_data_remaining == 0:
+            repair_time = 0
+        else:
+            repair_time = disk.curr_repair_data_remaining * (self.sys.k+1) / (self.sys.diskIO * rebuild_width / len(spool.disk_priority_queue[priority]))
+ 
+        
         disk.repair_time[priority] = repair_time / 3600 / 24
         disk.repair_start_time = self.state.curr_time
         disk.estimate_repair_time = self.state.curr_time + disk.repair_time[priority]
 
-        # logging.info("repair time: {}".format(disk.repair_time[priority]))
+        # self.simulation.log.append(' resume_repair_time. disk {} repair time: {}'.format(
+        #     diskId, disk.repair_time
+        # ))
+
+        # logging.info("curr_repair_data_remaining: {} repair time: {}".format(
+        #     disk.curr_repair_data_remaining, disk.repair_time[priority]))
 
 
 
@@ -204,6 +301,7 @@ class SLEC_LOCAL_SODP(Policy):
             spool.failed_disks_undetected.clear()
             spool.disk_repair_max_priority = 0
             spool.disk_max_priority = 0
+            spool.rebuild_width = 0
             for i in range(self.sys.m + 1):
                 spool.disk_priority_queue[i + 1].clear()
     

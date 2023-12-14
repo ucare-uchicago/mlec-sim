@@ -78,9 +78,8 @@ class Disk:
         #-------------------------------
         # sodp
         # ----
-        # Stripes sitting on this disk. The stripe id is globally unique
-        # Flat list of stripes on this disk
-        self.stripes = set()
+        # Stripesets sitting on this disk. The stripeset id is globally unique
+        self.stripesets = set()
 
 
 

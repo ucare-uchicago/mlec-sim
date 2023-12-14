@@ -68,3 +68,5 @@ class Spool:
         #
         # self.good_num: int = 0
         # self.fail_num: int = 0
+        self.rebuild_width = 0
+        self.next_repair_disk = -1

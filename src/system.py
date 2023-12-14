@@ -128,6 +128,8 @@ class System:
         self.manual_spool_fail = False
         self.spool_samples = []
 
+        self.stripesets = {}
+
         self.distribution = distribution
         # ---
         config_system_layout(self.place_type, self)
